@@ -1,0 +1,181 @@
+// Every collectable / craftable item in the game
+export const ITEMS = {
+  // ── Raw scrap ──
+  iron_scrap: {
+    name: 'Iron Scrap',
+    icon: '🔩',
+    desc: "Someone's dream, now your material.",
+    category: 'material',
+    stackSize: 64,
+  },
+  copper_wire: {
+    name: 'Copper Wire',
+    icon: '🪢',
+    desc: 'Spaghetti junction. Handle with care (it bites).',
+    category: 'material',
+    stackSize: 64,
+  },
+  rubber_chunk: {
+    name: 'Rubber Chunk',
+    icon: '⬛',
+    desc: "Smells like 1987. Don't ask.",
+    category: 'material',
+    stackSize: 32,
+  },
+  gear_small: {
+    name: 'Small Gear',
+    icon: '⚙️',
+    desc: 'Once turned something important. Now turns the tables.',
+    category: 'material',
+    stackSize: 32,
+  },
+  circuit_board: {
+    name: 'Circuit Board',
+    icon: '🟢',
+    desc: 'Pre-loved electronics. The magic smoke is still inside.',
+    category: 'material',
+    stackSize: 16,
+  },
+  fuel_can: {
+    name: 'Fuel Can',
+    icon: '🛢️',
+    desc: "Don't sniff it. (Earl already tried.)",
+    category: 'material',
+    stackSize: 16,
+  },
+  wood_plank: {
+    name: 'Wood Plank',
+    icon: '🪵',
+    desc: 'Held up a roof once. Now holds up your ambitions.',
+    category: 'material',
+    stackSize: 32,
+  },
+  glass_shard: {
+    name: 'Glass Shard',
+    icon: '💎',
+    desc: "Half a windshield. Half a window. Half a good time.",
+    category: 'material',
+    stackSize: 32,
+  },
+  spring: {
+    name: 'Spring',
+    icon: '🌀',
+    desc: 'Coiled potential. Like Earl after his third coffee.',
+    category: 'material',
+    stackSize: 32,
+  },
+  battery_dead: {
+    name: 'Dead Battery',
+    icon: '🔋',
+    desc: "It's not dead, it's resting.",
+    category: 'material',
+    stackSize: 16,
+  },
+
+  // ── Tools ──
+  wrench: {
+    name: 'Wrench',
+    icon: '🔧',
+    desc: 'The answer to most questions out here.',
+    category: 'tool',
+    stackSize: 1,
+    tool: true,
+    unlocks: 'mechanical',
+  },
+  hammer: {
+    name: 'Hammer',
+    icon: '🔨',
+    desc: "If in doubt, whack it. Earl's philosophy in one sentence.",
+    category: 'tool',
+    stackSize: 1,
+    tool: true,
+    unlocks: 'structure',
+  },
+  blowtorch: {
+    name: 'Blowtorch',
+    icon: '🔥',
+    desc: 'Welding? Sure. Lighting campfires? Absolutely. Making enemies? Definitely.',
+    category: 'tool',
+    stackSize: 1,
+    tool: true,
+    unlocks: 'welding',
+  },
+  pliers: {
+    name: 'Pliers',
+    icon: '✂️',
+    desc: 'Good for wire. Better for awkward conversations.',
+    category: 'tool',
+    stackSize: 1,
+    tool: true,
+    unlocks: 'electrical',
+  },
+
+  // ── Crafted devices ──
+  pipe_cannon: {
+    name: 'Pipe Cannon',
+    icon: '💨',
+    desc: 'OSHA would like a word. Several words, actually.',
+    category: 'device',
+    stackSize: 1,
+  },
+  generator: {
+    name: 'Generator',
+    icon: '⚡',
+    desc: 'She hums like a dream and smells like a nightmare.',
+    category: 'device',
+    stackSize: 1,
+  },
+  robot_arm: {
+    name: 'Robot Arm',
+    icon: '🦾',
+    desc: 'Articulated. Ambitious. Occasionally rebellious.',
+    category: 'device',
+    stackSize: 4,
+  },
+  go_kart: {
+    name: 'Go-Kart',
+    icon: '🏎️',
+    desc: "Zero to 'Oh No' in 2.3 seconds.",
+    category: 'vehicle',
+    stackSize: 1,
+  },
+  robot_helper: {
+    name: 'Scrap Bot',
+    icon: '🤖',
+    desc: 'Helpful. Loyal. Only catches fire sometimes.',
+    category: 'companion',
+    stackSize: 1,
+  },
+  radio_beacon: {
+    name: 'Radio Beacon',
+    icon: '📡',
+    desc: "Calls Earl from anywhere in the yard. He'll be grumpy about it.",
+    category: 'device',
+    stackSize: 1,
+  },
+  spring_boots: {
+    name: 'Spring Boots',
+    icon: '👟',
+    desc: 'BOING. The only review they need.',
+    category: 'wearable',
+    stackSize: 1,
+  },
+  battery_pack: {
+    name: 'Battery Pack',
+    icon: '🔋',
+    desc: 'Jumper cables sold separately. Or just shock yourself.',
+    category: 'device',
+    stackSize: 4,
+  },
+  flying_machine: {
+    name: 'Flying Machine',
+    icon: '✈️',
+    desc: "Earl said it couldn't be done. Earl is wrong sometimes.",
+    category: 'vehicle',
+    stackSize: 1,
+  },
+};
+
+export function getItem(id) {
+  return ITEMS[id] ?? null;
+}
