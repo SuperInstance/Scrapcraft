@@ -1,0 +1,211 @@
+/**
+ * 20 achievements — a mix of obvious milestones and secrets.
+ * Each has an emoji, punchy name, and Earl-flavored description.
+ */
+
+export const ACHIEVEMENT_LIST = [
+  {
+    id: 'first_blood',
+    icon: '🔩',
+    name: 'Hands In The Grease',
+    desc: 'Mine your first piece of scrap. The yard has officially claimed you.',
+    check: (s) => s.totalMined >= 1,
+  },
+  {
+    id: 'rust_whisperer',
+    icon: '🪛',
+    name: 'Rust Whisperer',
+    desc: 'Collect 50 iron scrap. You and rust are on a first-name basis now.',
+    check: (s) => (s.itemsCollected.iron_scrap ?? 0) >= 50,
+  },
+  {
+    id: 'wrench_wrangler',
+    icon: '🔧',
+    name: 'Wrench Wrangler',
+    desc: 'Craft your first wrench. The single most important tool. Earl approves.',
+    check: (s) => s.crafted.has('wrench'),
+  },
+  {
+    id: 'sparky',
+    icon: '⚡',
+    name: 'Sparky',
+    desc: "You built a generator. The yard has power. Don't blow it.",
+    check: (s) => s.crafted.has('generator'),
+  },
+  {
+    id: 'circuit_breaker',
+    icon: '🟢',
+    name: 'Circuit Breaker',
+    desc: 'Collect 10 circuit boards. You have a problem. A fun problem.',
+    check: (s) => (s.itemsCollected.circuit_board ?? 0) >= 10,
+  },
+  {
+    id: 'scrap_hoarder',
+    icon: '📦',
+    name: 'Scrap Hoarder',
+    desc: 'Fill your inventory to at least 80%. Some people call it hoarding. You call it planning.',
+    check: (s) => s.inventoryFill >= 0.8,
+  },
+  {
+    id: 'night_owl',
+    icon: '🌙',
+    name: 'Night Shift',
+    desc: 'Mine 5 blocks after dark. The yard feels different at night. Spookier.',
+    check: (s) => s.nightMines >= 5,
+  },
+  {
+    id: 'five_recipes',
+    icon: '📋',
+    name: 'Junior Engineer',
+    desc: 'Craft 5 different things. You are no longer completely useless.',
+    check: (s) => s.crafted.size >= 5,
+  },
+  {
+    id: 'robot_army',
+    icon: '🤖',
+    name: 'Not Alone Anymore',
+    desc: 'Build your first ScrapBot. Your robot buddy has opinions. So does Earl.',
+    check: (s) => s.crafted.has('robot_helper'),
+  },
+  {
+    id: 'need_for_speed',
+    icon: '🏎️',
+    name: 'Zero To Oh-No',
+    desc: "Craft the Go-Kart. Earl didn't set a speed limit. On purpose.",
+    check: (s) => s.crafted.has('go_kart'),
+  },
+  {
+    id: 'fire_starter',
+    icon: '🔥',
+    name: 'Fire Starter',
+    desc: 'Craft a Blowtorch. With great power comes great responsibility. And singed eyebrows.',
+    check: (s) => s.crafted.has('blowtorch'),
+  },
+  {
+    id: 'radio_star',
+    icon: '📡',
+    name: 'Can You Hear Me Now',
+    desc: "Build the Radio Beacon. Earl can hear you. He's pretending he can't.",
+    check: (s) => s.crafted.has('radio_beacon'),
+  },
+  {
+    id: 'spring_chicken',
+    icon: '👟',
+    name: 'Spring Chicken',
+    desc: 'Craft Spring Boots. BOING. The only review they need.',
+    check: (s) => s.crafted.has('spring_boots'),
+  },
+  {
+    id: 'ten_recipes',
+    icon: '🏆',
+    name: 'Senior Engineer',
+    desc: 'Craft 10 different things. Earl is reconsidering his retirement timeline.',
+    check: (s) => s.crafted.size >= 10,
+  },
+  {
+    id: 'cannons_out',
+    icon: '💨',
+    name: 'OSHA Nightmare',
+    desc: 'Build the Pipe Cannon. OSHA would like a word. Several words, actually.',
+    check: (s) => s.crafted.has('pipe_cannon'),
+  },
+  {
+    id: 'arm_day',
+    icon: '🦾',
+    name: 'Arm Day',
+    desc: 'Craft 4 Robot Arms. For what purpose? Only you know. Probably robots.',
+    check: (s) => (s.itemsCrafted.robot_arm ?? 0) >= 4,
+  },
+  {
+    id: 'king_of_the_yard',
+    icon: '👑',
+    name: 'King of the Yard',
+    desc: 'Complete all 5 of Earl\'s quests. The yard bows to you. Earl does not. But still.',
+    check: (s) => s.questsCompleted >= 5,
+  },
+  {
+    id: 'night_miner',
+    icon: '⛏️',
+    name: '100 Blocks Down',
+    desc: 'Mine 100 blocks total. The yard is starting to look different. That might be your fault.',
+    check: (s) => s.totalMined >= 100,
+  },
+  {
+    id: 'speed_crafter',
+    icon: '⚡',
+    name: 'Speed Round',
+    desc: 'Craft 3 items within 60 seconds. Efficiency! Earl clocked you. Secretly impressed.',
+    check: (s) => s.recentCrafts >= 3,
+  },
+  {
+    id: 'to_infinity',
+    icon: '✈️',
+    name: 'Earl Was Wrong',
+    desc: 'Build the Flying Machine. "I said it couldn\'t be done." — Earl, being wrong for once.',
+    check: (s) => s.crafted.has('flying_machine'),
+  },
+];
+
+export class Achievements {
+  constructor() {
+    this.unlocked = new Set();
+    this._listeners = [];
+    // Stats bag
+    this.stats = {
+      totalMined: 0,
+      nightMines: 0,
+      inventoryFill: 0,
+      crafted: new Set(),
+      itemsCollected: {},
+      itemsCrafted: {},
+      questsCompleted: 0,
+      recentCrafts: 0,
+      _recentTimer: 0,
+    };
+  }
+
+  on(event, fn) { this._listeners.push({ event, fn }); }
+  _emit(id) { this._listeners.forEach(l => l.event === 'unlock' && l.fn(id)); }
+
+  track(event, data = {}) {
+    const s = this.stats;
+    switch (event) {
+      case 'mine':
+        s.totalMined++;
+        if (data.isNight) s.nightMines++;
+        if (data.item) s.itemsCollected[data.item] = (s.itemsCollected[data.item] ?? 0) + 1;
+        break;
+      case 'craft':
+        s.crafted.add(data.id);
+        s.itemsCrafted[data.id] = (s.itemsCrafted[data.id] ?? 0) + 1;
+        s.recentCrafts++;
+        break;
+      case 'inventory':
+        s.inventoryFill = data.fill;
+        break;
+      case 'quest':
+        s.questsCompleted++;
+        break;
+    }
+    this._check();
+  }
+
+  tick(dt) {
+    const s = this.stats;
+    s._recentTimer += dt;
+    if (s._recentTimer > 60) { s._recentTimer = 0; s.recentCrafts = 0; }
+  }
+
+  _check() {
+    for (const ach of ACHIEVEMENT_LIST) {
+      if (!this.unlocked.has(ach.id) && ach.check(this.stats)) {
+        this.unlocked.add(ach.id);
+        this._emit(ach.id);
+      }
+    }
+  }
+
+  getAll() {
+    return ACHIEVEMENT_LIST.map(a => ({ ...a, done: this.unlocked.has(a.id) }));
+  }
+}

@@ -1,16 +1,14 @@
 import * as THREE from 'three';
 import { B, BLOCK_DEF } from './data/blocks.js';
-
-const CHUNK_SIZE = 16;
-const WORLD_H = 8; // max height
+import { buildTextures } from './TextureGen.js';
 
 export class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
     this._init();
+    this._textures = buildTextures();
     this._buildBlockMaterials();
-    this._instanceMeshes = new Map(); // blockId → InstancedMesh
-    this._pending = true;
+    this._instanceMeshes = new Map();
   }
 
   _init() {
@@ -18,7 +16,7 @@ export class Renderer {
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x8aabbb);
-    this.scene.fog = new THREE.Fog(0x8aabbb, 20, 80);
+    this.scene.fog = new THREE.Fog(0x8aabbb, 20, 90);
 
     this.camera = new THREE.PerspectiveCamera(70, w / h, 0.05, 200);
     this.camera.position.set(8, 3, 8);
@@ -29,28 +27,27 @@ export class Renderer {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    // Ambient
-    const ambient = new THREE.AmbientLight(0xffeedd, 0.6);
-    this.scene.add(ambient);
+    // Ambient — controlled by DayNight
+    this.ambientLight = new THREE.AmbientLight(0xffeedd, 0.6);
+    this.scene.add(this.ambientLight);
 
-    // Sun
-    const sun = new THREE.DirectionalLight(0xfff8e0, 1.2);
-    sun.position.set(30, 50, 20);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
-    sun.shadow.camera.near = 1;
-    sun.shadow.camera.far = 200;
-    sun.shadow.camera.left = -60;
-    sun.shadow.camera.right = 60;
-    sun.shadow.camera.top = 60;
-    sun.shadow.camera.bottom = -60;
-    this.scene.add(sun);
+    // Sun — controlled by DayNight
+    this.sunLight = new THREE.DirectionalLight(0xfff8e0, 1.2);
+    this.sunLight.position.set(30, 50, 20);
+    this.sunLight.castShadow = true;
+    this.sunLight.shadow.mapSize.set(1024, 1024);
+    this.sunLight.shadow.camera.near = 1;
+    this.sunLight.shadow.camera.far = 200;
+    this.sunLight.shadow.camera.left = -60;
+    this.sunLight.shadow.camera.right = 60;
+    this.sunLight.shadow.camera.top = 60;
+    this.sunLight.shadow.camera.bottom = -60;
+    this.scene.add(this.sunLight);
 
-    // Haze point lights for ambience
-    const fire1 = new THREE.PointLight(0xff5500, 2, 12);
-    fire1.position.set(10, 2, 10);
-    this.scene.add(fire1);
-    this._fireLights = [fire1];
+    // Persistent fire/forge atmosphere light
+    this._fireLight = new THREE.PointLight(0xff5500, 1.5, 14);
+    this._fireLight.position.set(14, 3, 8);
+    this.scene.add(this._fireLight);
 
     window.addEventListener('resize', () => {
       const w = window.innerWidth, h = window.innerHeight;
@@ -59,7 +56,6 @@ export class Renderer {
       this.renderer.setSize(w, h);
     });
 
-    // Crosshair raycaster
     this.raycaster = new THREE.Raycaster();
     this.raycaster.far = 6;
   }
@@ -67,30 +63,26 @@ export class Renderer {
   _buildBlockMaterials() {
     this._matCache = new Map();
     for (const [idStr, def] of Object.entries(BLOCK_DEF)) {
-      const mat = new THREE.MeshLambertMaterial({ color: def.color });
+      const id = Number(idStr);
+      const tex = this._textures.get(id);
+      const mat = new THREE.MeshLambertMaterial(tex ? { map: tex } : { color: def.color });
       if (def.emissive) {
         mat.emissive = new THREE.Color(def.emissive);
         mat.emissiveIntensity = def.emissiveIntensity ?? 0.3;
       }
-      this._matCache.set(Number(idStr), mat);
+      this._matCache.set(id, mat);
     }
   }
 
-  /**
-   * Rebuild all instanced meshes from world voxel data.
-   * world.blocks is a flat Uint8Array [x + z*W + y*W*D].
-   */
+  /** Full rebuild from world voxel data */
   rebuildMeshes(world) {
-    // Clear old
-    for (const mesh of this._instanceMeshes.values()) {
-      this.scene.remove(mesh);
-      mesh.geometry.dispose();
+    for (const entry of this._instanceMeshes.values()) {
+      this.scene.remove(entry.mesh);
+      entry.mesh.geometry.dispose();
     }
     this._instanceMeshes.clear();
 
     const W = world.width, D = world.depth, H = world.height;
-
-    // Count per block type
     const counts = new Map();
     for (let i = 0; i < world.blocks.length; i++) {
       const id = world.blocks[i];
@@ -98,7 +90,6 @@ export class Renderer {
       counts.set(id, (counts.get(id) ?? 0) + 1);
     }
 
-    // Build one InstancedMesh per block type
     const geo = new THREE.BoxGeometry(1, 1, 1);
     const dummy = new THREE.Object3D();
 
@@ -133,26 +124,25 @@ export class Renderer {
     }
   }
 
+  /** Returns {x,y,z,face} for the block under the crosshair, or null */
   getTargetBlock(world) {
     this.raycaster.setFromCamera({ x: 0, y: 0 }, this.camera);
     const meshes = [...this._instanceMeshes.values()].map(e => e.mesh);
     const hits = this.raycaster.intersectObjects(meshes);
     if (!hits.length) return null;
     const hit = hits[0];
-    // World position from hit
     const p = hit.point.clone().add(hit.face.normal.clone().multiplyScalar(-0.5));
-    const bx = Math.floor(p.x + 0.5);
-    const by = Math.floor(p.y + 0.5);
-    const bz = Math.floor(p.z + 0.5);
-    const norm = hit.face.normal.clone();
-    return { x: bx, y: by, z: bz, face: norm, point: hit.point };
+    return {
+      x: Math.round(p.x),
+      y: Math.round(p.y),
+      z: Math.round(p.z),
+      face: hit.face.normal.clone(),
+      point: hit.point,
+    };
   }
 
   tick(dt) {
-    // Flicker fire lights
-    for (const l of this._fireLights) {
-      l.intensity = 1.5 + Math.sin(Date.now() * 0.008) * 0.5 + Math.random() * 0.3;
-    }
+    this._fireLight.intensity = 1.2 + Math.sin(Date.now() * 0.008) * 0.4 + Math.random() * 0.2;
     this.renderer.render(this.scene, this.camera);
   }
 }
