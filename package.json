@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node src/maker/__tests__/run-tests.mjs"
   },
   "dependencies": {
     "three": "^0.168.0"
