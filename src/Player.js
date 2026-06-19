@@ -1,35 +1,30 @@
 import * as THREE from 'three';
-import { BLOCK_DEF } from './data/blocks.js';
-import { getItem } from './data/items.js';
 
-const SPEED = 5;
-const JUMP_VEL = 6;
-const GRAVITY = -16;
-const EYE_HEIGHT = 1.6;
-const PLAYER_RADIUS = 0.3;
+const SPEED      = 5.2;
+const JUMP_VEL   = 6.5;
+const GRAVITY    = -18;
+const EYE_HEIGHT = 1.62;
+const PLAYER_R   = 0.28;
+const FRICTION   = 0.12; // horizontal velocity lerp per second (higher = snappier)
 
 export class Player {
   constructor(camera, world) {
-    this.camera = camera;
-    this.world = world;
+    this.camera  = camera;
+    this.world   = world;
+    this.pos     = new THREE.Vector3(8, 2, 5);
+    this.vel     = new THREE.Vector3();
+    this.yaw     = 0;
+    this.pitch   = 0;
+    this.onGround= false;
 
-    this.pos = new THREE.Vector3(8, 2, 8);
-    this.vel = new THREE.Vector3();
-    this.yaw = 0;
-    this.pitch = 0;
-    this.onGround = false;
-
-    // Inventory: 36 slots { id, qty } | null
-    this.inventory = new Array(36).fill(null);
-    // Hotbar is slots 0-8
+    this.inventory   = new Array(36).fill(null);
     this.hotbarIndex = 0;
+    this.crafted     = new Set();
 
-    // Crafted items unlock tracker
-    this.crafted = new Set();
-
-    // Keys held
-    this._keys = {};
+    this._keys   = {};
     this._locked = false;
+    this._bobTime = 0;
+    this._landBob = 0; // extra downward squish on land
 
     this._bindInput();
   }
@@ -37,167 +32,136 @@ export class Player {
   _bindInput() {
     document.addEventListener('keydown', e => {
       this._keys[e.code] = true;
-      if (e.code === 'Space' && this.onGround) this.vel.y = JUMP_VEL;
-      // hotbar 1-9
-      if (e.code.startsWith('Digit')) {
-        const n = parseInt(e.code[5]) - 1;
-        if (n >= 0 && n <= 8) this.hotbarIndex = n;
+      if (e.code === 'Space' && this.onGround) {
+        this.vel.y = JUMP_VEL;
+        this.onGround = false;
       }
+      const n = parseInt(e.code[5]);
+      if (e.code.startsWith('Digit') && n >= 1 && n <= 9) this.hotbarIndex = n - 1;
     });
-    document.addEventListener('keyup', e => { this._keys[e.code] = false; });
+    document.addEventListener('keyup',  e => { this._keys[e.code] = false; });
 
     document.addEventListener('mousemove', e => {
       if (!this._locked) return;
-      this.yaw   -= e.movementX * 0.002;
-      this.pitch -= e.movementY * 0.002;
-      this.pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, this.pitch));
+      this.yaw   -= e.movementX * 0.0018;
+      this.pitch  = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01,
+        this.pitch - e.movementY * 0.0018));
     });
-
     document.addEventListener('pointerlockchange', () => {
       this._locked = !!document.pointerLockElement;
     });
   }
 
-  lock() { this.camera.domElement?.requestPointerLock?.(); }
-  unlock() { document.exitPointerLock?.(); }
+  get activeItem() { return this.inventory[this.hotbarIndex]; }
 
-  lockPointer() {
-    document.getElementById('game-canvas').requestPointerLock();
+  get isMoving() {
+    return this._locked && (
+      this._keys['KeyW'] || this._keys['KeyS'] ||
+      this._keys['KeyA'] || this._keys['KeyD']
+    );
   }
 
-  get activeItem() {
-    return this.inventory[this.hotbarIndex];
-  }
-
-  /** Add items to inventory. Returns leftover count. */
   addItem(id, qty = 1) {
-    const def = getItem(id);
-    const maxStack = def?.stackSize ?? 64;
-    let remaining = qty;
-
-    // Try to fill existing stacks first
-    for (let i = 0; i < this.inventory.length && remaining > 0; i++) {
-      const slot = this.inventory[i];
-      if (slot?.id === id && slot.qty < maxStack) {
-        const room = maxStack - slot.qty;
-        const take = Math.min(room, remaining);
-        slot.qty += take;
-        remaining -= take;
-      }
+    const { ITEMS } = require?.('./data/items.js') ?? { ITEMS: {} };
+    const maxStack = 64;
+    let rem = qty;
+    for (let i = 0; i < this.inventory.length && rem > 0; i++) {
+      const s = this.inventory[i];
+      if (s?.id === id && s.qty < maxStack) { const t = Math.min(maxStack - s.qty, rem); s.qty += t; rem -= t; }
     }
-    // Open slots
-    for (let i = 0; i < this.inventory.length && remaining > 0; i++) {
-      if (!this.inventory[i]) {
-        const take = Math.min(maxStack, remaining);
-        this.inventory[i] = { id, qty: take };
-        remaining -= take;
-      }
+    for (let i = 0; i < this.inventory.length && rem > 0; i++) {
+      if (!this.inventory[i]) { const t = Math.min(maxStack, rem); this.inventory[i] = { id, qty: t }; rem -= t; }
     }
-    return remaining; // leftover (inventory full)
+    return rem;
   }
 
-  /** Remove items. Returns true if successful. */
   removeItem(id, qty = 1) {
+    if (this.countItem(id) < qty) return false;
     let need = qty;
-    // Count available
-    const have = this.countItem(id);
-    if (have < need) return false;
     for (let i = this.inventory.length - 1; i >= 0 && need > 0; i--) {
-      const slot = this.inventory[i];
-      if (!slot || slot.id !== id) continue;
-      const take = Math.min(slot.qty, need);
-      slot.qty -= take;
-      need -= take;
-      if (slot.qty === 0) this.inventory[i] = null;
+      const s = this.inventory[i];
+      if (!s || s.id !== id) continue;
+      const t = Math.min(s.qty, need); s.qty -= t; need -= t;
+      if (s.qty === 0) this.inventory[i] = null;
     }
     return true;
   }
 
-  countItem(id) {
-    return this.inventory.reduce((s, slot) => s + (slot?.id === id ? slot.qty : 0), 0);
-  }
-
-  hasTool(toolId) {
-    return this.inventory.some(s => s?.id === toolId);
-  }
+  countItem(id) { return this.inventory.reduce((n, s) => n + (s?.id === id ? s.qty : 0), 0); }
+  hasTool(id)   { return this.inventory.some(s => s?.id === id); }
 
   tick(dt, world) {
     if (!this._locked) return;
 
-    // Movement direction relative to camera yaw
-    const forward = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
-    const right   = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
-    const move    = new THREE.Vector3();
+    const fwd   = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
+    const right = new THREE.Vector3( Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+    const want  = new THREE.Vector3();
 
-    if (this._keys['KeyW']) move.add(forward);
-    if (this._keys['KeyS']) move.sub(forward);
-    if (this._keys['KeyA']) move.sub(right);
-    if (this._keys['KeyD']) move.add(right);
-    if (move.lengthSq() > 0) move.normalize().multiplyScalar(SPEED);
+    if (this._keys['KeyW']) want.add(fwd);
+    if (this._keys['KeyS']) want.sub(fwd);
+    if (this._keys['KeyA']) want.sub(right);
+    if (this._keys['KeyD']) want.add(right);
+    if (want.lengthSq() > 0) want.normalize().multiplyScalar(SPEED);
+
+    // Smooth horizontal accel
+    this.vel.x = THREE.MathUtils.lerp(this.vel.x, want.x, Math.min(1, dt / FRICTION));
+    this.vel.z = THREE.MathUtils.lerp(this.vel.z, want.z, Math.min(1, dt / FRICTION));
 
     // Gravity
+    const wasGround = this.onGround;
     this.vel.y += GRAVITY * dt;
-    this.vel.x = move.x;
-    this.vel.z = move.z;
 
-    // Integrate position with simple AABB collision
     const newPos = this.pos.clone().addScaledVector(this.vel, dt);
     this._resolveCollision(newPos, world);
 
-    // Camera
+    // Landing bounce
+    if (!wasGround && this.onGround) this._landBob = -0.06;
+
+    // Camera bob
+    const moving = this.isMoving && this.onGround;
+    if (moving) {
+      this._bobTime += dt * 7.5;
+    } else {
+      this._bobTime = Math.round(this._bobTime / Math.PI) * Math.PI; // snap to rest
+    }
+    this._landBob = THREE.MathUtils.lerp(this._landBob, 0, dt * 12);
+    const bob = Math.sin(this._bobTime) * (moving ? 0.038 : 0) + this._landBob;
+
     const euler = new THREE.Euler(this.pitch, this.yaw, 0, 'YXZ');
     this.camera.quaternion.setFromEuler(euler);
-    this.camera.position.set(this.pos.x, this.pos.y + EYE_HEIGHT, this.pos.z);
+    this.camera.position.set(this.pos.x, this.pos.y + EYE_HEIGHT + bob, this.pos.z);
   }
 
   _resolveCollision(newPos, world) {
-    const R = PLAYER_RADIUS;
-    const H = 1.8;
-
-    // Test X
-    let testX = newPos.clone(); testX.x = newPos.x;
-    if (this._collidesBox(testX.x, this.pos.y, this.pos.z, R, H, world)) {
-      newPos.x = this.pos.x;
-      this.vel.x = 0;
+    const R = PLAYER_R, H = 1.8;
+    if (this._collidesBox(newPos.x, this.pos.y, this.pos.z, R, H, world)) {
+      newPos.x = this.pos.x; this.vel.x = 0;
     }
-    // Test Z
-    let testZ = newPos.clone();
     if (this._collidesBox(newPos.x, this.pos.y, newPos.z, R, H, world)) {
-      newPos.z = this.pos.z;
-      this.vel.z = 0;
+      newPos.z = this.pos.z; this.vel.z = 0;
     }
-    // Test Y
     if (this.vel.y < 0) {
-      // Falling – check ground
-      const groundY = Math.floor(newPos.y);
-      if (world.isSolidAt(newPos.x - R, groundY, newPos.z - R) ||
-          world.isSolidAt(newPos.x + R, groundY, newPos.z - R) ||
-          world.isSolidAt(newPos.x - R, groundY, newPos.z + R) ||
-          world.isSolidAt(newPos.x + R, groundY, newPos.z + R)) {
-        newPos.y = groundY + 1;
-        this.vel.y = 0;
-        this.onGround = true;
-      } else {
-        this.onGround = false;
-      }
+      const gy = Math.floor(newPos.y);
+      if (['x','z'].some(ax => [-R,R].some(d => {
+        const p = { x: newPos.x, z: newPos.z };
+        p[ax] += d;
+        return world.isSolidAt(p.x, gy, p.z);
+      }))) {
+        newPos.y = gy + 1; this.vel.y = 0; this.onGround = true;
+      } else { this.onGround = false; }
     } else if (this.vel.y > 0) {
       const headY = Math.ceil(newPos.y + H);
-      if (world.isSolidAt(newPos.x, headY, newPos.z)) {
-        newPos.y = headY - H - 0.01;
-        this.vel.y = 0;
-      }
+      if (world.isSolidAt(newPos.x, headY, newPos.z)) { newPos.y = headY - H - 0.01; this.vel.y = 0; }
       this.onGround = false;
     }
-
     this.pos.copy(newPos);
   }
 
   _collidesBox(x, y, z, R, H, world) {
     for (let cy = Math.floor(y); cy <= Math.floor(y + H); cy++) {
-      if (world.isSolidAt(x - R, cy, z - R)) return true;
-      if (world.isSolidAt(x + R, cy, z - R)) return true;
-      if (world.isSolidAt(x - R, cy, z + R)) return true;
-      if (world.isSolidAt(x + R, cy, z + R)) return true;
+      for (const [dx, dz] of [[-R,-R],[-R,R],[R,-R],[R,R]]) {
+        if (world.isSolidAt(x + dx, cy, z + dz)) return true;
+      }
     }
     return false;
   }

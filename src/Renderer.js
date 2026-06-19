@@ -58,6 +58,19 @@ export class Renderer {
 
     this.raycaster = new THREE.Raycaster();
     this.raycaster.far = 6;
+
+    // Block selection outline
+    const selGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.005, 1.005, 1.005));
+    const selMat = new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.55 });
+    this._selBox = new THREE.LineSegments(selGeo, selMat);
+    this._selBox.visible = false;
+    this.scene.add(this._selBox);
+    // Mining crack overlay (slightly dark transparent cube that grows darker)
+    const crackGeo = new THREE.BoxGeometry(1.02, 1.02, 1.02);
+    const crackMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0, depthWrite: false });
+    this._crackBox = new THREE.Mesh(crackGeo, crackMat);
+    this._crackBox.visible = false;
+    this.scene.add(this._crackBox);
   }
 
   _buildBlockMaterials() {
@@ -139,6 +152,24 @@ export class Renderer {
       face: hit.face.normal.clone(),
       point: hit.point,
     };
+  }
+
+  /** Show/hide the block selection outline + mining crack */
+  setTargetBlock(x, y, z, mineProgress = 0) {
+    if (x == null) {
+      this._selBox.visible = false;
+      this._crackBox.visible = false;
+    } else {
+      this._selBox.position.set(x, y, z);
+      this._selBox.visible = true;
+      if (mineProgress > 0) {
+        this._crackBox.position.set(x, y, z);
+        this._crackBox.visible = true;
+        this._crackBox.material.opacity = mineProgress * 0.45;
+      } else {
+        this._crackBox.visible = false;
+      }
+    }
   }
 
   tick(dt) {
