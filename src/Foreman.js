@@ -225,10 +225,11 @@ export class Foreman {
     const q = this._activeQuest;
     this.sayLine(q.rewardText);
     this.onEvent('quest_complete', {});
+    this.game.onQuestComplete?.();
 
     if (q.reward) {
       p.addItem(q.reward.item, q.reward.qty);
-      this.game.ui.notify(`Quest reward: ${q.reward.qty}x ${q.reward.item.replace(/_/g,' ')}`);
+      this.game.ui.notify(`Quest reward: ${q.reward.qty}× ${q.reward.item.replace(/_/g,' ')}`);
     }
 
     this._activeQuest = null;
