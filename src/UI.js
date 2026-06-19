@@ -95,7 +95,16 @@ export class UI {
     this._dismissTimer    = null;
     this._achieveQueue    = [];
     this._showingAchieve  = false;
-    this._activeTab       = 'crafting'; // 'crafting' | 'achievements' | 'codex'
+    this._activeTab       = 'crafting';
+    this._zoneToastTimer  = null;
+    this._paused          = false;
+
+    // Crosshair & mine ring elements
+    this._crosshair   = document.getElementById('crosshair');
+    this._mineArc     = document.getElementById('mine-arc');
+    this._pauseOverlay = document.getElementById('pause-overlay');
+    this._zoneToast   = document.getElementById('zone-toast');
+    this._activeLabel = document.getElementById('active-item-label');
 
     this._buildHotbar();
     this._buildCodex();
@@ -125,12 +134,53 @@ export class UI {
       slot.querySelector('.item-icon').textContent  = item ? (getItem(item.id)?.icon ?? '?') : '';
       slot.querySelector('.item-count').textContent = item?.qty > 1 ? item.qty : '';
     });
+    // Active item label above hotbar
+    const active = player.inventory[player.hotbarIndex];
+    if (this._activeLabel) {
+      const def = active ? getItem(active.id) : null;
+      this._activeLabel.textContent = def ? `${def.icon} ${def.name}` : '';
+      this._activeLabel.style.opacity = def ? '1' : '0';
+    }
+  }
+
+  // ── Crosshair state ───────────────────────────────────────────────────
+
+  setCrosshairState(moving, interactive, mineProgress) {
+    if (!this._crosshair) return;
+    this._crosshair.classList.toggle('ch-spread',      moving && mineProgress < 0.05);
+    this._crosshair.classList.toggle('ch-interactive', interactive);
+    this._crosshair.classList.toggle('ch-mining',      mineProgress > 0.02);
+  }
+
+  setMineProgress(p) {
+    if (!this._mineArc) return;
+    // stroke-dasharray circumference = 2*π*17 ≈ 106.8
+    const circ = 106.8;
+    this._mineArc.style.strokeDashoffset = `${circ * (1 - Math.min(1, p))}`;
+    this._mineArc.style.opacity = p > 0.01 ? '1' : '0';
+  }
+
+  // ── Pause overlay ─────────────────────────────────────────────────────
+
+  setPaused(paused) {
+    this._paused = paused;
+    if (this._pauseOverlay) {
+      this._pauseOverlay.style.display = paused ? 'flex' : 'none';
+    }
   }
 
   // ── Zone / Time HUD ──────────────────────────────────────────────────
 
   setZone(zone, timeLabel) {
     if (this._zoneLabel) this._zoneLabel.textContent = `${zone}  ·  ${timeLabel}`;
+  }
+
+  showZoneToast(name) {
+    if (!this._zoneToast) return;
+    this._zoneToast.textContent = `▶  ${name.toUpperCase()}`;
+    this._zoneToast.classList.add('show');
+    clearTimeout(this._zoneToastTimer);
+    this._zoneToastTimer = setTimeout(() => this._zoneToast.classList.remove('show'), 3000);
   }
 
   // ── Block label ───────────────────────────────────────────────────────

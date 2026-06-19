@@ -6,303 +6,400 @@
   <title>SCRAPCRAFT — Junk Never Looked So Good</title>
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#1a1a1a; overflow:hidden; font-family:'Courier New',monospace; }
+    body { background:#111; overflow:hidden; font-family:'Courier New',monospace; }
     #canvas-container { position:fixed; inset:0; }
     canvas { display:block; width:100%; height:100%; }
 
-    /* ── HUD ── */
+    /* ══ HUD ══════════════════════════════════════════════════════════════ */
     #hud { position:fixed; inset:0; pointer-events:none; user-select:none; }
 
+    /* ── Crosshair ── */
     #crosshair {
       position:absolute; top:50%; left:50%;
       transform:translate(-50%,-50%);
-      color:rgba(255,255,255,0.75); font-size:22px; font-weight:bold;
-      text-shadow:0 0 6px rgba(0,0,0,0.8);
+      width:0; height:0; /* invisible anchor */
+    }
+    .ch {
+      position:absolute;
+      background:rgba(255,255,255,0.88);
+      box-shadow: 0 0 3px rgba(0,0,0,0.9);
+      border-radius:1px;
+      transition: all 0.08s ease;
+    }
+    /* vertical bars */
+    .ch-t { width:2px; height:8px; left:-1px; top:-13px; }
+    .ch-b { width:2px; height:8px; left:-1px; top:5px; }
+    /* horizontal bars */
+    .ch-l { height:2px; width:8px; top:-1px; left:-13px; }
+    .ch-r { height:2px; width:8px; top:-1px; left:5px; }
+    /* center dot */
+    .ch-dot {
+      width:3px; height:3px; border-radius:50%;
+      background:rgba(255,255,255,0.9); box-shadow:0 0 2px rgba(0,0,0,0.9);
+      position:absolute; top:-1.5px; left:-1.5px;
     }
 
-    /* Zone + time */
+    /* Spread when moving */
+    #crosshair.ch-spread .ch-t { top:-17px; }
+    #crosshair.ch-spread .ch-b { top:9px; }
+    #crosshair.ch-spread .ch-l { left:-17px; }
+    #crosshair.ch-spread .ch-r { left:9px; }
+
+    /* Gold when targeting interactive block */
+    #crosshair.ch-interactive .ch { background:#f0b429; box-shadow:0 0 4px #f0b42966; }
+    #crosshair.ch-interactive .ch-dot { background:#f0b429; }
+
+    /* Contracted during mining */
+    #crosshair.ch-mining .ch-t { top:-10px; }
+    #crosshair.ch-mining .ch-b { top:8px; }
+    #crosshair.ch-mining .ch-l { left:-10px; }
+    #crosshair.ch-mining .ch-r { left:8px; }
+
+    /* Mining ring SVG */
+    #mine-ring {
+      position:absolute; top:-25px; left:-25px;
+      pointer-events:none;
+    }
+    #mine-arc {
+      stroke-dasharray:106.8;
+      stroke-dashoffset:106.8;
+      opacity:0;
+      transition: stroke-dashoffset 0.05s linear;
+    }
+
+    /* ── Zone / time label ── */
     #zone-label {
       position:absolute; top:16px; left:50%; transform:translateX(-50%);
-      background:rgba(0,0,0,0.55); padding:4px 14px; border-radius:20px;
-      font-size:11px; color:#ccc; letter-spacing:2px;
+      background:rgba(0,0,0,0.52); padding:4px 16px; border-radius:20px;
+      font-size:11px; color:#bbb; letter-spacing:2px;
+      transition:opacity 0.3s;
     }
 
-    /* Hotbar */
+    /* Zone entry toast */
+    #zone-toast {
+      position:absolute; top:48px; left:50%; transform:translateX(-50%) translateY(-8px);
+      background:rgba(0,0,0,0.82); border:1px solid #f0b429;
+      padding:6px 20px; border-radius:20px;
+      font-size:12px; color:#f0b429; letter-spacing:3px;
+      opacity:0; pointer-events:none;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    #zone-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    /* Block label — just above crosshair */
+    #block-label {
+      position:absolute; top:calc(50% + 28px); left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.58); padding:3px 12px; border-radius:4px;
+      font-size:11px; color:#ccc; display:none; letter-spacing:1px;
+      white-space:nowrap;
+    }
+
+    /* Active item label — just above hotbar */
+    #active-item-label {
+      position:absolute; bottom:90px; left:50%; transform:translateX(-50%);
+      font-size:13px; color:rgba(255,255,255,0.85);
+      text-shadow:0 1px 4px rgba(0,0,0,0.9);
+      transition:opacity 0.2s;
+      white-space:nowrap;
+    }
+
+    /* ── Hotbar ── */
     #hotbar {
       position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
       display:flex; gap:4px;
     }
     .hotbar-slot {
-      width:56px; height:56px; border:2px solid #444;
-      background:rgba(0,0,0,0.65); display:flex; flex-direction:column;
-      align-items:center; justify-content:center; position:relative;
-      border-radius:4px; transition:border-color 0.1s;
+      width:56px; height:56px;
+      border:2px solid #333; background:rgba(0,0,0,0.7);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      position:relative; border-radius:5px;
+      transition:border-color 0.1s, box-shadow 0.1s;
     }
-    .hotbar-slot.active { border-color:#f0b429; box-shadow:0 0 8px #f0b42988; }
-    .hotbar-slot .item-icon { font-size:22px; }
+    .hotbar-slot.active {
+      border-color:#f0b429;
+      box-shadow:0 0 10px #f0b42944, inset 0 0 8px rgba(240,180,41,0.08);
+    }
+    .hotbar-slot .item-icon  { font-size:22px; line-height:1; }
     .hotbar-slot .item-count { position:absolute; bottom:2px; right:5px; font-size:10px; color:#fff; text-shadow:1px 1px 0 #000; }
-    .hotbar-slot .slot-num  { position:absolute; top:1px; left:4px; font-size:9px; color:#666; }
+    .hotbar-slot .slot-num   { position:absolute; top:2px; left:4px; font-size:9px; color:#444; }
 
     #toolbar-hint {
       position:absolute; bottom:88px; left:50%; transform:translateX(-50%);
-      color:#666; font-size:11px; letter-spacing:1px;
+      color:#444; font-size:10px; letter-spacing:1px;
     }
 
-    /* Block label */
-    #block-label {
-      position:absolute; top:58%; left:50%; transform:translate(-50%,-50%);
-      background:rgba(0,0,0,0.6); padding:3px 12px; border-radius:4px;
-      font-size:11px; color:#ccc; display:none; letter-spacing:1px;
-    }
-
-    /* Notifications */
+    /* ── Notifications ── */
     #notifications {
       position:absolute; top:56px; left:16px;
-      display:flex; flex-direction:column; gap:5px; max-width:280px;
+      display:flex; flex-direction:column; gap:4px; max-width:260px;
+      pointer-events:none;
     }
     .notif {
-      background:rgba(0,0,0,0.82); border-left:3px solid #f0b429;
-      padding:7px 12px; border-radius:0 4px 4px 0; font-size:12px; color:#e0e0e0;
-      animation:slideIn 0.2s ease, fadeOut 0.5s ease 3.5s forwards;
+      background:rgba(0,0,0,0.85); border-left:3px solid #f0b429;
+      padding:6px 12px; border-radius:0 4px 4px 0; font-size:12px; color:#ddd;
+      animation:notifIn 0.2s ease, notifOut 0.4s ease 3.6s forwards;
     }
-    @keyframes slideIn { from{opacity:0;transform:translateX(-16px)} to{opacity:1;transform:none} }
-    @keyframes fadeOut { to{opacity:0} }
+    @keyframes notifIn  { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:none} }
+    @keyframes notifOut { to{opacity:0;transform:translateX(-8px)} }
 
     /* ── Foreman panel ── */
-    #foreman-panel {
-      position:absolute; top:16px; right:16px; width:310px; pointer-events:auto;
-    }
+    #foreman-panel { position:absolute; top:16px; right:16px; width:300px; pointer-events:auto; }
     #foreman-bubble {
-      background:rgba(10,10,10,0.9); border:2px solid #f0b429;
-      border-radius:8px; padding:12px 14px; color:#f0f0f0; font-size:13px;
-      line-height:1.55; display:none;
+      background:rgba(8,8,8,0.92); border:2px solid #f0b429;
+      border-radius:8px; padding:12px 14px; color:#f0f0f0;
+      font-size:13px; line-height:1.55; display:none;
+      animation:bubbleIn 0.2s ease;
     }
-    #foreman-bubble .name { color:#f0b429; font-weight:bold; margin-bottom:5px; font-size:14px; }
-    #foreman-bubble .dismiss { margin-top:8px; font-size:11px; color:#666; cursor:pointer; text-align:right; }
+    @keyframes bubbleIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:none} }
+    #foreman-bubble .name { color:#f0b429; font-weight:bold; font-size:14px; margin-bottom:5px; }
+    #foreman-bubble .dismiss { margin-top:8px; font-size:10px; color:#555; cursor:pointer; text-align:right; letter-spacing:1px; }
     #foreman-bubble .dismiss:hover { color:#f0b429; }
-
     #quest-box {
-      margin-top:8px; background:rgba(10,10,10,0.78);
-      border:1px solid #444; border-radius:6px; padding:10px 12px;
-      font-size:12px; color:#ccc; display:none;
+      margin-top:8px; background:rgba(8,8,8,0.8); border:1px solid #333;
+      border-radius:6px; padding:10px 12px; font-size:12px; color:#bbb; display:none;
     }
     #quest-box .quest-title { color:#f0b429; font-size:13px; font-weight:bold; margin-bottom:6px; }
-    .quest-step { margin:3px 0; }
-    .quest-step.done { color:#4caf50; text-decoration:line-through; }
+    .quest-step { margin:3px 0; opacity:0.8; }
+    .quest-step.done { color:#4caf50; text-decoration:line-through; opacity:0.6; }
 
-    /* ── Codex button ── */
+    /* ── Codex shortcut ── */
     #codex-btn {
       position:absolute; bottom:88px; right:16px; pointer-events:auto;
-      background:rgba(0,0,0,0.7); border:1px solid #555; color:#aaa;
-      padding:6px 12px; border-radius:4px; font-family:inherit; font-size:11px;
+      background:rgba(0,0,0,0.7); border:1px solid #444; color:#888;
+      padding:5px 12px; border-radius:4px; font-family:inherit; font-size:10px;
       cursor:pointer; letter-spacing:1px; transition:all 0.15s;
     }
     #codex-btn:hover { border-color:#f0b429; color:#f0b429; }
 
-    /* ── Achievement toast ── */
+    /* ══ PAUSE OVERLAY ══════════════════════════════════════════════════ */
+    #pause-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.72);
+      display:none; align-items:center; justify-content:center;
+      z-index:90; cursor:pointer; pointer-events:auto;
+    }
+    #pause-inner {
+      text-align:center; color:#e0e0e0;
+      animation:pauseIn 0.2s ease;
+    }
+    @keyframes pauseIn { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:none} }
+    #pause-inner h2 { font-size:36px; letter-spacing:8px; color:#f0b429; margin-bottom:12px; }
+    #pause-inner p { font-size:13px; color:#888; letter-spacing:2px; }
+    #pause-inner .pause-hint { margin-top:24px; font-size:11px; color:#444; }
+
+    /* ══ Achievement toast ══════════════════════════════════════════════ */
     #achieve-toast {
-      position:fixed; bottom:100px; right:16px; width:280px;
-      background:rgba(10,10,10,0.92); border:2px solid #f0b429;
+      position:fixed; bottom:104px; right:16px; width:280px;
+      background:rgba(8,8,8,0.94); border:2px solid #f0b429;
       border-radius:8px; padding:12px 14px;
-      transform:translateX(320px); transition:transform 0.35s ease;
+      transform:translateX(320px);
+      transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
       z-index:500; pointer-events:none;
     }
     #achieve-toast.show { transform:translateX(0); }
-    .ach-toast-header { color:#f0b429; font-size:11px; letter-spacing:2px; margin-bottom:6px; }
+    .ach-toast-header { color:#f0b429; font-size:10px; letter-spacing:2px; margin-bottom:6px; }
     .ach-toast-body { display:flex; align-items:center; gap:10px; }
     #ach-toast-icon { font-size:28px; }
-    .ach-toast-text {}
     #ach-toast-name { color:#fff; font-weight:bold; font-size:14px; }
-    #ach-toast-desc { color:#888; font-size:11px; margin-top:2px; line-height:1.4; }
+    #ach-toast-desc { color:#777; font-size:11px; margin-top:2px; line-height:1.4; }
 
-    /* ── Inventory/Crafting overlay ── */
+    /* ══ Workshop overlay ════════════════════════════════════════════════ */
     #overlay {
-      position:fixed; inset:0; background:rgba(0,0,0,0.8);
+      position:fixed; inset:0; background:rgba(0,0,0,0.82);
       display:none; align-items:center; justify-content:center;
       pointer-events:auto; z-index:100;
+      opacity:0; transition:opacity 0.18s ease;
     }
     #overlay.open { display:flex; }
+    #overlay.visible { opacity:1; }
 
     #inv-panel {
-      background:#1a1a1a; border:2px solid #444;
-      border-radius:10px; padding:20px; width:760px; max-height:92vh;
+      background:#181818; border:1px solid #333;
+      border-radius:12px; padding:22px; width:780px; max-height:92vh;
       overflow:hidden; display:flex; flex-direction:column;
       color:#e0e0e0;
+      transform:translateY(12px);
+      transition:transform 0.18s ease;
     }
-    #inv-panel h2 { color:#f0b429; font-size:18px; margin-bottom:12px; letter-spacing:2px; }
+    #overlay.visible #inv-panel { transform:translateY(0); }
+    #inv-panel h2 { color:#f0b429; font-size:17px; margin-bottom:12px; letter-spacing:2px; }
 
     /* Tabs */
-    .tabs { display:flex; gap:4px; margin-bottom:12px; border-bottom:1px solid #333; padding-bottom:8px; }
+    .tabs { display:flex; gap:3px; margin-bottom:12px; border-bottom:1px solid #282828; padding-bottom:8px; }
     .tab-btn {
-      padding:5px 14px; background:transparent; border:1px solid #444;
-      color:#888; font-family:inherit; font-size:11px; letter-spacing:1px;
-      cursor:pointer; border-radius:4px; transition:all 0.15s;
+      padding:5px 14px; background:transparent; border:1px solid #333;
+      color:#666; font-family:inherit; font-size:10px; letter-spacing:1px;
+      cursor:pointer; border-radius:4px; transition:all 0.12s;
     }
     .tab-btn.active { background:#f0b429; color:#000; border-color:#f0b429; font-weight:bold; }
-    .tab-btn:hover:not(.active) { border-color:#f0b429; color:#f0b429; }
-
-    .tab-panel { display:none; overflow-y:auto; max-height:calc(92vh - 130px); }
-
-    /* Crafting tab */
+    .tab-btn:hover:not(.active) { border-color:#888; color:#ccc; }
+    .tab-panel { display:none; overflow-y:auto; max-height:calc(92vh - 140px); }
     #tab-crafting { display:block; }
     .panel-cols { display:flex; gap:16px; }
 
     /* Inventory grid */
-    #inv-grid { display:grid; grid-template-columns:repeat(9,52px); gap:3px; margin-bottom:10px; }
+    #inv-grid { display:grid; grid-template-columns:repeat(9,52px); gap:3px; margin-bottom:8px; }
     .inv-slot {
-      width:52px; height:52px; border:1px solid #333;
-      background:#111; border-radius:4px;
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      width:52px; height:52px; border:1px solid #252525; background:#0e0e0e;
+      border-radius:4px; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
       cursor:pointer; position:relative; transition:border-color 0.1s;
     }
     .inv-slot:hover { border-color:#f0b429; }
-    .inv-slot .item-icon { font-size:22px; }
+    .inv-slot .item-icon  { font-size:22px; }
     .inv-slot .item-count { position:absolute; bottom:2px; right:4px; font-size:11px; color:#fff; text-shadow:1px 1px 0 #000; }
-    .inv-slot .item-name { font-size:8px; color:#666; text-align:center; line-height:1; }
+    .inv-slot .item-name  { font-size:8px; color:#555; text-align:center; line-height:1; }
 
     /* Recipes */
-    #crafting-section { min-width:260px; flex:1; }
-    #crafting-section h3 { color:#888; font-size:12px; letter-spacing:1px; margin-bottom:8px; }
-    #recipe-list { display:flex; flex-direction:column; gap:5px; max-height:360px; overflow-y:auto; }
+    #crafting-section { min-width:265px; flex:1; }
+    #crafting-section h3 { color:#555; font-size:11px; letter-spacing:1px; margin-bottom:8px; }
+    #recipe-list { display:flex; flex-direction:column; gap:4px; max-height:370px; overflow-y:auto; }
     .recipe-card {
-      background:#111; border:1px solid #2a2a2a; border-radius:6px;
-      padding:8px 10px; cursor:pointer; transition:all 0.12s;
+      background:#0e0e0e; border:1px solid #222; border-radius:6px;
+      padding:8px 10px; cursor:pointer; transition:all 0.1s;
     }
-    .recipe-card:hover { border-color:#f0b429; background:#1a1a00; }
-    .recipe-card.craftable { border-color:#1a3a1a; }
-    .recipe-card.craftable:hover { border-color:#4caf50; background:#001a00; }
-    .recipe-card .r-name { font-size:13px; font-weight:bold; }
-    .recipe-card .r-result { font-size:10px; color:#777; margin-top:2px; font-style:italic; }
-    .recipe-card .r-station { font-size:10px; color:#555; margin-top:2px; }
-    .recipe-card .r-reqs { font-size:10px; margin-top:4px; }
-    .recipe-card .r-reqs .ok { color:#4caf50; }
-    .recipe-card .r-reqs .missing { color:#f44336; }
+    .recipe-card:hover  { border-color:#888; background:#161616; }
+    .recipe-card.craftable:hover { border-color:#4caf50; background:#091209; }
+    .recipe-card.craftable { border-color:#1e3a1e; }
+    .r-name   { font-size:13px; font-weight:bold; }
+    .r-result { font-size:10px; color:#555; margin-top:2px; font-style:italic; }
+    .r-station{ font-size:10px; color:#444; margin-top:2px; }
+    .r-reqs   { font-size:10px; margin-top:4px; line-height:1.6; }
+    .r-reqs .ok      { color:#4caf50; }
+    .r-reqs .missing { color:#f44336; }
     #craft-btn {
       margin-top:10px; width:100%; padding:10px;
       background:#f0b429; color:#000; border:none; border-radius:6px;
       font-family:inherit; font-size:14px; font-weight:bold;
       cursor:pointer; letter-spacing:1px; display:none;
+      transition:background 0.1s;
     }
     #craft-btn:hover { background:#ffd060; }
+    #craft-btn:active { transform:scale(0.98); }
 
     /* Achievements tab */
     #tab-achievements { display:none; }
-    #ach-list { display:flex; flex-direction:column; gap:6px; }
+    #ach-list { display:flex; flex-direction:column; gap:5px; }
     .ach-item {
       display:flex; align-items:center; gap:10px;
-      background:#111; border:1px solid #2a2a2a; border-radius:6px;
-      padding:8px 12px; transition:border-color 0.1s;
+      background:#0e0e0e; border:1px solid #222; border-radius:6px; padding:8px 12px;
     }
-    .ach-item.done { border-color:#2a4a2a; }
+    .ach-item.done { border-color:#1a3a1a; }
     .ach-item.done:hover { border-color:#4caf50; }
-    .ach-item.locked { opacity:0.5; }
-    .ach-icon { font-size:24px; }
-    .ach-info { flex:1; }
-    .ach-name { font-size:13px; font-weight:bold; color:#e0e0e0; }
-    .ach-desc { font-size:11px; color:#777; margin-top:2px; }
-    .ach-check { color:#4caf50; font-size:18px; }
+    .ach-item.locked { opacity:0.4; }
+    .ach-icon  { font-size:24px; }
+    .ach-info  { flex:1; }
+    .ach-name  { font-size:13px; font-weight:bold; }
+    .ach-desc  { font-size:11px; color:#666; margin-top:2px; }
+    .ach-check { color:#4caf50; font-size:18px; margin-left:auto; }
 
     /* Codex tab */
     #tab-codex { display:none; }
-    .codex-cols { display:flex; gap:12px; height:420px; }
-    #codex-list { width:220px; display:flex; flex-direction:column; gap:4px; overflow-y:auto; }
+    .codex-cols { display:flex; gap:12px; height:430px; }
+    #codex-list { width:220px; display:flex; flex-direction:column; gap:3px; overflow-y:auto; flex-shrink:0; }
     .codex-entry {
-      padding:8px 10px; background:#111; border:1px solid #2a2a2a;
-      border-radius:5px; cursor:pointer; font-size:12px; color:#aaa;
-      transition:all 0.12s;
+      padding:7px 10px; background:#0e0e0e; border:1px solid #222;
+      border-radius:5px; cursor:pointer; font-size:12px; color:#888;
+      transition:all 0.1s;
     }
     .codex-entry:hover { border-color:#f0b429; color:#f0b429; }
-    #codex-content { flex:1; background:#111; border:1px solid #2a2a2a; border-radius:6px; padding:14px; overflow-y:auto; }
-    #codex-content h3 { color:#f0b429; font-size:15px; margin-bottom:12px; }
-    .codex-text p { color:#c0c0c0; font-size:12px; line-height:1.7; margin-bottom:10px; }
+    .codex-entry.active { border-color:#f0b429; color:#f0f0f0; background:#1a1600; }
+    #codex-content { flex:1; background:#0e0e0e; border:1px solid #222; border-radius:6px; padding:16px; overflow-y:auto; }
+    #codex-content h3 { color:#f0b429; font-size:15px; margin-bottom:14px; }
+    .codex-text p { color:#b0b0b0; font-size:12px; line-height:1.75; margin-bottom:12px; }
 
     /* ── Tooltip ── */
     #tooltip {
-      position:fixed; background:rgba(0,0,0,0.92); border:1px solid #444;
-      padding:7px 11px; border-radius:5px; font-size:12px; color:#e0e0e0;
+      position:fixed; background:rgba(0,0,0,0.94); border:1px solid #333;
+      padding:7px 12px; border-radius:5px; font-size:12px; color:#e0e0e0;
       pointer-events:none; display:none; z-index:300; max-width:220px;
     }
-    #tooltip .t-name { color:#f0b429; font-weight:bold; margin-bottom:2px; }
-    #tooltip .t-desc { color:#888; line-height:1.4; }
+    #tooltip .t-name { color:#f0b429; font-weight:bold; margin-bottom:3px; }
+    #tooltip .t-desc { color:#777; line-height:1.45; }
 
-    /* ── Codex modal (standalone) ── */
-    #codex-modal {
-      position:fixed; inset:0; background:rgba(0,0,0,0.85);
-      display:none; align-items:center; justify-content:center;
-      z-index:200; pointer-events:auto;
-    }
-    #codex-modal.open { display:flex; }
-    #codex-inner {
-      background:#1a1a1a; border:2px solid #444; border-radius:10px;
-      padding:20px; width:680px; max-height:85vh; display:flex; flex-direction:column;
-    }
-    #codex-inner h2 { color:#f0b429; font-size:16px; letter-spacing:2px; margin-bottom:12px; }
-    #codex-close {
-      align-self:flex-end; margin-top:-36px; background:transparent;
-      border:1px solid #555; color:#888; font-family:inherit; font-size:12px;
-      cursor:pointer; padding:4px 10px; border-radius:4px;
-    }
-    #codex-close:hover { border-color:#f0b429; color:#f0b429; }
-
-    /* ── Start screen ── */
+    /* ══ Start screen ════════════════════════════════════════════════════ */
     #start-screen {
-      position:fixed; inset:0; background:#0d0d0d;
+      position:fixed; inset:0; background:#080808;
       display:flex; flex-direction:column; align-items:center; justify-content:center;
       z-index:1000;
     }
     #start-screen h1 {
       font-size:72px; font-weight:900; letter-spacing:8px;
-      color:#f0b429; text-shadow:5px 5px 0 #5a3e00, 0 0 60px #f0b42944;
+      color:#f0b429;
+      text-shadow:5px 5px 0 #4a3000, 0 0 80px #f0b42933;
       margin-bottom:6px;
+      animation:titlePulse 3s ease-in-out infinite;
     }
-    #start-screen .tagline { color:#555; font-size:13px; letter-spacing:4px; margin-bottom:44px; }
+    @keyframes titlePulse {
+      0%,100% { text-shadow:5px 5px 0 #4a3000, 0 0 80px #f0b42933; }
+      50%      { text-shadow:5px 5px 0 #4a3000, 0 0 120px #f0b42966; }
+    }
+    .tagline { color:#444; font-size:12px; letter-spacing:5px; margin-bottom:48px; }
     #start-btn {
-      padding:14px 44px; background:#f0b429; color:#000; border:none;
+      padding:14px 48px; background:#f0b429; color:#000; border:none;
       font-family:inherit; font-size:16px; font-weight:bold; letter-spacing:2px;
-      cursor:pointer; border-radius:6px; transition:all 0.2s;
+      cursor:pointer; border-radius:6px;
+      transition:all 0.2s;
+      box-shadow:0 4px 20px #f0b42933;
     }
-    #start-btn:hover { background:#ffd060; transform:scale(1.04); }
-    .controls-hint { margin-top:36px; color:#444; font-size:11px; line-height:2.2; text-align:center; }
-    .controls-hint span { color:#777; }
-    .controls-hint .zone-hints { margin-top:12px; color:#333; font-size:10px; }
+    #start-btn:hover { background:#ffd060; transform:scale(1.05); box-shadow:0 4px 30px #f0b42966; }
+    #start-btn:active { transform:scale(0.98); }
+    .controls-hint { margin-top:36px; color:#333; font-size:11px; line-height:2.2; text-align:center; }
+    .controls-hint span { color:#666; }
+    .bands-hint { margin-top:18px; color:#2a2a2a; font-size:10px; letter-spacing:2px; }
+    .bands-hint div { margin:3px 0; }
   </style>
 </head>
 <body>
-  <!-- ── Start Screen ── -->
+
+  <!-- ══ Start screen ══════════════════════════════════════════════════ -->
   <div id="start-screen">
     <h1>SCRAPCRAFT</h1>
     <div class="tagline">JUNK NEVER LOOKED SO GOOD</div>
     <button id="start-btn">CLOCK IN</button>
     <div class="controls-hint">
       <span>WASD</span> Move &nbsp;|&nbsp; <span>MOUSE</span> Look &nbsp;|&nbsp; <span>SPACE</span> Jump<br>
-      <span>LEFT CLICK</span> Mine &nbsp;|&nbsp; <span>E</span> Inventory &nbsp;|&nbsp; <span>F</span> Talk to Earl<br>
-      <span>1–9</span> Hotbar &nbsp;|&nbsp; <span>M</span> Mute &nbsp;|&nbsp; <span>ESC</span> Close
-      <div class="zone-hints">
-        ⚙️ Metal Works · 🚗 Auto Salvage · 🟢 Electronics Alley · ❓ Mystery Zone
+      <span>HOLD LEFT CLICK</span> Mine &nbsp;|&nbsp; <span>E</span> Workshop &nbsp;|&nbsp; <span>F</span> Earl<br>
+      <span>1–9</span> Hotbar &nbsp;|&nbsp; <span>M</span> Mute &nbsp;|&nbsp; <span>ESC</span> Pause
+      <div class="bands-hint">
+        <div>⚙️  THE YARD GATE &nbsp;→&nbsp; 🏭 INDUSTRIAL CORRIDOR</div>
+        <div>🟢 CIRCUIT CITY &nbsp;→&nbsp; ☠️  THE DEEP YARD</div>
       </div>
     </div>
   </div>
 
-  <!-- ── Canvas ── -->
+  <!-- ══ Canvas ════════════════════════════════════════════════════════ -->
   <div id="canvas-container"><canvas id="game-canvas"></canvas></div>
 
-  <!-- ── HUD ── -->
+  <!-- ══ HUD ══════════════════════════════════════════════════════════ -->
   <div id="hud">
-    <div id="crosshair">+</div>
 
-    <div id="zone-label">The Yard · Morning</div>
+    <!-- Crosshair -->
+    <div id="crosshair">
+      <div class="ch ch-t"></div>
+      <div class="ch ch-b"></div>
+      <div class="ch ch-l"></div>
+      <div class="ch ch-r"></div>
+      <div class="ch-dot"></div>
+      <svg id="mine-ring" viewBox="0 0 50 50" width="50" height="50">
+        <circle cx="25" cy="25" r="17" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+        <circle id="mine-arc" cx="25" cy="25" r="17" fill="none"
+          stroke="#f0b429" stroke-width="2.5" stroke-linecap="round"
+          stroke-dasharray="106.8" stroke-dashoffset="106.8"
+          transform="rotate(-90 25 25)"/>
+      </svg>
+    </div>
+
+    <div id="zone-label">The Yard Gate · Morning</div>
+    <div id="zone-toast"></div>
     <div id="notifications"></div>
     <div id="block-label"></div>
-
-    <div id="hotbar"></div>
-    <div id="toolbar-hint">[ E ] WORKSHOP &nbsp;|&nbsp; [ F ] EARL &nbsp;|&nbsp; 1-9 HOTBAR</div>
 
     <!-- Foreman panel -->
     <div id="foreman-panel">
       <div id="foreman-bubble">
         <div class="name">🔧 BIG EARL</div>
         <div id="foreman-text"></div>
-        <div class="dismiss" id="foreman-dismiss">[dismiss]</div>
+        <div class="dismiss" id="foreman-dismiss">[ dismiss ]</div>
       </div>
       <div id="quest-box">
         <div class="quest-title" id="quest-title"></div>
@@ -310,38 +407,53 @@
       </div>
     </div>
 
+    <!-- Active item label -->
+    <div id="active-item-label"></div>
+
+    <!-- Hotbar -->
+    <div id="hotbar"></div>
+    <div id="toolbar-hint">[ E ] WORKSHOP &nbsp;·&nbsp; [ F ] EARL &nbsp;·&nbsp; 1-9 HOTBAR &nbsp;·&nbsp; ESC PAUSE</div>
+
     <!-- Codex shortcut -->
     <button id="codex-btn">📖 CODEX</button>
   </div>
 
-  <!-- ── Achievement toast ── -->
+  <!-- ══ Pause overlay ══════════════════════════════════════════════ -->
+  <div id="pause-overlay">
+    <div id="pause-inner">
+      <h2>PAUSED</h2>
+      <p>CLICK ANYWHERE TO CONTINUE</p>
+      <div class="pause-hint">[ M ] MUTE &nbsp;·&nbsp; [ E ] WORKSHOP OPENS ON RESUME</div>
+    </div>
+  </div>
+
+  <!-- ══ Achievement toast ═════════════════════════════════════════ -->
   <div id="achieve-toast">
     <div class="ach-toast-header">✦ ACHIEVEMENT UNLOCKED</div>
     <div class="ach-toast-body">
       <div id="ach-toast-icon"></div>
-      <div class="ach-toast-text">
+      <div>
         <div id="ach-toast-name"></div>
         <div id="ach-toast-desc"></div>
       </div>
     </div>
   </div>
 
-  <!-- ── Inventory / Workshop overlay ── -->
+  <!-- ══ Workshop overlay ══════════════════════════════════════════ -->
   <div id="overlay">
     <div id="inv-panel">
       <h2>⚙ WORKSHOP</h2>
-
       <div class="tabs">
         <button class="tab-btn active" data-tab="crafting">CRAFTING</button>
         <button class="tab-btn" data-tab="achievements">ACHIEVEMENTS</button>
         <button class="tab-btn" data-tab="codex">ENGINEER'S CODEX</button>
       </div>
 
-      <!-- Crafting tab -->
+      <!-- Crafting -->
       <div class="tab-panel" id="tab-crafting">
         <div class="panel-cols">
           <div>
-            <div style="color:#666;font-size:11px;letter-spacing:1px;margin-bottom:6px;">INVENTORY (36 SLOTS)</div>
+            <div style="color:#444;font-size:10px;letter-spacing:1px;margin-bottom:6px;">INVENTORY (36 SLOTS)</div>
             <div id="inv-grid"></div>
           </div>
           <div id="crafting-section">
@@ -352,18 +464,18 @@
         </div>
       </div>
 
-      <!-- Achievements tab -->
+      <!-- Achievements -->
       <div class="tab-panel" id="tab-achievements">
         <div id="ach-list"></div>
       </div>
 
-      <!-- Codex tab -->
+      <!-- Codex -->
       <div class="tab-panel" id="tab-codex">
         <div class="codex-cols">
           <div id="codex-list"></div>
           <div id="codex-content">
-            <div style="color:#555;font-size:13px;margin-top:40px;text-align:center;">
-              Select a topic to learn the real science behind it.
+            <div style="color:#444;font-size:12px;margin-top:50px;text-align:center;line-height:2;">
+              Select a topic to learn the real<br>science behind what you're building.
             </div>
           </div>
         </div>
@@ -371,14 +483,23 @@
     </div>
   </div>
 
-  <!-- Codex modal removed — use Workshop overlay (E) → ENGINEER'S CODEX tab -->
-
-  <!-- ── Tooltip ── -->
+  <!-- Tooltip -->
   <div id="tooltip">
     <div class="t-name" id="tip-name"></div>
     <div class="t-desc" id="tip-desc"></div>
   </div>
 
   <script type="module" src="/src/main.js"></script>
+  <script>
+    // Overlay fade-in when opened (requestAnimationFrame to trigger transition)
+    const obs = new MutationObserver(([m]) => {
+      if (m.target.classList.contains('open')) {
+        requestAnimationFrame(() => m.target.classList.add('visible'));
+      } else {
+        m.target.classList.remove('visible');
+      }
+    });
+    obs.observe(document.getElementById('overlay'), { attributes: true, attributeFilter: ['class'] });
+  </script>
 </body>
 </html>

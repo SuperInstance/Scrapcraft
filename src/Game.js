@@ -13,24 +13,26 @@ import { ScrapBot } from './ScrapBot.js';
 import { BLOCK_DEF, B } from './data/blocks.js';
 import { getItem } from './data/items.js';
 
-const MINE_COOLDOWN  = 0.32;
-const PLACE_COOLDOWN = 0.25;
-
 export class Game {
   constructor(canvas) {
     this.canvas = canvas;
     this._running = false;
     this._lastTime = 0;
-    this._mineCooldown = 0;
-    this._placeCooldown = 0;
-    this._idleTimer = 0;
+
+    // Hold-to-mine state
+    this._mineDown    = false;
+    this._mineTarget  = null;   // { x, y, z }
+    this._mineProgress = 0;     // 0..1
+
+    // UX state
     this._lastNearStation = null;
-    this._ambientTimer = 0;
+    this._lastBandIndex   = -1;
+    this._idleTimer       = 0;
+    this._ambientTimer    = 0;
   }
 
   init() {
-    // ── Core systems ──────────────────────────────────────────────────────
-    this.world    = new World(64, 64, 8);
+    this.world    = new World(128, 128, 10);
     this.world.generate(1337);
 
     this.renderer = new Renderer(this.canvas);
@@ -39,56 +41,41 @@ export class Game {
     this.player = new Player(this.renderer.camera, this.world);
     this.player.pos.set(8, 2, 5);
 
-    // ── Atmosphere ────────────────────────────────────────────────────────
-    this.dayNight = new DayNight(
-      this.renderer.scene,
-      this.renderer.ambientLight,
-      this.renderer.sunLight,
-    );
-
-    // ── Particles ─────────────────────────────────────────────────────────
+    this.dayNight = new DayNight(this.renderer.scene, this.renderer.ambientLight, this.renderer.sunLight);
     this.particles = new ParticleSystem(this.renderer.scene);
-
-    // ── Audio ─────────────────────────────────────────────────────────────
     this.audio = new AudioSystem();
 
-    // ── Achievements ──────────────────────────────────────────────────────
     this.achievements = new Achievements();
     this.achievements.on('unlock', id => this.ui?.onAchievement(id));
 
-    // ── Foreman ───────────────────────────────────────────────────────────
     this.foreman = new Foreman(this);
 
-    // ── UI ────────────────────────────────────────────────────────────────
     this.ui = new UI(this);
     this.foreman.setUI(this.ui);
 
-    // ── Crafting ──────────────────────────────────────────────────────────
     this.craftingSystem = new CraftingSystem(this.player, this.foreman);
 
-    // ── ScrapBot (inactive until built) ───────────────────────────────────
     this.scrapBot = new ScrapBot(this.renderer.scene, this.player);
     this.scrapBot.setUI(this.ui);
 
-    // ── Wiring ────────────────────────────────────────────────────────────
     this.world.on('change', () => this.renderer.rebuildMeshes(this.world));
-    this._bindGameInput();
+
+    this._bindInput();
 
     setTimeout(() => this.foreman.greet(), 1200);
     this.ui.updateHotbar(this.player);
   }
 
-  _bindGameInput() {
+  _bindInput() {
     document.addEventListener('keydown', e => {
       if (e.code === 'KeyE') {
         if (this.ui.isOpen) { this.ui.closeInventory(); return; }
         const p = this.player.pos;
         const nearby = this.world.getNearbyInteractives(p.x, p.y, p.z, 3);
-        const station = nearby.length > 0 ? nearby[0].station : 'any';
-        this.ui.openInventory(station);
+        this.ui.openInventory(nearby[0]?.station ?? 'any');
       }
       if (e.code === 'KeyF') {
-        const msg = prompt("Talk to Big Earl (or just press Enter for a random quip):") ?? '';
+        const msg = prompt('Talk to Big Earl:') ?? '';
         if (msg) this.foreman.playerTalks(msg);
         else this.foreman.say('idle');
       }
@@ -96,33 +83,66 @@ export class Game {
       if (e.code === 'KeyM') this.audio.toggle();
     });
 
+    // Hold-to-mine: track button state, do work in update loop
     this.canvas.addEventListener('mousedown', e => {
-      if (this.ui.isOpen) return;
-      if (!document.pointerLockElement) return;
-      if (e.button === 0) this._tryMine();
-      if (e.button === 2) this._tryPlace();
+      if (e.button === 0) this._mineDown = true;
+    });
+    this.canvas.addEventListener('mouseup', e => {
+      if (e.button === 0) { this._mineDown = false; this._cancelMine(); }
     });
     this.canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Pointer lock: show/hide pause overlay
+    document.addEventListener('pointerlockchange', () => {
+      const locked = !!document.pointerLockElement;
+      if (this._running) this.ui.setPaused(!locked);
+    });
+
+    // Click-to-resume on pause overlay
+    document.getElementById('pause-overlay')?.addEventListener('click', () => {
+      if (!document.pointerLockElement) this.canvas.requestPointerLock();
+    });
   }
 
-  _tryMine() {
-    if (this._mineCooldown > 0) return;
+  // ── Mining ───────────────────────────────────────────────────────────
+
+  _updateMine(dt) {
     const target = this.renderer.getTargetBlock(this.world);
-    if (!target) return;
+    if (!target) { this._cancelMine(); return; }
     const { x, y, z } = target;
-    if (y === 0) return;
+    if (y === 0) { this._cancelMine(); return; }
+    const id = this.world.getBlock(x, y, z);
+    if (id === B.AIR) { this._cancelMine(); return; }
 
-    const id = this.world.mine(x, y, z);
-    if (id === null) return;
-    this._mineCooldown = MINE_COOLDOWN;
+    // Reset progress if target changed
+    if (!this._mineTarget || this._mineTarget.x !== x || this._mineTarget.y !== y || this._mineTarget.z !== z) {
+      this._mineTarget  = { x, y, z };
+      this._mineProgress = 0;
+    }
 
-    // Particles & sound
-    this.particles.burst(x, y, z, 'mine', 10);
+    const hardness = BLOCK_DEF[id]?.hardness ?? 0.5;
+    this._mineProgress += dt / hardness;
+
+    // Tell renderer to show crack overlay
+    this.renderer.setTargetBlock(x, y, z, this._mineProgress);
+    this.ui.setMineProgress(this._mineProgress);
+
+    // Tick sound on first frame
+    if (this._mineProgress <= dt / hardness + 0.01) this.audio.mine(id);
+
+    if (this._mineProgress >= 1) {
+      this._completeMine(x, y, z, id);
+      this._cancelMine();
+    }
+  }
+
+  _completeMine(x, y, z, id) {
+    this.world.mine(x, y, z);
     this.audio.mine(id);
+    this.particles.burst(x, y, z, 'mine', 10);
 
     const def = BLOCK_DEF[id];
     if (!def) return;
-
     const isNight = this.dayNight.isNight;
 
     const giveLoot = (drop) => {
@@ -137,43 +157,34 @@ export class Game {
         this.foreman.onEvent(`mine_${drop}`, {});
       }
     };
-
-    if (def.drop && Math.random() < def.dropChance) giveLoot(def.drop);
+    if (def.drop    && Math.random() < def.dropChance)    giveLoot(def.drop);
     if (def.altDrop && Math.random() < def.altDropChance) giveLoot(def.altDrop);
 
     this.achievements.track('mine', { isNight });
-
-    // Inventory fill stat
-    const filled = this.player.inventory.filter(s => s !== null).length;
-    this.achievements.track('inventory', { fill: filled / 36 });
-
+    this.achievements.track('inventory', {
+      fill: this.player.inventory.filter(Boolean).length / 36,
+    });
     this.ui.updateHotbar(this.player);
   }
 
-  _tryPlace() {
-    if (this._placeCooldown > 0) return;
-    // For now placing is disabled (crafting game, not survival)
-    this._placeCooldown = PLACE_COOLDOWN;
+  _cancelMine() {
+    this._mineTarget   = null;
+    this._mineProgress = 0;
+    this.renderer.setTargetBlock(null);
+    this.ui.setMineProgress(0);
   }
 
-  /** Called by CraftingSystem after successful craft */
   onCraft(recipeId, output, qty) {
     this.achievements.track('craft', { id: output });
     this.audio.craft();
     this.particles.burst(
-      this.player.pos.x, this.player.pos.y + 1, this.player.pos.z,
-      'craft', 18,
+      this.player.pos.x, this.player.pos.y + 1, this.player.pos.z, 'craft', 18,
     );
-
-    // Activate ScrapBot once built
     if (output === 'robot_helper' && !this.scrapBot.isActive) {
       setTimeout(() => this.scrapBot.activate(this.player.pos), 1000);
     }
-
-    this.ui.notify(`Crafted ${qty}x ${getItem(output)?.name ?? output}! ${getItem(output)?.icon ?? ''}`);
   }
 
-  /** Called by Foreman when a quest completes */
   onQuestComplete() {
     this.achievements.track('quest', {});
     this.audio.questComplete();
@@ -189,7 +200,7 @@ export class Game {
     if (!this._running) return;
     requestAnimationFrame(() => this._loop());
     const now = performance.now();
-    const dt = Math.min((now - this._lastTime) / 1000, 0.1);
+    const dt  = Math.min((now - this._lastTime) / 1000, 0.1);
     this._lastTime = now;
     this._update(dt);
     this._render(dt);
@@ -203,46 +214,67 @@ export class Game {
     this.scrapBot.tick(dt, this.world);
     this.audio.tick(dt, this.player, this.world);
 
-    this._mineCooldown  = Math.max(0, this._mineCooldown - dt);
-    this._placeCooldown = Math.max(0, this._placeCooldown - dt);
+    const locked = !!document.pointerLockElement;
 
-    // Block targeting label
-    if (!this.ui.isOpen && document.pointerLockElement) {
-      const target = this.renderer.getTargetBlock(this.world);
-      this.ui.setBlockLabel(target ? this.world.getBlock(target.x, target.y, target.z) : null);
+    // Hold-to-mine
+    if (this._mineDown && !this.ui.isOpen && locked) {
+      this._updateMine(dt);
+    } else if (this._mineTarget) {
+      this._cancelMine();
+    }
+
+    // Block label + crosshair state
+    const target = this.renderer.getTargetBlock(this.world);
+    if (!this.ui.isOpen && locked) {
+      const id = target ? this.world.getBlock(target.x, target.y, target.z) : null;
+      this.ui.setBlockLabel(id);
+      const interactive = !!(id && BLOCK_DEF[id]?.interactive);
+      this.ui.setCrosshairState(this.player.isMoving, interactive, this._mineProgress);
+      // Show selection box on targeted block (not mining crack — that's done in _updateMine)
+      if (target && !this._mineDown) this.renderer.setTargetBlock(target.x, target.y, target.z, 0);
+      else if (!this._mineDown)      this.renderer.setTargetBlock(null);
     } else {
       this.ui.setBlockLabel(null);
+      this.ui.setCrosshairState(false, false, 0);
+      if (!this._mineDown) this.renderer.setTargetBlock(null);
     }
 
-    // Idle foreman
-    if (document.pointerLockElement) {
-      this._idleTimer += dt;
-      if (this._idleTimer > 55) { this._idleTimer = 0; this.foreman.say('idle'); }
+    // Band entry detection → toast
+    const bandIdx = this.world.getBandIndex(Math.floor(this.player.pos.z));
+    if (bandIdx !== this._lastBandIndex) {
+      if (this._lastBandIndex >= 0) {
+        this.ui.showZoneToast(this.world.getBandName(Math.floor(this.player.pos.z)));
+      }
+      this._lastBandIndex = bandIdx;
     }
 
-    // Nearby station (fires once per approach)
+    // Nearby station hint
     const p = this.player.pos;
     const nearby = this.world.getNearbyInteractives(p.x, p.y, p.z, 2.5);
-    const nearStation = nearby.length > 0 ? nearby[0].station : null;
+    const nearStation = nearby[0]?.station ?? null;
     if (nearStation !== this._lastNearStation) {
       this._lastNearStation = nearStation;
       if (nearStation) this.foreman.onEvent(`near_${nearStation}`, {});
     }
+
+    // Zone + time HUD
+    this.ui.setZone(this.world.getBandName(Math.floor(p.z)), this.dayNight.label);
 
     // Quest progress
     if (this.foreman._activeQuest) {
       this.ui.updateQuestProgress(this.foreman._activeQuest, this.player);
     }
 
-    // Zone label + time
-    const zone = this.world.getZoneLabel(Math.floor(p.x), Math.floor(p.z));
-    this.ui.setZone(zone, this.dayNight.label);
+    // Idle prod
+    if (locked) {
+      this._idleTimer += dt;
+      if (this._idleTimer > 55) { this._idleTimer = 0; this.foreman.say('idle'); }
+    }
 
-    // Ambient forge spark particles
+    // Forge embers
     this._ambientTimer += dt;
     if (this._ambientTimer > 3 + Math.random() * 4) {
       this._ambientTimer = 0;
-      // Near forge/smelter
       const fNearby = this.world.getNearbyInteractives(p.x, p.y, p.z, 8);
       for (const s of fNearby) {
         if (s.station === 'forge' || s.station === 'smelter') {
@@ -255,7 +287,5 @@ export class Game {
     this.ui.updateHotbar(this.player);
   }
 
-  _render(dt) {
-    this.renderer.tick(dt);
-  }
+  _render(dt) { this.renderer.tick(dt); }
 }
