@@ -13,6 +13,7 @@ import { ScrapBot } from './ScrapBot.js';
 import { BLOCK_DEF, B } from './data/blocks.js';
 import { getItem } from './data/items.js';
 import { EXAMPLE_WALL_AVOIDER } from './maker/TileProgram.js';
+import { TileEditor } from './TileEditor.js';
 
 export class Game {
   constructor(canvas) {
@@ -60,6 +61,8 @@ export class Game {
     this.scrapBot.setUI(this.ui);
     this.scrapBot.setGame(this);
 
+    this.tileEditor = new TileEditor(this);
+
     this.world.on('change', () => this.renderer.rebuildMeshes(this.world));
 
     this._bindInput();
@@ -75,6 +78,11 @@ export class Game {
         const p = this.player.pos;
         const nearby = this.world.getNearbyInteractives(p.x, p.y, p.z, 3);
         this.ui.openInventory(nearby[0]?.station ?? 'any');
+      }
+      if (e.code === 'KeyT') {
+        if (this.tileEditor.isOpen) { this.tileEditor.close(); }
+        else { this.tileEditor.open(); }
+        return;
       }
       if (e.code === 'KeyF') {
         const msg = prompt('Talk to Big Earl:') ?? '';

@@ -52,6 +52,7 @@ export function compile(program) {
     errors: [],
     warnings: [],
     brainTier: BRAIN_TIER[brain] ?? 0,
+    sourceMap: [],   // [{ pc, nodeId }] — maps bytecode offset to tile node id
   };
 
   for (const node of nodes) compileNode(node, ctx);
@@ -62,6 +63,7 @@ export function compile(program) {
     bytecode: ctx.out,
     errors: ctx.errors,
     warnings: ctx.warnings,
+    sourceMap: ctx.sourceMap,
   };
 }
 
@@ -72,6 +74,8 @@ function compileNode(node, ctx) {
     ctx.errors.push(`Skipped a malformed tile: ${JSON.stringify(node)}`);
     return;
   }
+
+  if (node.id) ctx.sourceMap.push({ pc: ctx.out.length, nodeId: node.id });
 
   switch (node.type) {
     case 'action':  return compileAction(node, ctx);
