@@ -117,6 +117,7 @@ export class TileEditor {
     this._sparkPanel = null;
     this._sparkLog   = null;
     this._sparkInput = null;
+    this._botSel     = null;
 
     this._buildDOM();
   }
@@ -150,9 +151,12 @@ export class TileEditor {
     this._panel.querySelector('#te-code-btn').addEventListener('click',  () => this._toggleCode());
     this._panel.querySelector('#te-close-btn').addEventListener('click', () => this.close());
     this._panel.querySelector('#te-spark-btn')?.addEventListener('click', () => this._toggleSpark());
+    this._panel.querySelector('#te-share-btn')?.addEventListener('click', () => this._shareProgram());
     this._panel.querySelector('#te-dl').addEventListener('click', () => this._download());
     this._panel.querySelector('#te-dl-wokwi')?.addEventListener('click', () => this._downloadWokwi());
     this._panel.querySelector('#te-dl-svg')?.addEventListener('click',   () => this._downloadSVG());
+
+    this._botSel = this._panel.querySelector('#te-bot-sel');
 
     this._panel.querySelectorAll('.te-code-tab').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -633,12 +637,35 @@ export class TileEditor {
     URL.revokeObjectURL(a.href);
   }
 
+  _shareProgram() {
+    try {
+      const code = this._program.toShareCode();
+      const url  = `${location.origin}${location.pathname}?brain=${code}`;
+      navigator.clipboard.writeText(url).then(() => {
+        this._game.ui?.notify('🔗 Share link copied to clipboard!');
+      }).catch(() => {
+        // Fallback: show URL in a prompt so user can copy manually
+        prompt('Copy this share link:', url);
+      });
+    } catch (e) {
+      console.warn('[TileEditor] Share failed:', e);
+    }
+  }
+
   // ── Runtime ───────────────────────────────────────────────────────────────
 
+  _activeBot() {
+    const sel = this._botSel?.value ?? '1';
+    return sel === '2' ? this._game.scrapBot2 : this._game.scrapBot;
+  }
+
   _run() {
-    const bot = this._game.scrapBot;
-    if (!bot.isActive) {
-      this._game.ui?.notify('Craft a robot_helper first, then run your brain!');
+    const bot = this._activeBot();
+    if (!bot?.isActive) {
+      const sel = this._botSel?.value ?? '1';
+      this._game.ui?.notify(sel === '2'
+        ? 'Spawn Bot 2 first (Shift+B, requires Level 5)!'
+        : 'Craft a robot_helper first, then run your brain!');
       return;
     }
     bot.setBrain(this._program, this._game.world, this._game.player, this._game.dayNight);
@@ -651,7 +678,7 @@ export class TileEditor {
   }
 
   _stop() {
-    this._game.scrapBot.clearBrain();
+    this._activeBot()?.clearBrain();
     this._running = false;
     this._btnRun.disabled  = false;
     this._btnStop.disabled = true;
@@ -664,7 +691,7 @@ export class TileEditor {
   _tickHL() {
     if (!this._running || !this._open) { this._rafId = null; return; }
 
-    const rt = this._game.scrapBot._runtime;
+    const rt = this._activeBot()?._runtime;
     if (rt?.vm) {
       const pc  = rt.vm.pc;
       const map = rt.sourceMap;

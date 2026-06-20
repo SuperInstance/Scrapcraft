@@ -142,6 +142,10 @@ export class World {
     // Second station cluster (far end of band, x≈90)
     this.setBlock(90, 1, 20, B.WORKBENCH);
     this.setBlock(92, 1, 20, B.FORGE);
+
+    // Robot test track — rectangular loop at y=0 for line_under sensor
+    for (let x = 30; x <= 46; x++) { this.setBlock(x, 0, 14, B.TRACK); this.setBlock(x, 0, 22, B.TRACK); }
+    for (let z = 14; z <= 22; z++) { this.setBlock(30, 0, z, B.TRACK); this.setBlock(46, 0, z, B.TRACK); }
   }
 
   _band1(rng, W) {
