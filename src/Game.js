@@ -10,7 +10,7 @@ import { AudioSystem } from './AudioSystem.js';
 import { DayNight } from './DayNight.js';
 import { Achievements } from './Achievements.js';
 import { ScrapBot } from './ScrapBot.js';
-import { BLOCK_DEF, B } from './data/blocks.js';
+import { BLOCK_DEF, B, ITEM_TO_BLOCK } from './data/blocks.js';
 import { getItem } from './data/items.js';
 import { EXAMPLE_WALL_AVOIDER } from './maker/TileProgram.js';
 import { TileEditor } from './TileEditor.js';
@@ -40,6 +40,12 @@ export class Game {
 
     this.renderer = new Renderer(this.canvas);
     this.renderer.rebuildMeshes(this.world);
+
+    // Translucent ghost block shown when hovering a placement target
+    this._ghostMat  = new THREE.MeshBasicMaterial({ color: 0xaaddff, transparent: true, opacity: 0.4, depthWrite: false });
+    this._ghostMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), this._ghostMat);
+    this._ghostMesh.visible = false;
+    this.renderer.scene.add(this._ghostMesh);
 
     this.player = new Player(this.renderer.camera, this.world);
     this.player.pos.set(8, 2, 5);
@@ -115,7 +121,11 @@ export class Game {
     this.canvas.addEventListener('mouseup', e => {
       if (e.button === 0) { this._mineDown = false; this._cancelMine(); }
     });
-    this.canvas.addEventListener('contextmenu', e => e.preventDefault());
+    this.canvas.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      if (!document.pointerLockElement || this.ui.isOpen) return;
+      this._tryPlace();
+    });
 
     // Pointer lock: show/hide pause overlay
     document.addEventListener('pointerlockchange', () => {
@@ -200,6 +210,38 @@ export class Game {
     this.ui.setMineProgress(0);
   }
 
+  _tryPlace() {
+    const target = this.renderer.getTargetBlock(this.world);
+    if (!target) return;
+    const { face } = target;
+    const px = target.x + Math.round(face.x);
+    const py = target.y + Math.round(face.y);
+    const pz = target.z + Math.round(face.z);
+    if (py < 1 || py >= this.world.height) return;
+
+    const activeItem = this.player.activeItem;
+    if (!activeItem) return;
+    const blockId = ITEM_TO_BLOCK[activeItem.id];
+    if (!blockId) return;
+
+    // Prevent placing inside the player's body
+    const pp = this.player.pos;
+    const R  = 0.3;
+    if (px + 0.5 > pp.x - R && px - 0.5 < pp.x + R &&
+        pz + 0.5 > pp.z - R && pz - 0.5 < pp.z + R &&
+        py + 0.5 > pp.y      && py - 0.5 < pp.y + 1.8) return;
+
+    if (this.world.place(px, py, pz, blockId)) {
+      this.player.removeItem(activeItem.id, 1);
+      const item = getItem(activeItem.id);
+      this.ui.notify(`Placed ${item?.icon ?? ''} ${item?.name ?? activeItem.id}`);
+      this.audio.place();
+      this.particles.burst(px, py + 0.5, pz, 'pickup', 4);
+      this.saveSystem.markDirty();
+      this.ui.updateHotbar(this.player);
+    }
+  }
+
   onCraft(recipeId, output, qty) {
     this.achievements.track('craft', { id: output });
     this.saveSystem.markDirty();
@@ -265,6 +307,28 @@ export class Game {
       this.ui.setBlockLabel(null);
       this.ui.setCrosshairState(false, false, 0);
       if (!this._mineDown) this.renderer.setTargetBlock(null);
+    }
+
+    // Ghost block placement preview
+    {
+      const activeItem = this.player.activeItem;
+      const blockId    = activeItem ? ITEM_TO_BLOCK[activeItem.id] : null;
+      const tgt        = (!this.ui.isOpen && locked) ? this.renderer.getTargetBlock(this.world) : null;
+      if (blockId && tgt) {
+        const face = tgt.face;
+        const px = tgt.x + Math.round(face.x);
+        const py = tgt.y + Math.round(face.y);
+        const pz = tgt.z + Math.round(face.z);
+        if (this.world.getBlock(px, py, pz) === B.AIR && py >= 1) {
+          this._ghostMesh.position.set(px, py, pz);
+          this._ghostMat.color.setHex(BLOCK_DEF[blockId]?.color ?? 0xaaddff);
+          this._ghostMesh.visible = true;
+        } else {
+          this._ghostMesh.visible = false;
+        }
+      } else {
+        this._ghostMesh.visible = false;
+      }
     }
 
     // Band entry detection → toast

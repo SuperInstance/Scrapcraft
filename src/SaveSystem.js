@@ -108,8 +108,9 @@ export class SaveSystem {
       },
 
       world: {
-        seed:        g.world.seed ?? 1337,
-        minedBlocks: g.world._minedBlocks ?? [],
+        seed:         g.world.seed ?? 1337,
+        minedBlocks:  g.world._minedBlocks  ?? [],
+        placedBlocks: g.world._placedBlocks ?? [],
       },
     };
   }
@@ -160,6 +161,10 @@ export class SaveSystem {
     if (wd?.minedBlocks?.length) {
       wd.minedBlocks.forEach(({ x, y, z }) => g.world.setBlock(x, y, z, 0));
       g.world._minedBlocks = [...wd.minedBlocks];
+    }
+    if (wd?.placedBlocks?.length) {
+      wd.placedBlocks.forEach(({ x, y, z, id }) => g.world.setBlock(x, y, z, id));
+      g.world._placedBlocks = [...wd.placedBlocks];
     }
 
     // Refresh HUD

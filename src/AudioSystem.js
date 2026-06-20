@@ -158,6 +158,14 @@ export class AudioSystem {
     const { gain } = this._osc(freq, 'sine', t, 1.5, 0.04);
   }
 
+  /** Dull thud when placing a block */
+  place() {
+    this._ensure(); this._resume();
+    const t = this._ctx.currentTime;
+    this._noise(0.1, 0.22, 180, t);
+    this._osc(100, 'sawtooth', t, 0.07, 0.12);
+  }
+
   /** Error/fail sound */
   error() {
     this._ensure(); this._resume();

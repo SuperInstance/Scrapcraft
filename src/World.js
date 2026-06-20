@@ -32,7 +32,8 @@ export class World {
     this._listeners  = [];
     this.landmarks   = {};
     this.seed        = 42;
-    this._minedBlocks = [];  // [{ x,y,z }] — player-mined diffs for save system
+    this._minedBlocks  = [];  // [{ x,y,z }] — player-mined diffs for save system
+    this._placedBlocks = [];  // [{ x,y,z,id }] — player-placed diffs for save system
   }
 
   _idx(x, y, z) { return x + z * this.width + y * this.width * this.depth; }
@@ -395,6 +396,13 @@ export class World {
     this.setBlock(x, y, z, B.AIR);
     this._minedBlocks.push({ x, y, z });
     return id;
+  }
+
+  place(x, y, z, id) {
+    if (this.getBlock(x, y, z) !== B.AIR) return false;
+    this.setBlock(x, y, z, id);
+    this._placedBlocks.push({ x, y, z, id });
+    return true;
   }
 
   getNearbyInteractives(cx, cy, cz, radius = 3) {
