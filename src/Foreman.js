@@ -83,6 +83,15 @@ const QUIPS = {
     "I take back EVERY dumb thing I ever said about you. This is genuinely impressive. Now DON'T FLY IT INTO MY SHED.",
     "You built a flying machine out of junk. My shed is not a runway. I MEAN IT.",
   ],
+  mine_track_strip: [
+    "Track strips. Rubber and paint. Your robot can follow a line like it's got a job interview to get to.",
+    "The robot test loop's right over there. Place those strips and watch your bot work. Try not to cheer. (Cheer a little.)",
+    "Finally someone found the track. I put that loop in years ago. Mostly for myself.",
+  ],
+  craft_track: [
+    "Eight track strips from two rubber chunks. That's called efficiency. I taught you that. Indirectly.",
+    "Now you can build your own race course. First rule: don't let the bot win unsupervised.",
+  ],
 };
 
 // Quests Earl assigns in sequence
@@ -192,18 +201,20 @@ export class Foreman {
 
   onEvent(event, data) {
     const map = {
-      'mine_iron_scrap':   'mine_iron',
-      'mine_copper_wire':  'mine_copper',
-      'mine_circuit_board':'found_circuit',
-      'craft_tool':        'craft_tool',
-      'craft_device':      'craft_device',
-      'craft_robot_helper':'robot_built',
+      'mine_iron_scrap':    'mine_iron',
+      'mine_copper_wire':   'mine_copper',
+      'mine_circuit_board': 'found_circuit',
+      'mine_track_strip':   'mine_track_strip',
+      'craft_tool':         'craft_tool',
+      'craft_device':       'craft_device',
+      'craft_robot_helper': 'robot_built',
       'craft_flying_machine':'flying_machine',
-      'near_workbench':    'near_workbench',
-      'near_forge':        'near_forge',
-      'near_smelter':      'near_smelter',
-      'player_die':        'die',
-      'quest_complete':    'quest_complete',
+      'craft_track_strip':  'craft_track',
+      'near_workbench':     'near_workbench',
+      'near_forge':         'near_forge',
+      'near_smelter':       'near_smelter',
+      'player_die':         'die',
+      'quest_complete':     'quest_complete',
     };
     const key = map[event];
     if (key) this.say(key);
