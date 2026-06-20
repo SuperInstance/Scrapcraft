@@ -156,6 +156,21 @@ export const EXAMPLE_LIGHT_RUNNER = new TileProgram({
   ],
 });
 
+/** Line-follower: stay on TRACK blocks using the IR sensor. */
+export const EXAMPLE_LINE_FOLLOWER = new TileProgram({
+  name: 'Line Follower',
+  brain: 'tin',
+  nodes: [
+    T.forever([
+      T.ifElse(
+        T.is('line_under', true),
+        [ T.action('drive',  { dir: 'forward', speed: 0.5 }) ],
+        [ T.action('turn',   { dir: 'right', speed: 0.5 }), T.wait(0.15) ],
+      ),
+    ]),
+  ],
+});
+
 /** Macro demo: a Layer-1 "drive in a square" intent tile that expands at compile time. */
 export const EXAMPLE_SQUARE = new TileProgram({
   name: 'Honking Square',

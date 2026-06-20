@@ -12,7 +12,7 @@ import { Achievements } from './Achievements.js';
 import { ScrapBot } from './ScrapBot.js';
 import { BLOCK_DEF, B, ITEM_TO_BLOCK } from './data/blocks.js';
 import { getItem } from './data/items.js';
-import { EXAMPLE_WALL_AVOIDER } from './maker/TileProgram.js';
+import { EXAMPLE_WALL_AVOIDER, EXAMPLE_LINE_FOLLOWER } from './maker/TileProgram.js';
 import { TileEditor } from './TileEditor.js';
 import { SaveSystem } from './SaveSystem.js';
 import { XPSystem } from './XPSystem.js';
