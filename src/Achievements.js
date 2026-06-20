@@ -144,6 +144,71 @@ export const ACHIEVEMENT_LIST = [
     desc: 'Build the Flying Machine. "I said it couldn\'t be done." — Earl, being wrong for once.',
     check: (s) => s.crafted.has('flying_machine'),
   },
+
+  // ── Maker Lab milestones ────────────────────────────────────────────────
+  {
+    id: 'first_brain',
+    icon: '🧠',
+    name: 'Brains of the Operation',
+    desc: 'Craft a Tin Brain. The scrapyard just got its first microcontroller.',
+    check: (s) => s.crafted.has('tin_brain'),
+  },
+  {
+    id: 'wireless',
+    icon: '⚡',
+    name: 'Going Wireless',
+    desc: 'Craft a Spark Brain. WiFi, Bluetooth, and 240 MHz of ambition in your pocket.',
+    check: (s) => s.crafted.has('spark_brain'),
+  },
+  {
+    id: 'eagle_eye',
+    icon: '👁️',
+    name: 'The Eye Is Open',
+    desc: 'Craft a Vision Brain. The Jetson Nano sees all. Earl is suspicious of cameras.',
+    check: (s) => s.crafted.has('vision_brain'),
+  },
+  {
+    id: 'all_three_brains',
+    icon: '🏅',
+    name: 'Full Neural Stack',
+    desc: 'Craft all three brains. Tin, Spark, Vision. You are the lab. Earl is reconsidering retirement.',
+    check: (s) => s.crafted.has('tin_brain') && s.crafted.has('spark_brain') && s.crafted.has('vision_brain'),
+  },
+  {
+    id: 'night_sight',
+    icon: '🥽',
+    name: 'Owl Mode',
+    desc: 'Craft Night Goggles. Military surplus or novelty — either way, darkness is cancelled.',
+    check: (s) => s.crafted.has('night_goggles'),
+  },
+  {
+    id: 'hook_shot',
+    icon: '🪝',
+    name: 'Got You Covered',
+    desc: 'Craft the Grapple Hook. Doubles your reach. Also looks extremely cool.',
+    check: (s) => s.crafted.has('grapple_hook'),
+  },
+  {
+    id: 'tile_runner',
+    icon: '🤖',
+    name: 'It\'s Alive!',
+    desc: 'Run your first tile program. The scrapyard has learned to think.',
+    check: (s) => s.programsRun >= 1,
+  },
+  {
+    id: 'master_builder',
+    icon: '🏆',
+    name: 'Master Builder',
+    desc: 'Craft 15 different things. Earl has filed paperwork. You\'re competition.',
+    check: (s) => s.crafted.size >= 15,
+  },
+  {
+    id: 'placer',
+    icon: '🧱',
+    name: 'Mine and Refine',
+    desc: 'Place your first block back in the world. Creation begins where destruction ends.',
+    check: (s) => s.blocksPlaced >= 1,
+  },
 ];
 
 export class Achievements {
@@ -161,6 +226,8 @@ export class Achievements {
       questsCompleted: 0,
       recentCrafts: 0,
       _recentTimer: 0,
+      programsRun: 0,
+      blocksPlaced: 0,
     };
   }
 
@@ -185,6 +252,12 @@ export class Achievements {
         break;
       case 'quest':
         s.questsCompleted++;
+        break;
+      case 'program_run':
+        s.programsRun++;
+        break;
+      case 'place':
+        s.blocksPlaced++;
         break;
     }
     this._check();

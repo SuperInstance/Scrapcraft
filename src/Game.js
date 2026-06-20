@@ -110,6 +110,7 @@ export class Game {
           this.scrapBot.clearBrain();
         } else {
           this.scrapBot.setBrain(EXAMPLE_WALL_AVOIDER, this.world, this.player, this.dayNight);
+          this.achievements.track('program_run', {});
         }
       }
     });
@@ -237,6 +238,7 @@ export class Game {
       this.ui.notify(`Placed ${item?.icon ?? ''} ${item?.name ?? activeItem.id}`);
       this.audio.place();
       this.particles.burst(px, py + 0.5, pz, 'pickup', 4);
+      this.achievements.track('place', {});
       this.saveSystem.markDirty();
       this.ui.updateHotbar(this.player);
     }

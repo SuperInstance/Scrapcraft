@@ -21,6 +21,8 @@ import { B } from '../data/blocks.js';
 
 // Blocks that count as "distinctly coloured" for the Vision Brain colour sensor.
 const COLOURFUL_IDS = new Set([B.RUST_METAL, B.FORGE, B.OIL_DRUM, B.POWER_BOX, B.WOOD_PLANK, B.SCRAP_PILE]);
+// Blocks that act as a floor "line" for line-following.
+const LINE_IDS = new Set([B.WOOD_PLANK, B.OIL_DRUM]);
 
 export class GameWorldAdapter {
   /**
@@ -122,6 +124,36 @@ export class GameWorldAdapter {
         if (id) yield [bx, bz, id];
       }
     }
+  }
+
+  /** IR line-following: true if the floor block under the bot is a dark track block. */
+  lineUnder(x, z) {
+    const id = this.world.getBlock?.(Math.floor(x), 0, Math.floor(z));
+    return LINE_IDS.has(id);
+  }
+
+  /**
+   * Ambient temperature: forge blocks radiate heat; open yard is cool.
+   * Returns 0..1 (0 = arctic, 1 = next to a forge).
+   */
+  temperatureAt(x, z) {
+    const base = 0.3;
+    const lm = this.world.landmarks ?? {};
+    let heat = 0;
+    for (const key of Object.keys(lm)) {
+      if (!key.includes('forge')) continue;
+      const p = lm[key];
+      if (!p) continue;
+      const d = Math.hypot(p.x - x, p.z - z);
+      if (d < 8) heat = Math.max(heat, 0.7 * (1 - d / 8));
+    }
+    return Math.min(1, base + heat);
+  }
+
+  /** ESP32 color sensor: true when the floor block under the bot is distinctly coloured. */
+  colorUnder(x, z) {
+    const id = this.world.getBlock?.(Math.floor(x), 0, Math.floor(z));
+    return COLOURFUL_IDS.has(id);
   }
 
   /** Vision Brain stub: "sees target" if facing the player within a cone. */

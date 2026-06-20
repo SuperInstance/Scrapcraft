@@ -184,6 +184,90 @@ export const SENSORS = {
     },
   },
 
+  // ── Phase 2.2 sensors ───────────────────────────────────────────────────
+
+  line_under: {
+    id: 'line_under',
+    category: 'sense',
+    kind: 'digital',
+    label: 'line under me',
+    blurb: 'IR sensor detects a dark track (wood plank / oil drum) directly below the bot',
+    read: (robot, world) => world.lineUnder?.(robot.x, robot.z) ?? false,
+    hw: {
+      platform: ['uno', 'esp32', 'jetson'],
+      peripheral: 'IR reflectance sensor (TCRT5000)',
+      pin: 'A1',
+      setup: { arduino: 'pinMode(IR_PIN, INPUT);', micropython: 'ir = ADC(Pin(34))' },
+    },
+    firmware: {
+      arduino: () => '(analogRead(IR_PIN) < 300)',
+      micropython: () => '(ir.read() < 1200)',
+    },
+  },
+
+  compass: {
+    id: 'compass',
+    category: 'sense',
+    kind: 'analog',
+    label: 'compass heading',
+    blurb: 'current bearing as a fraction of a full circle (0 = North, 0.5 = South)',
+    requiresBrain: 'spark',
+    read: (robot) => {
+      // heading is radians CCW from +Z (North). Normalize to 0..1.
+      const h = ((robot.heading % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      return h / (2 * Math.PI);
+    },
+    hw: {
+      platform: ['esp32', 'jetson'],
+      peripheral: 'MPU6050 (I2C magnetometer)',
+      pin: 'SDA=21, SCL=22',
+      setup: { arduino: 'mpu.initialize();', micropython: 'imu = MPU6050(i2c)' },
+    },
+    firmware: {
+      arduino: () => '(readCompass() / 360.0)',
+      micropython: () => '(imu.get_heading() / 360.0)',
+    },
+  },
+
+  temperature: {
+    id: 'temperature',
+    category: 'sense',
+    kind: 'analog',
+    label: 'temperature',
+    blurb: 'ambient warmth near this spot (0 = cold, 1 = forge-hot)',
+    read: (robot, world) => world.temperatureAt?.(robot.x, robot.z) ?? 0.3,
+    hw: {
+      platform: ['uno', 'esp32', 'jetson'],
+      peripheral: 'DHT11 temperature sensor',
+      pin: 'D2',
+      setup: { arduino: 'dht.begin();', micropython: 'sensor = DHT11(Pin(2))' },
+    },
+    firmware: {
+      arduino: () => '(dht.readTemperature() / 50.0)',
+      micropython: () => '(sensor.temperature / 50.0)',
+    },
+  },
+
+  color_sensor: {
+    id: 'color_sensor',
+    category: 'sense',
+    kind: 'digital',
+    label: 'coloured floor below',
+    blurb: 'APDS9960 detects a non-grey coloured surface directly under the bot (ESP32+)',
+    requiresBrain: 'spark',
+    read: (robot, world) => world.colorUnder?.(robot.x, robot.z) ?? false,
+    hw: {
+      platform: ['esp32', 'jetson'],
+      peripheral: 'APDS9960 colour + proximity (I2C)',
+      pin: 'SDA=21, SCL=22',
+      setup: { arduino: 'apds.begin();', micropython: 'apds = APDS9960(i2c)' },
+    },
+    firmware: {
+      arduino: () => '(readColourSaturation() > 40)',
+      micropython: () => '(apds.color_data()[3] > 40)',  // chroma check on S channel
+    },
+  },
+
   // Vision Brain (Jetson) — abstracted computer vision. "Just works" in-game;
   // maps to a real on-device inference call on actual hardware.
   sees_target: {
@@ -328,6 +412,82 @@ export const ACTUATORS = {
     firmware: {
       arduino: (p) => `armServo.write(${p.state === 'open' ? 10 : 90});`,
       micropython: (p) => `arm.angle(${p.state === 'open' ? 10 : 90})`,
+    },
+  },
+
+  // ── Phase 2.2 actuators ─────────────────────────────────────────────────
+
+  speak: {
+    id: 'speak',
+    category: 'act',
+    label: 'speak',
+    blurb: 'robot says a short word or phrase (TTS module on ESP32; chat bubble in-game)',
+    requiresBrain: 'spark',
+    params: {
+      phrase: { type: 'enum', values: ['hello', 'done', 'warning', 'help', 'go'], default: 'hello' },
+    },
+    exec: (robot, p) => { robot.emit('speak', { phrase: p.phrase }); },
+    hw: {
+      platform: ['esp32', 'jetson'],
+      peripheral: 'DFPlayer Mini MP3 module (UART)',
+      pin: 'TX=17, RX=16',
+      setup: { arduino: 'tts.begin(Serial2);', micropython: 'tts = DFPlayer(uart)' },
+    },
+    firmware: {
+      arduino: (p) => `tts.play("${p.phrase}.mp3");`,
+      micropython: (p) => `tts.play("${p.phrase}")`,
+    },
+  },
+
+  servo_angle: {
+    id: 'servo_angle',
+    category: 'act',
+    label: 'servo to angle',
+    blurb: 'set the arm servo to an exact angle (0 = fully closed, 180 = fully open)',
+    requiresBrain: 'spark',
+    params: {
+      angle: { type: 'number', min: 0, max: 180, step: 5, default: 90, unit: 'degrees' },
+    },
+    exec: (robot, p) => { robot.emit('servo', { angle: p.angle }); robot.gripping = p.angle < 90; },
+    hw: {
+      platform: ['esp32', 'jetson'],
+      peripheral: 'SG90 servo',
+      pin: 'D15 (PWM)',
+      setup: { arduino: 'armServo.attach(SERVO_PIN);', micropython: 'arm = Servo(Pin(15))' },
+    },
+    firmware: {
+      arduino: (p) => `armServo.write(${Math.round(p.angle)});`,
+      micropython: (p) => `arm.angle(${Math.round(p.angle)})`,
+    },
+  },
+
+  neopixel: {
+    id: 'neopixel',
+    category: 'act',
+    label: 'NeoPixel',
+    blurb: 'set the WS2812 RGB LED strip to a colour — great for signalling',
+    requiresBrain: 'spark',
+    params: {
+      color: { type: 'enum', values: ['off', 'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'white'], default: 'green' },
+    },
+    exec: (robot, p) => { robot.emit('neopixel', { color: p.color }); },
+    hw: {
+      platform: ['esp32', 'jetson'],
+      peripheral: 'WS2812B NeoPixel strip',
+      pin: 'D4',
+      setup: { arduino: 'pixels.begin();', micropython: 'np = NeoPixel(Pin(4), 8)' },
+    },
+    firmware: {
+      arduino: (p) => {
+        const C = { off:'0,0,0', red:'255,0,0', orange:'255,100,0', yellow:'220,180,0',
+                    green:'0,200,0', cyan:'0,200,200', blue:'0,0,255', purple:'150,0,200', white:'255,255,255' };
+        return `pixels.fill(pixels.Color(${C[p.color] ?? '0,200,0'})); pixels.show();`;
+      },
+      micropython: (p) => {
+        const C = { off:'(0,0,0)', red:'(255,0,0)', orange:'(255,100,0)', yellow:'(220,180,0)',
+                    green:'(0,200,0)', cyan:'(0,200,200)', blue:'(0,0,255)', purple:'(150,0,200)', white:'(255,255,255)' };
+        return `np.fill(${C[p.color] ?? '(0,200,0)'}); np.write()`;
+      },
     },
   },
 };
