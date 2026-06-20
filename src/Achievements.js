@@ -272,6 +272,34 @@ export const ACHIEVEMENT_LIST = [
     desc: 'Bot completes a lap on the Circuit City oval track. Earl watched. He won\'t admit it.',
     check: (s) => (s.lapsCompleted ?? 0) >= 3,
   },
+  {
+    id: 'crystal_hunter',
+    icon: '🔮',
+    name: 'Crystal Hunter',
+    desc: 'Mine 5 Crystal Ore blocks deep in The Deep Yard. They glow, they drop shards, and Earl thinks they\'re suspicious.',
+    check: (s) => (s.crystalMined ?? 0) >= 5,
+  },
+  {
+    id: 'headlamp_on',
+    icon: '🔦',
+    name: 'Head in the Game',
+    desc: 'Toggle your headlamp on for the first time. Now you can see what you\'re doing. Game changer.',
+    check: (s) => (s.headlampUsed ?? 0) >= 1,
+  },
+  {
+    id: 'scrap_gunner',
+    icon: '💥',
+    name: 'Industrial Action',
+    desc: 'Fire the Scrap Cannon 10 times. OSHA filed three reports. You filed none.',
+    check: (s) => (s.cannonsFired ?? 0) >= 10,
+  },
+  {
+    id: 'waypoint_ace',
+    icon: '🚩',
+    name: 'Navigator',
+    desc: 'Your bot reaches a waypoint flag for the first time. That\'s real GPS navigation. In a scrapyard game. Earl is quietly amazed.',
+    check: (s) => (s.waypointReached ?? 0) >= 1,
+  },
 ];
 
 export class Achievements {
@@ -298,6 +326,10 @@ export class Achievements {
       brainsShared: 0,
       sparkPrograms: 0,
       uniqueSensorsUsed: 0,
+      crystalMined: 0,
+      headlampUsed: 0,
+      cannonsFired: 0,
+      waypointReached: 0,
     };
   }
 
@@ -345,6 +377,18 @@ export class Achievements {
         break;
       case 'sensor_used':
         s.uniqueSensorsUsed = (s.uniqueSensorsUsed ?? 0) + 1;
+        break;
+      case 'crystal_mine':
+        s.crystalMined = (s.crystalMined ?? 0) + 1;
+        break;
+      case 'headlamp_use':
+        s.headlampUsed = (s.headlampUsed ?? 0) + 1;
+        break;
+      case 'cannon_fire':
+        s.cannonsFired = (s.cannonsFired ?? 0) + 1;
+        break;
+      case 'waypoint_reach':
+        s.waypointReached = (s.waypointReached ?? 0) + 1;
         break;
     }
     this._check();
