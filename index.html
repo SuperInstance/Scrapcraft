@@ -593,6 +593,22 @@
     .te-err  { font-size:10px; color:#f44336; padding:1px 0; }
     .te-warn { font-size:10px; color:#f0b429; padding:1px 0; }
 
+    /* ── Live sensor readout ── */
+    #te-sensors {
+      padding:6px 12px; flex-shrink:0; background:#050c0a;
+      border-top:1px solid #0a1a10;
+      display:flex; flex-wrap:wrap; gap:6px 16px;
+    }
+    .te-sensor-row {
+      display:flex; align-items:center; gap:5px; font-size:10px;
+    }
+    .te-sensor-key  { color:#3a7a50; letter-spacing:0.5px; }
+    .te-sensor-val  { color:#00ff88; font-weight:bold; min-width:38px; }
+    .te-sensor-bar  {
+      width:50px; height:5px; background:#0d1f14; border-radius:2px; overflow:hidden;
+    }
+    .te-sensor-fill { height:100%; background:#00cc66; border-radius:2px; transition:width 0.1s; }
+
     /* ── Spark panel ── */
     #spark-panel {
       width:250px; flex-shrink:0; flex-direction:column;
@@ -900,6 +916,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Live sensor readout (shown while bot is running) -->
+    <div id="te-sensors" style="display:none;"></div>
 
     <!-- Code view (hidden until toggled) -->
     <div id="te-code-view" class="te-code-view" style="display:none;">
