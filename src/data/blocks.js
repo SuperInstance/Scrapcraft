@@ -58,6 +58,12 @@ export const BLOCK_DEF = {
                     altDrop: 'circuit_board', altDropChance: 0.4 },
 };
 
+// Items the player can place as blocks (item ID → block ID)
+export const ITEM_TO_BLOCK = {
+  wood_plank: B.WOOD_PLANK,
+  iron_scrap: B.RUST_METAL,
+};
+
 export function isInteractive(id) {
   return !!BLOCK_DEF[id]?.interactive;
 }
