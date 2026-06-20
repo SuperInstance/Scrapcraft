@@ -539,7 +539,7 @@ export class TileEditor {
 
     if (data.kind === 'new') {
       const node = makeNode(data.spec);
-      if (node) { list.splice(idx, 0, node); this._renderProgram(); }
+      if (node) { list.splice(idx, 0, node); this._renderProgram(); this._game?.saveSystem?.markDirty(); }
     } else if (data.kind === 'move') {
       const found = this._findNode(data.nodeId);
       if (!found) return;
@@ -548,6 +548,7 @@ export class TileEditor {
       found.list.splice(found.idx, 1);
       list.splice(Math.max(0, at), 0, found.node);
       this._renderProgram();
+      this._game?.saveSystem?.markDirty();
     }
 
     this._dragData = null;
@@ -728,13 +729,14 @@ export class TileEditor {
     if (btn) { btn.style.borderColor = this._sparkOpen ? '#00ccff' : ''; btn.style.color = this._sparkOpen ? '#00ccff' : ''; }
   }
 
-  /** Called by Spark when it successfully builds a program. */
+  /** Called by Spark, share-link loader, or SaveSystem restore when building a program. */
   loadProgram(program) {
     this._program = program;
     this._assignIds(this._program.nodes);
-    this._nameIn.value       = program.name  ?? 'Spark Brain';
-    this._brainSel.value     = program.brain ?? 'tin';
+    if (this._nameIn)   this._nameIn.value   = program.name  ?? 'Spark Brain';
+    if (this._brainSel) this._brainSel.value = program.brain ?? 'tin';
     this._renderProgram();
+    this._game?.saveSystem?.markDirty();
   }
 
   _assignIds(nodes) {

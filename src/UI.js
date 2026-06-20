@@ -116,6 +116,8 @@ export class UI {
     this._luSkill = document.getElementById('lu-skill');
     this._luTimer = null;
 
+    this._hotbarTip = document.getElementById('hotbar-tip');
+
     this._buildHotbar();
     this._buildCodex();
     this._bindOverlayEvents();
@@ -132,8 +134,24 @@ export class UI {
       slot.className = 'hotbar-slot';
       slot.innerHTML = `<span class="slot-num">${i + 1}</span>
         <span class="item-icon"></span><span class="item-count"></span>`;
+      slot.addEventListener('mouseenter', () => this._showHotbarTip(i));
+      slot.addEventListener('mouseleave', () => this._hideHotbarTip());
       this._hotbar.appendChild(slot);
     }
+  }
+
+  _showHotbarTip(index) {
+    if (!this._hotbarTip) return;
+    const item = this.game?.player?.inventory?.[index];
+    if (!item) { this._hideHotbarTip(); return; }
+    const def = getItem(item.id);
+    if (!def) return;
+    this._hotbarTip.textContent = `${def.icon} ${def.name}`;
+    this._hotbarTip.classList.add('show');
+  }
+
+  _hideHotbarTip() {
+    this._hotbarTip?.classList.remove('show');
   }
 
   updateHotbar(player) {

@@ -106,7 +106,7 @@
     /* ── Hotbar ── */
     #hotbar {
       position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
-      display:flex; gap:4px;
+      display:flex; gap:4px; pointer-events:auto;
     }
     .hotbar-slot {
       width:56px; height:56px;
@@ -127,6 +127,26 @@
       position:absolute; bottom:88px; left:50%; transform:translateX(-50%);
       color:#444; font-size:10px; letter-spacing:1px;
     }
+
+    /* ── Minimap ── */
+    #minimap-wrap {
+      position:absolute; bottom:24px; right:16px;
+      background:rgba(0,0,0,0.7); border:2px solid #333; border-radius:6px;
+      padding:4px; pointer-events:none;
+    }
+    #minimap { display:block; border-radius:3px; }
+    #minimap-label {
+      text-align:center; font-size:9px; color:#555; letter-spacing:1px; padding-top:2px;
+    }
+
+    /* ── Hotbar tooltip ── */
+    #hotbar-tip {
+      position:absolute; bottom:90px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.85); border:1px solid #555; border-radius:4px;
+      padding:4px 10px; font-size:11px; color:#ddd; white-space:nowrap;
+      pointer-events:none; opacity:0; transition:opacity 0.1s;
+    }
+    #hotbar-tip.show { opacity:1; }
 
     /* ── Notifications ── */
     #notifications {
@@ -724,7 +744,14 @@
 
     <!-- Hotbar -->
     <div id="hotbar"></div>
+    <div id="hotbar-tip"></div>
     <div id="toolbar-hint">[ E ] WORKSHOP &nbsp;·&nbsp; [ T ] MAKER BENCH &nbsp;·&nbsp; [ F ] EARL &nbsp;·&nbsp; 1-9 HOTBAR &nbsp;·&nbsp; ESC PAUSE</div>
+
+    <!-- Minimap -->
+    <div id="minimap-wrap">
+      <canvas id="minimap" width="96" height="96"></canvas>
+      <div id="minimap-label">MAP</div>
+    </div>
 
     <!-- Codex shortcut -->
     <button id="codex-btn">📖 CODEX</button>
