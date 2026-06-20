@@ -118,6 +118,7 @@ export class TileEditor {
     this._sparkLog   = null;
     this._sparkInput = null;
     this._botSel     = null;
+    this._sensorsEl  = null;
 
     this._buildDOM();
   }
@@ -134,9 +135,10 @@ export class TileEditor {
     this._brainSel = this._panel.querySelector('#te-brain');
     this._btnRun   = this._panel.querySelector('#te-run');
     this._btnStop  = this._panel.querySelector('#te-stop');
-    this._codeView = this._panel.querySelector('#te-code-view');
-    this._codePre  = this._panel.querySelector('#te-code-pre');
-    this._errView  = this._panel.querySelector('#te-errors');
+    this._codeView   = this._panel.querySelector('#te-code-view');
+    this._codePre    = this._panel.querySelector('#te-code-pre');
+    this._errView    = this._panel.querySelector('#te-errors');
+    this._sensorsEl  = this._panel.querySelector('#te-sensors');
 
     this._nameIn.addEventListener('input', () => {
       this._program.name = this._nameIn.value || 'My Brain';
@@ -684,6 +686,7 @@ export class TileEditor {
     this._btnRun.disabled  = false;
     this._btnStop.disabled = true;
     this._clearHL();
+    if (this._sensorsEl) this._sensorsEl.style.display = 'none';
     if (this._rafId) { cancelAnimationFrame(this._rafId); this._rafId = null; }
   }
 
@@ -692,7 +695,8 @@ export class TileEditor {
   _tickHL() {
     if (!this._running || !this._open) { this._rafId = null; return; }
 
-    const rt = this._activeBot()?._runtime;
+    const bot = this._activeBot();
+    const rt  = bot?._runtime;
     if (rt?.vm) {
       const pc  = rt.vm.pc;
       const map = rt.sourceMap;
@@ -707,8 +711,10 @@ export class TileEditor {
         el?.classList.add('te-active');
         this._activeId = activeId;
       }
+      this._refreshSensors(rt);
     } else {
       this._clearHL();
+      if (this._sensorsEl) this._sensorsEl.style.display = 'none';
     }
 
     this._rafId = requestAnimationFrame(() => this._tickHL());
@@ -717,6 +723,35 @@ export class TileEditor {
   _clearHL() {
     this._canvas.querySelectorAll('.te-active').forEach(el => el.classList.remove('te-active'));
     this._activeId = null;
+  }
+
+  _refreshSensors(rt) {
+    if (!this._sensorsEl) return;
+    const robot = rt.robot;
+    const world = rt.world;
+    if (!robot || !world) return;
+
+    // Read all sensors that exist on the world adapter
+    const readings = [
+      { key: 'distance',   val: world.distanceAhead?.(robot.x, robot.z, robot.heading) ?? null, kind: 'analog' },
+      { key: 'brightness', val: world.lightAt?.(robot.x, robot.z) ?? null, kind: 'analog' },
+      { key: 'bumped',     val: world.distanceAhead?.(robot.x, robot.z, robot.heading) < 0.08, kind: 'digital' },
+      { key: 'player',     val: (world.playerDistance?.(robot.x, robot.z) ?? 999) < 4, kind: 'digital' },
+      { key: 'line',       val: world.lineUnder?.(robot.x, robot.z) ?? null, kind: 'digital' },
+      { key: 'temp',       val: world.temperatureAt?.(robot.x, robot.z) ?? null, kind: 'analog' },
+    ].filter(r => r.val !== null && r.val !== undefined);
+
+    this._sensorsEl.style.display = 'flex';
+    this._sensorsEl.innerHTML = readings.map(r => {
+      const fval = typeof r.val === 'boolean'
+        ? (r.val ? '<span style="color:#00ff88">ON</span>' : '<span style="color:#445">OFF</span>')
+        : r.val.toFixed(2);
+      const bar = r.kind === 'analog'
+        ? `<div class="te-sensor-bar"><div class="te-sensor-fill" style="width:${Math.round(r.val * 100)}%"></div></div>`
+        : '';
+      return `<div class="te-sensor-row"><span class="te-sensor-key">${r.key}</span>`
+           + `<span class="te-sensor-val">${fval}</span>${bar}</div>`;
+    }).join('');
   }
 
   // ── Spark panel ───────────────────────────────────────────────────────────
