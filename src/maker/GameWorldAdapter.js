@@ -17,6 +17,10 @@
  */
 
 import { SONAR_RANGE } from './kinematics.js';
+import { B } from '../data/blocks.js';
+
+// Blocks that count as "distinctly coloured" for the Vision Brain colour sensor.
+const COLOURFUL_IDS = new Set([B.RUST_METAL, B.FORGE, B.OIL_DRUM, B.POWER_BOX, B.WOOD_PLANK, B.SCRAP_PILE]);
 
 export class GameWorldAdapter {
   /**
@@ -81,6 +85,43 @@ export class GameWorldAdapter {
     const p = this.player?.pos;
     if (!p) return 999;
     return Math.hypot(p.x - x, p.z - z);
+  }
+
+  /** Vision Brain — detect any coloured block in a 30° cone ahead. */
+  seesColor(x, z, heading) {
+    for (const [, , blockId] of this._conescan(x, z, heading)) {
+      if (COLOURFUL_IDS.has(blockId)) return true;
+    }
+    return false;
+  }
+
+  /** Vision Brain — left/right offset to the nearest target in cone (−1..+1). */
+  targetBearing(x, z, heading) {
+    for (const [bx, bz] of this._conescan(x, z, heading)) {
+      const dx = bx - x, dz = bz - z;
+      return Math.sin(Math.atan2(dx, dz) - heading);
+    }
+    return 0;
+  }
+
+  /** Vision Brain — normalised distance to the nearest solid block in cone. */
+  targetDistance(x, z, heading) {
+    for (const [bx, bz] of this._conescan(x, z, heading)) {
+      return Math.min(1, Math.hypot(bx - x, bz - z) / SONAR_RANGE);
+    }
+    return 1;
+  }
+
+  /** Generator: yield [bx, bz, blockId] within a cone, closest first. */
+  *_conescan(x, z, heading, range = SONAR_RANGE, halfCone = Math.PI / 6) {
+    for (let r = 1; r <= range; r++) {
+      for (let a = -halfCone; a <= halfCone; a += 0.2) {
+        const bx = Math.round(x + r * Math.sin(heading + a));
+        const bz = Math.round(z + r * Math.cos(heading + a));
+        const id = this.world.getBlock?.(bx, 1, bz);
+        if (id) yield [bx, bz, id];
+      }
+    }
   }
 
   /** Vision Brain stub: "sees target" if facing the player within a cone. */

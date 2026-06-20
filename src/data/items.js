@@ -174,6 +174,80 @@ export const ITEMS = {
     category: 'vehicle',
     stackSize: 1,
   },
+
+  // ── Maker Lab brains ──
+  tin_brain: {
+    name: 'Tin Brain',
+    icon: '🧠',
+    desc: "A humble ATmega with dreams above its station. Runs your tiles. Don't underestimate it.",
+    category: 'maker',
+    stackSize: 1,
+  },
+  spark_brain: {
+    name: 'Spark Brain',
+    icon: '⚡',
+    desc: 'An ESP32 — WiFi, Bluetooth, 240MHz of ambition. Unlocks motion sensing and the grab arm.',
+    category: 'maker',
+    stackSize: 1,
+  },
+  vision_brain: {
+    name: 'Vision Brain',
+    icon: '👁️',
+    desc: 'A Jetson Nano that can actually see. Paired with a camera. Earl is suspicious of it.',
+    category: 'maker',
+    stackSize: 1,
+  },
+
+  // ── Sensor / actuator modules ──
+  ultrasonic_module: {
+    name: 'Ultrasonic Sensor',
+    icon: '📡',
+    desc: 'HC-SR04. Pings walls and tells you how close you are to disaster.',
+    category: 'maker',
+    stackSize: 4,
+  },
+  ldr_module: {
+    name: 'Light Sensor',
+    icon: '☀️',
+    desc: 'An LDR. Figures out if the lights are on. Metaphorically applicable.',
+    category: 'maker',
+    stackSize: 4,
+  },
+  pir_module: {
+    name: 'Motion Sensor',
+    icon: '👀',
+    desc: 'PIR sensor. Detects humans. Mildly creepy but useful.',
+    category: 'maker',
+    stackSize: 4,
+  },
+  buzzer_module: {
+    name: 'Piezo Buzzer',
+    icon: '🔔',
+    desc: 'Makes noise. Annoying noise. Which is sometimes exactly what you need.',
+    category: 'maker',
+    stackSize: 4,
+  },
+  servo_module: {
+    name: 'Servo Motor (SG90)',
+    icon: '🦾',
+    desc: 'For the grab arm. 180° of reach, one tab of plastic, infinite satisfaction.',
+    category: 'maker',
+    stackSize: 2,
+  },
+  motor_driver: {
+    name: 'Motor Driver (L298N)',
+    icon: '⚙️',
+    desc: 'Bridges the gap between "delicate electronics" and "screaming motors".',
+    category: 'maker',
+    stackSize: 2,
+  },
+  camera_module: {
+    name: 'Camera Module',
+    icon: '📷',
+    desc: 'CSI ribbon cable + lens. Makes the Vision Brain actually see. Treat it gently.',
+    category: 'maker',
+    stackSize: 1,
+  },
 };
 
 export function getItem(id) {

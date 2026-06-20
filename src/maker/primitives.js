@@ -124,6 +124,66 @@ export const SENSORS = {
     firmware: { arduino: () => 'digitalRead(PIR_PIN) == HIGH', micropython: () => '(pir.value() == 1)' },
   },
 
+  sees_color: {
+    id: 'sees_color',
+    category: 'sense',
+    kind: 'digital',
+    label: 'sees a coloured block',
+    blurb: 'camera detects a distinctly-coloured (non-grey) block in view (Vision Brain only)',
+    requiresBrain: 'vision',
+    read: (robot, world) => world.seesColor?.(robot.x, robot.z, robot.heading) ?? false,
+    hw: {
+      platform: ['jetson'],
+      peripheral: 'CSI camera + colour classifier',
+      pin: 'CSI-0',
+      setup: { arduino: '/* Vision requires Jetson */', micropython: '# detector = ColourDetector("scrap.onnx")' },
+    },
+    firmware: {
+      arduino: () => '/* not supported on AVR */ false',
+      micropython: () => 'vision.sees_color()',
+    },
+  },
+
+  target_bearing: {
+    id: 'target_bearing',
+    category: 'sense',
+    kind: 'analog',
+    label: 'target bearing',
+    blurb: 'how far left/right the target is in view (−1 = far left, +1 = far right)',
+    requiresBrain: 'vision',
+    read: (robot, world) => world.targetBearing?.(robot.x, robot.z, robot.heading) ?? 0,
+    hw: {
+      platform: ['jetson'],
+      peripheral: 'CSI camera',
+      pin: 'CSI-0',
+      setup: { arduino: '/* Vision */', micropython: '' },
+    },
+    firmware: {
+      arduino: () => '/* not supported on AVR */ 0',
+      micropython: () => 'vision.target_bearing()',
+    },
+  },
+
+  target_distance: {
+    id: 'target_distance',
+    category: 'sense',
+    kind: 'analog',
+    label: 'target distance',
+    blurb: 'how far away the nearest target is (0 = right here, 1 = far away)',
+    requiresBrain: 'vision',
+    read: (robot, world) => world.targetDistance?.(robot.x, robot.z, robot.heading) ?? 1,
+    hw: {
+      platform: ['jetson'],
+      peripheral: 'CSI camera (depth estimate)',
+      pin: 'CSI-0',
+      setup: { arduino: '/* Vision */', micropython: '' },
+    },
+    firmware: {
+      arduino: () => '/* not supported on AVR */ 1.0',
+      micropython: () => 'vision.target_distance()',
+    },
+  },
+
   // Vision Brain (Jetson) — abstracted computer vision. "Just works" in-game;
   // maps to a real on-device inference call on actual hardware.
   sees_target: {
