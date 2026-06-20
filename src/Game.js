@@ -273,6 +273,10 @@ export class Game {
     }
 
     this.achievements.track('mine', { isNight });
+    if (id === B.CRYSTAL_ORE) {
+      this.achievements.track('crystal_mine', {});
+      this.xpSystem.gain(5);  // bonus XP for rare ore
+    }
     this.xpSystem.gain(1);
     this.saveSystem.markDirty();
     this.achievements.track('inventory', {
@@ -355,6 +359,20 @@ export class Game {
     }
   }
 
+  _applyBandSky(bandIdx) {
+    // Each band gets a distinct sky/fog palette for visual biome feel
+    const PALETTES = [
+      { sky: 0x8aabbb, fog: 0x8aabbb },  // Band 0: Yard Gate — default blue-grey
+      { sky: 0x707080, fog: 0x807080 },  // Band 1: Industrial — grey industrial haze
+      { sky: 0x3a6040, fog: 0x3a5030 },  // Band 2: Circuit City — deep teal/green
+      { sky: 0x1a0a0a, fog: 0x2a0a0a },  // Band 3: Deep Yard — near-dark red-black
+    ];
+    const pal = PALETTES[bandIdx] ?? PALETTES[0];
+    const scene = this.renderer.scene;
+    scene.background = new THREE.Color(pal.sky);
+    scene.fog.color  = new THREE.Color(pal.fog);
+  }
+
   _fireScrapCannon(cx, cy, cz) {
     const p = this.player.pos;
     const dx = cx - p.x, dz = cz - p.z;
@@ -379,6 +397,7 @@ export class Game {
     }
     this.particles.burst(cx, cy + 0.5, cz, 'smoke', 6);
     this.audio.mine(B.RUST_METAL);
+    this.achievements.track('cannon_fire', {});
     this.xpSystem.gain(1);
   }
 
@@ -559,13 +578,15 @@ export class Game {
       }
     }
 
-    // Band entry detection → toast
+    // Band entry detection → toast + sky/fog color shift
     const bandIdx = this.world.getBandIndex(Math.floor(this.player.pos.z));
     if (bandIdx !== this._lastBandIndex) {
       if (this._lastBandIndex >= 0) {
         this.ui.showZoneToast(this.world.getBandName(Math.floor(this.player.pos.z)));
+        this.foreman.onEvent(`enter_band_${bandIdx}`, {});
       }
       this._lastBandIndex = bandIdx;
+      this._applyBandSky(bandIdx);
     }
 
     // Nearby station hint
@@ -724,6 +745,7 @@ export class Game {
         this.renderer.setHeadlamp(this._headlampOn);
         this.ui.notify(this._headlampOn ? '🔦 Headlamp ON' : '🔦 Headlamp OFF');
         this.audio.pickup();
+        if (this._headlampOn) this.achievements.track('headlamp_use', {});
         break;
       case 'battery_dead': {
         // Charge at a forge: battery_dead → battery_pack

@@ -125,6 +125,33 @@ const QUIPS = {
     "Cleared up. Earl appreciates a fine day. Earl won't say so again.",
     "Weather's good. Which means my back hurts less. Which means I expect more from you today.",
   ],
+  enter_band_1: [
+    "Industrial Corridor. Bigger scrap, taller towers, worse smells. Welcome to the real yard.",
+    "You crossed into my territory now. The Industrial Corridor doesn't care about your feelings.",
+    "Band 1 — dense, heavy, loud. Like me on a Monday. Watch your step.",
+  ],
+  enter_band_2: [
+    "Circuit City. Electronics everywhere. Touch nothing you don't understand. Touch nothing you DO understand either.",
+    "You're in the Circuit district now. The glowing oval track is up ahead. I built it. Don't crash it.",
+    "Circuit City. Everything here runs on volts and optimism. Both can kill you.",
+  ],
+  enter_band_3: [
+    "The Deep Yard. This is the back of the back. The junk of the junk. Tread carefully.",
+    "Nobody goes to the Deep Yard on purpose. Yet here you are. I respect that. Barely.",
+    "Crystal Ore grows back here. I don't know why. I stopped asking questions about this yard years ago.",
+  ],
+  headlamp_on: [
+    "There's a light on your head now. Look at you. Very professional. Don't walk into walls anyway.",
+    "Headlamp! Now you can see what you're bumping into. Progress.",
+  ],
+  cannon_fire: [
+    "That's the Scrap Cannon going off. Point it AWAY from the shed. I cannot stress this enough.",
+    "BOOM. Scrap Cannon fired. I told you not to aim it at the oil drums. I assume you didn't.",
+  ],
+  waypoint_reached: [
+    "Bot reached the flag. That's GPS. Real GPS. In a scrapyard game. I'm genuinely moved.",
+    "Waypoint reached! Your bot navigated there using math I won't pretend to fully understand. Good job.",
+  ],
 };
 
 // Quests Earl assigns in sequence
@@ -233,6 +260,39 @@ export const QUESTS = [
     reward: { item: 'scrap_magnet', qty: 1 },
     rewardText: "A Scrap Magnet. Now scrap comes to you. That's peak scrapyard engineering. You're done growing.",
   },
+  {
+    id: 'q11',
+    title: 'Into the Deep',
+    intro: "You've been sticking to the front yard. The Deep Yard — that's Band 3, all the way north — that's where the weird stuff is. Crystal ore. Old robot carcasses. Something I don't like talking about. Go find it.",
+    steps: [
+      { label: 'Reach the Deep Yard (z ≥ 96)', check: (_, g) => (g?.player?.pos?.z ?? 0) >= 96 },
+      { label: 'Mine 3 Crystal Ore', check: (_, g) => (g?.achievements?.stats?.crystalMined ?? 0) >= 3 },
+    ],
+    reward: { item: 'night_goggles', qty: 1 },
+    rewardText: "Night goggles. The Deep Yard at night is... something else. These'll help.",
+  },
+  {
+    id: 'q12',
+    title: 'Headlamp Required',
+    intro: "Craft a Headlamp — battery pack, glass shard, copper wire at the workbench. Then press G to toggle it. I don't care what you use it for. Stop bumping into things in the dark. That's my final answer.",
+    steps: [
+      { label: 'Craft a Headlamp', check: (p) => p.crafted.has('headlamp') },
+      { label: 'Toggle it on (G key)', check: (_, g) => (g?.achievements?.stats?.headlampUsed ?? 0) >= 1 },
+    ],
+    reward: { item: 'crystal_fragment', qty: 5 },
+    rewardText: "Crystal fragments. They're pretty. Don't ask me why the yard has them. I stopped asking years ago.",
+  },
+  {
+    id: 'q13',
+    title: 'Waypoint Navigator',
+    intro: "Here's your final test. Drop a Waypoint Flag with [Y]. Load the Waypoint Navigator preset in the Tile Editor. Run the bot. Watch it drive to the flag. That right there — that's GPS. That's real robotics. Do it.",
+    steps: [
+      { label: 'Drop a Waypoint Flag (Y key)', check: (_, g) => g?._waypoint != null },
+      { label: 'Run the Waypoint Navigator program', check: (_, g) => (g?.achievements?.stats?.waypointReached ?? 0) >= 1 },
+    ],
+    reward: { item: 'vision_brain', qty: 1 },
+    rewardText: "Vision Brain. The big one. A Jetson Nano in the game, computer vision in your hands. You've officially graduated from my scrapyard. I'm not crying. My eye itches.",
+  },
 ];
 
 export class Foreman {
@@ -276,6 +336,9 @@ export class Foreman {
       'weather_rain':       'weather_rain',
       'weather_storm':      'weather_storm',
       'weather_clear':      'weather_clear',
+      'enter_band_1':       'enter_band_1',
+      'enter_band_2':       'enter_band_2',
+      'enter_band_3':       'enter_band_3',
     };
     const key = map[event];
     if (key) this.say(key);

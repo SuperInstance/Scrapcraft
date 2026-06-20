@@ -300,6 +300,22 @@ export class ScrapBot {
     for (const ev of this._runtime.drainEvents()) {
       this._handleEffect(ev);
     }
+
+    // Waypoint reach detection — fire achievement once when bot arrives
+    const wp = this._adapter?.waypoint;
+    if (wp && !this._waypointReachedFired) {
+      const dist = Math.hypot(r.x - wp.x, r.z - wp.z);
+      if (dist < 1.5) {
+        this._waypointReachedFired = true;
+        this._game?.achievements?.track('waypoint_reach', {});
+        this._game?.ui?.notify('🚩 Bot reached the waypoint!');
+      }
+    }
+    // Reset flag when waypoint moves
+    if (this._lastWaypoint !== wp) {
+      this._lastWaypoint = wp;
+      this._waypointReachedFired = false;
+    }
   }
 
   _tickCommon(dt) {
