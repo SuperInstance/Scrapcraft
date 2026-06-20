@@ -493,6 +493,9 @@ export class Game {
 
     this.ui.updateHotbar(this.player);
 
+    // Update floodlight positions
+    this.renderer.updateFloodlights(this.world._placedBlocks, this.player.pos, B.FLOODLIGHT);
+
     // Minimap — refresh every 0.5 s
     this._minimapTimer += dt;
     if (this._minimapTimer >= 0.5) { this._minimapTimer = 0; this._updateMinimap(); }

@@ -367,6 +367,15 @@ export const RECIPES = [
     tier: 1,
     foremanQuip: "A track for your robot. Build a course. Bet on it. I'm not saying anything else.",
   },
+  {
+    id: 'r_floodlight',
+    output: 'floodlight',
+    qty: 1,
+    ingredients: { glass_shard: 2, copper_wire: 2, iron_scrap: 3 },
+    station: 'workbench',
+    tier: 1,
+    foremanQuip: "A floodlight. Place it anywhere. The dark doesn't stand a chance. Neither does your power bill.",
+  },
 ];
 
 export function getRecipe(id) {
