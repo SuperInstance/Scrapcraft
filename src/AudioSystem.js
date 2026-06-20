@@ -174,6 +174,54 @@ export class AudioSystem {
     this._osc(180, 'sawtooth', t + 0.08, 0.15, 0.2);
   }
 
+  /** Lap complete — quick celebratory beeps */
+  lapComplete(isRecord = false) {
+    this._ensure(); this._resume();
+    const t = this._ctx.currentTime;
+    if (isRecord) {
+      // New record: ascending arpeggio + long held note
+      [523, 659, 784, 1047, 1319].forEach((f, i) => this._osc(f, 'sine', t + i * 0.08, 0.28, 0.35));
+      this._osc(1319, 'triangle', t + 0.45, 0.6, 0.4);
+    } else {
+      // Regular lap: simple 3-note finish
+      [523, 784, 1047].forEach((f, i) => this._osc(f, 'sine', t + i * 0.1, 0.22, 0.3));
+    }
+  }
+
+  /** Bot brain loaded — small synthesizer bloop */
+  brainLoad() {
+    this._ensure(); this._resume();
+    const t = this._ctx.currentTime;
+    this._osc(440, 'triangle', t, 0.08, 0.2);
+    this._osc(660, 'sine',     t + 0.06, 0.12, 0.18);
+    this._osc(880, 'sine',     t + 0.11, 0.1,  0.15);
+  }
+
+  /** Bot program stopped */
+  brainStop() {
+    this._ensure(); this._resume();
+    const t = this._ctx.currentTime;
+    this._osc(440, 'triangle', t,      0.12, 0.15);
+    this._osc(330, 'sine',     t + 0.08, 0.15, 0.12);
+  }
+
+  /** Floodlight placed — electrical hum startup */
+  floodOn() {
+    this._ensure(); this._resume();
+    const t = this._ctx.currentTime;
+    this._osc(120, 'sawtooth', t, 0.15, 0.08);
+    this._osc(240, 'sine',     t + 0.05, 0.3, 0.06);
+    this._osc(360, 'sine',     t + 0.1,  0.25, 0.05);
+  }
+
+  /** Sprint-start burst */
+  sprint() {
+    this._ensure(); this._resume();
+    const t = this._ctx.currentTime;
+    this._noise(0.06, 0.1, 800, t);
+    this._osc(300, 'sawtooth', t, 0.05, 0.08);
+  }
+
   tick(dt, player, world) {
     // Footstep rhythm
     const moving = player._keys?.['KeyW'] || player._keys?.['KeyS'] || player._keys?.['KeyA'] || player._keys?.['KeyD'];

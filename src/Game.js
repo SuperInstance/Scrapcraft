@@ -111,6 +111,9 @@ export class Game {
 
   _bindInput() {
     document.addEventListener('keydown', e => {
+      if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && document.pointerLockElement) {
+        this.audio.sprint();
+      }
       if (e.code === 'KeyE') {
         if (this.ui.isOpen) { this.ui.closeInventory(); return; }
         const p = this.player.pos;
@@ -291,7 +294,7 @@ export class Game {
       this.player.removeItem(activeItem.id, 1);
       const item = getItem(activeItem.id);
       this.ui.notify(`Placed ${item?.icon ?? ''} ${item?.name ?? activeItem.id}`);
-      this.audio.place();
+      if (blockId === B.FLOODLIGHT) this.audio.floodOn(); else this.audio.place();
       this.particles.burst(px, py + 0.5, pz, 'pickup', 4);
       this.achievements.track('place', { blockId: activeItem.id });
       this.xpSystem.gain(2);
@@ -615,6 +618,7 @@ export class Game {
         ls.lapsEl.innerHTML = `🏁 Lap: <b>${secs}s</b>${improved ? ' 🏆 NEW BEST!' : ''}<br><span style="font-size:10px">Best: ${best}s</span>`;
         ls.lapsEl.classList.add('show');
         this.ui.notify(improved ? `🏆 New lap record: ${secs}s!` : `🏁 Lap complete: ${secs}s`);
+        this.audio.lapComplete(improved);
         this.achievements.track('lap_complete', {});
         this.xpSystem.gain(20);
         if (improved) setTimeout(() => this.foreman.onEvent('bot_lap_record', {}), 500);
