@@ -57,6 +57,14 @@ export class Renderer {
       return l;
     });
 
+    // Headlamp SpotLight — attached to camera, toggled by Game.js
+    this._headlamp = new THREE.SpotLight(0xfff0cc, 0, 28, Math.PI / 7, 0.35, 1.8);
+    this._headlamp.visible = false;
+    this.camera.add(this._headlamp);
+    this.camera.add(this._headlamp.target);
+    this._headlamp.target.position.set(0, 0, -10);
+    this.scene.add(this.camera);
+
     window.addEventListener('resize', () => {
       const w = window.innerWidth, h = window.innerHeight;
       this.camera.aspect = w / h;
@@ -143,6 +151,12 @@ export class Renderer {
       entry.mesh.count = entry.cursor;
       entry.mesh.instanceMatrix.needsUpdate = true;
     }
+  }
+
+  /** Toggle / set the player's headlamp (SpotLight on camera). */
+  setHeadlamp(on, intensity = 2.8) {
+    this._headlamp.visible = on;
+    this._headlamp.intensity = on ? intensity : 0;
   }
 
   /** Position Floodlight point lights around the player (called each update). */

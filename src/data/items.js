@@ -317,6 +317,37 @@ export const ITEMS = {
     stackSize: 4,
   },
 
+  // ── Light & power ──
+  headlamp: {
+    name: 'Headlamp',
+    icon: '🔦',
+    desc: "LED duct-taped to a headband. Surprisingly effective. Earl wears one at home, apparently.",
+    category: 'wearable',
+    stackSize: 1,
+  },
+  crystal_fragment: {
+    name: 'Crystal Fragment',
+    icon: '🔮',
+    desc: 'A sliver of something old and underground. Faintly glows if you squint.',
+    category: 'material',
+    stackSize: 16,
+  },
+  waypoint_flag: {
+    name: 'Waypoint Flag',
+    icon: '🚩',
+    desc: "Drop it, and your bot will know where to go. Earl refuses to use one — he \"knows where he's going.\"",
+    category: 'device',
+    stackSize: 1,
+  },
+  scrap_cannon: {
+    name: 'Scrap Cannon',
+    icon: '💥',
+    desc: 'Fires a burst of compressed iron shards. OSHA violation. Deeply satisfying.',
+    category: 'device',
+    stackSize: 4,
+    placeable: true,
+  },
+
   // ── Special tools ──
   scrap_magnet: {
     name: 'Scrap Magnet',

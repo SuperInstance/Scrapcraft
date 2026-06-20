@@ -159,8 +159,10 @@ export class ScrapBot {
       z: this._pos.z,
       heading: this._mesh?.rotation.y ?? 0,
     };
-    const weather = this._game?.weather ?? null;
-    const adapter = new GameWorldAdapter(world, player, dayNight, weather);
+    const weather  = this._game?.weather  ?? null;
+    const waypoint = this._game?._waypoint ?? null;
+    const adapter  = new GameWorldAdapter(world, player, dayNight, weather, waypoint);
+    this._adapter   = adapter;  // exposed so Game.js can update .waypoint live
     this._runtime   = new MakerRuntime(program, spawn, adapter);
     this._brainMode = true;
 

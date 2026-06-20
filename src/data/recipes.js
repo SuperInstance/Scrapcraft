@@ -403,6 +403,36 @@ export const RECIPES = [
     tier: 2,
     foremanQuip: "Signal antenna. Better range, better reception, better everything. Except looks.",
   },
+  {
+    id: 'r_headlamp',
+    output: 'headlamp',
+    qty: 1,
+    ingredients: { glass_shard: 1, copper_wire: 2, battery_pack: 1, iron_scrap: 2 },
+    station: 'workbench',
+    tool: 'pliers',
+    tier: 2,
+    foremanQuip: "A headlamp. My grandfather wore one into the mines. You're wearing one into a scrapyard. Times change.",
+  },
+  {
+    id: 'r_waypoint_flag',
+    output: 'waypoint_flag',
+    qty: 2,
+    ingredients: { iron_scrap: 2, copper_wire: 1, circuit_board: 1 },
+    station: 'workbench',
+    tier: 2,
+    unlockAfter: 'r_tin_brain',
+    foremanQuip: "Drop it and your bot knows where to go. I wish someone had given me one of these when I was your age.",
+  },
+  {
+    id: 'r_scrap_cannon',
+    output: 'scrap_cannon',
+    qty: 2,
+    ingredients: { iron_scrap: 6, spring: 3, gear_small: 2, rubber_chunk: 1 },
+    station: 'forge',
+    tool: 'wrench',
+    tier: 2,
+    foremanQuip: "Right-click it to fire. Keep it pointed AWAY from the stations. Earl cannot stress this enough.",
+  },
 ];
 
 export function getRecipe(id) {

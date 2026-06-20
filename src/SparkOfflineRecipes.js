@@ -221,6 +221,51 @@ export const OFFLINE_RECIPES = [
       ]),
     ]}),
   },
+  {
+    keywords: ['waypoint', 'navigate', 'go', 'destination', 'flag', 'find', 'path', 'seek'],
+    reply:    "Waypoint navigator loaded! Drop a flag with Y, then press RUN — it'll steer straight there, dodging walls.",
+    program:  new TileProgram({ name: 'Waypoint Navigator', brain: 'spark', nodes: [
+      T.forever([
+        T.ifElse(T.cond('waypoint_dist', 'lt', 0.08),
+          [T.action('stop'), T.action('beep', { pitch:'high' }), T.wait(0.5)],
+          [
+            T.ifElse(T.cond('waypoint_bearing', 'gt', 0.1),
+              [T.action('turn', { dir:'right', speed:0.5 })],
+              [T.ifElse(T.cond('waypoint_bearing', 'lt', -0.1),
+                [T.action('turn', { dir:'left', speed:0.5 })],
+                [T.action('drive', { dir:'forward', speed:0.7 })],
+              )],
+            ),
+            T.if(T.cond('distance_ahead', 'lt', 0.15), [
+              T.action('drive', { dir: 'backward', speed: 0.5 }), T.wait(0.35),
+              T.action('turn', { dir: 'right', speed: 0.6 }), T.wait(0.3),
+            ]),
+          ],
+        ),
+      ]),
+    ]}),
+  },
+  {
+    keywords: ['storm', 'rain', 'weather', 'shelter', 'hide', 'cloud'],
+    reply:    "Storm shelter protocol! It heads for cover when rain hits and stops. Smarter than most humans.",
+    program:  new TileProgram({ name: 'Storm Shelter', brain: 'spark', nodes: [
+      T.forever([
+        T.ifElse(T.cond('weather', 'gt', 0.5),
+          [
+            T.action('led', { state: 'blue' }),
+            T.action('drive', { dir: 'forward', speed: 0.8 }),
+            T.if(T.cond('distance_ahead', 'lt', 0.2), [
+              T.action('stop'),
+              T.action('led', { state: 'green' }),
+              T.action('beep', { pitch: 'mid' }),
+              T.wait(1.0),
+            ]),
+          ],
+          [T.action('led', { state: 'off' }), T.action('stop'), T.wait(0.5)],
+        ),
+      ]),
+    ]}),
+  },
 ];
 
 /** Returns best-matching recipe or null if no keyword hits. */

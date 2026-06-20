@@ -809,7 +809,7 @@
     <!-- Hotbar -->
     <div id="hotbar"></div>
     <div id="hotbar-tip"></div>
-    <div id="toolbar-hint">[ E ] WORKSHOP &nbsp;·&nbsp; [ T ] MAKER BENCH &nbsp;·&nbsp; [ F ] EARL &nbsp;·&nbsp; [ R ] RESPAWN &nbsp;·&nbsp; 1-9 HOTBAR &nbsp;·&nbsp; ESC PAUSE</div>
+    <div id="toolbar-hint">[ E ] WORKSHOP &nbsp;·&nbsp; [ T ] MAKER BENCH &nbsp;·&nbsp; [ F ] EARL &nbsp;·&nbsp; [ G ] USE ITEM &nbsp;·&nbsp; [ Y ] WAYPOINT &nbsp;·&nbsp; 1-9 HOTBAR &nbsp;·&nbsp; ESC PAUSE</div>
 
     <!-- Minimap -->
     <div id="minimap-wrap">
@@ -848,6 +848,7 @@
         <div class="help-row"><span class="help-key">T</span><span class="help-desc">Open Tile Editor (robot brain)</span></div>
         <div class="help-row"><span class="help-key">B</span><span class="help-desc">Toggle bot program (run / stop)</span></div>
         <div class="help-row"><span class="help-key">SHIFT+B</span><span class="help-desc">Spawn second bot (Level 5+)</span></div>
+        <div class="help-row"><span class="help-key">Y</span><span class="help-desc">Drop waypoint flag (bot navigates here)</span></div>
       </div>
       <div class="help-section">
         <h3>SYSTEM</h3>
@@ -945,6 +946,7 @@
           <option value="line_follower">Line Follower</option>
           <option value="light_runner">Light Runner</option>
           <option value="square">Honking Square</option>
+          <option value="waypoint_nav">Waypoint Navigator</option>
         </select>
         <select id="te-bot-sel" class="te-brain-select" title="Target bot">
           <option value="1">BOT 1</option>

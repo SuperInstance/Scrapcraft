@@ -185,3 +185,42 @@ export const EXAMPLE_SQUARE = new TileProgram({
     T.action('stop'),
   ],
 });
+
+// Navigate toward the player's dropped waypoint flag (Y key)
+export const EXAMPLE_WAYPOINT_NAV = new TileProgram({
+  name: 'Waypoint Navigator',
+  brain: 'spark',
+  nodes: [
+    // Loop forever: steer toward the waypoint, stop when close
+    T.forever([
+      T.ifElse(
+        T.cond('waypoint_dist', 'lt', 0.08),  // arrived (within ~1 block)
+        [T.action('stop'), T.action('beep', { pitch: 'high' }), T.wait(0.5)],
+        [
+          // Steer: if bearing > 0.1, turn right; if < -0.1, turn left; else drive
+          T.ifElse(
+            T.cond('waypoint_bearing', 'gt', 0.1),
+            [T.action('turn', { dir: 'right', speed: 0.5 })],
+            [
+              T.ifElse(
+                T.cond('waypoint_bearing', 'lt', -0.1),
+                [T.action('turn', { dir: 'left', speed: 0.5 })],
+                [T.action('drive', { dir: 'forward', speed: 0.7 })],
+              ),
+            ],
+          ),
+          // Obstacle avoidance: if wall ahead, reverse and turn
+          T.if(
+            T.cond('distance_ahead', 'lt', 0.15),
+            [
+              T.action('drive', { dir: 'backward', speed: 0.5 }),
+              T.wait(0.4),
+              T.action('turn', { dir: 'right', speed: 0.6 }),
+              T.wait(0.3),
+            ],
+          ),
+        ],
+      ),
+    ]),
+  ],
+});

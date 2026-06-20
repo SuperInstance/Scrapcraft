@@ -339,6 +339,16 @@ export class World {
     // Grandstand floodlights
     this.setBlock(22, 5, 79, B.FLOODLIGHT);
     this.setBlock(26, 5, 79, B.FLOODLIGHT);
+
+    // Rare crystal ore teaser clusters in Band 2 (hint at Band 3)
+    for (const [cx, cz] of [[55, 85], [95, 72]]) {
+      for (let dz = -1; dz <= 1; dz++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (rng() < 0.6) continue;
+          this.setBlock(cx + dx, 1, cz + dz, B.CRYSTAL_ORE);
+        }
+      }
+    }
   }
 
   _band3(rng, W) {
@@ -405,6 +415,24 @@ export class World {
     // Sign: stacked blocks forming 'END' on the far wall
     this._scatter(rng, B.CRATE, 20, 2, W - 2, z0, z1);
     this._scatter(rng, B.POWER_BOX, 15, 2, W - 2, z0, z1);
+
+    // Crystal ore clusters — glowing veins in the deep yard (Band 3 only)
+    const crystalSeeds = [
+      [15, z0+8], [35, z0+14], [60, z0+6], [88, z0+16], [112, z0+11], [45, z0+22], [75, z0+28],
+    ];
+    for (const [cx, cz] of crystalSeeds) {
+      for (let dz = -2; dz <= 2; dz++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          if (rng() < 0.45) continue;
+          const y = 1 + Math.floor(rng() * 2);
+          this.setBlock(cx + dx, y, cz + dz, B.CRYSTAL_ORE);
+        }
+      }
+    }
+    this.landmarks.crystal_cave = { x: crystalSeeds[0][0], y: 1, z: crystalSeeds[0][1] };
+
+    // Scattered scrap cannons as environmental props
+    this._scatter(rng, B.SCRAP_CANNON, 5, 2, W - 2, z0, z1);
 
     // Robot graveyard — 8 decommissioned bots in a 4×2 grid (x=72-87, z=100-112)
     for (let i = 0; i < 8; i++) {

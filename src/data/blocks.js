@@ -19,6 +19,8 @@ export const B = {
   POWER_BOX: 16,
   TRACK: 17,
   FLOODLIGHT: 18,
+  CRYSTAL_ORE: 19,
+  SCRAP_CANNON: 20,
 };
 
 // hex color, emissive tint, roughness, whether it's solid/interactive/drops loot
@@ -61,17 +63,26 @@ export const BLOCK_DEF = {
   [B.FLOODLIGHT]: { name: 'Floodlight',          color: 0xeeeebb, rough: 0.3,  solid: true, hardness: 0.5,
                     emissive: 0xffffff, emissiveIntensity: 0.9,
                     drop: 'floodlight', dropChance: 1.0 },
-  [B.TRACK]:      { name: 'Track Strip',        color: 0x222211, rough: 0.9,  solid: true, hardness: 0.25,
-                    emissive: 0xddcc00, emissiveIntensity: 0.08,
-                    drop: 'track_strip', dropChance: 1.0 },
+  [B.TRACK]:       { name: 'Track Strip',    color: 0x222211, rough: 0.9, solid: true, hardness: 0.25,
+                     emissive: 0xddcc00, emissiveIntensity: 0.08,
+                     drop: 'track_strip', dropChance: 1.0 },
+  [B.CRYSTAL_ORE]: { name: 'Crystal Ore',   color: 0x2a0a5e, rough: 0.3, solid: true, hardness: 0.6,
+                     emissive: 0x9933ff, emissiveIntensity: 0.55,
+                     drop: 'glass_shard', dropChance: 1.0, dropQty: 3,
+                     altDrop: 'battery_dead', altDropChance: 0.5 },
+  [B.SCRAP_CANNON]:{ name: 'Scrap Cannon',  color: 0x4a3a2a, rough: 0.8, solid: true, hardness: 1.2,
+                     interactive: true, station: 'scrap_cannon',
+                     emissive: 0x331100, emissiveIntensity: 0.2,
+                     drop: 'scrap_cannon', dropChance: 1.0 },
 };
 
 // Items the player can place as blocks (item ID → block ID)
 export const ITEM_TO_BLOCK = {
-  wood_plank:  B.WOOD_PLANK,
-  iron_scrap:  B.RUST_METAL,
-  track_strip: B.TRACK,
-  floodlight:  B.FLOODLIGHT,
+  wood_plank:   B.WOOD_PLANK,
+  iron_scrap:   B.RUST_METAL,
+  track_strip:  B.TRACK,
+  floodlight:   B.FLOODLIGHT,
+  scrap_cannon: B.SCRAP_CANNON,
 };
 
 export function isInteractive(id) {

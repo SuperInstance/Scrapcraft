@@ -97,7 +97,12 @@ export class Game {
     this._minimapTimer = 0;
 
     // Item use (G key) state
-    this._fuelBoostTimer = 0;   // seconds remaining on fuel_can speed boost
+    this._fuelBoostTimer  = 0;   // seconds remaining on fuel_can speed boost
+    this._headlampOn      = false;
+
+    // Waypoint system — player drops a flag at their position (Y key)
+    this._waypoint = null;  // { x, z } or null
+    this._waypointMarkerTimer = 0;
 
     // Lap timer — tracks bots crossing the TRACK circuit start/finish gate (z≈14, x=30-46)
     this._lapState = {
@@ -155,6 +160,9 @@ export class Game {
         this.ui.notify('🏁 Respawned at the yard gate.');
       }
       if (e.code === 'KeyM') this.audio.toggle();
+      if (e.code === 'KeyY' && document.pointerLockElement) {
+        this._dropWaypoint();
+      }
       if (e.code === 'KeyB') {
         if (e.shiftKey) {
           // Shift+B → second bot (requires Level 5 Engineer skill)
@@ -283,6 +291,14 @@ export class Game {
   _tryPlace() {
     const target = this.renderer.getTargetBlock(this.world);
     if (!target) return;
+
+    // Interact with scrap cannon on right-click
+    const targetId = this.world.getBlock(target.x, target.y, target.z);
+    if (targetId === B.SCRAP_CANNON) {
+      this._fireScrapCannon(target.x, target.y, target.z);
+      return;
+    }
+
     const { face } = target;
     const px = target.x + Math.round(face.x);
     const py = target.y + Math.round(face.y);
@@ -336,6 +352,44 @@ export class Game {
       this.achievements.track('program_run', {});
     } else {
       this.scrapBot2.clearBrain();
+    }
+  }
+
+  _fireScrapCannon(cx, cy, cz) {
+    const p = this.player.pos;
+    const dx = cx - p.x, dz = cz - p.z;
+    const len = Math.hypot(dx, dz) || 1;
+    // Fire in direction from player to cannon
+    const fx = dx / len, fz = dz / len;
+    const range = 8;
+    // Visual burst in the firing direction
+    for (let step = 1; step <= range; step++) {
+      const tx = Math.round(cx + fx * step);
+      const tz = Math.round(cz + fz * step);
+      const blockAhead = this.world.getBlock(tx, cy, tz);
+      if (blockAhead && blockAhead !== B.AIR) {
+        this.particles.burst(tx, cy + 0.5, tz, 'ember', 12);
+        const def = BLOCK_DEF[blockAhead];
+        if (def?.solid) {
+          this.world.mine(tx, cy, tz);
+          this.ui.notify('💥 Scrap Cannon fired!');
+        }
+        break;
+      }
+    }
+    this.particles.burst(cx, cy + 0.5, cz, 'smoke', 6);
+    this.audio.mine(B.RUST_METAL);
+    this.xpSystem.gain(1);
+  }
+
+  _dropWaypoint() {
+    const p = this.player.pos;
+    this._waypoint = { x: p.x, z: p.z };
+    this.particles.burst(p.x, p.y, p.z, 'pickup', 12);
+    this.ui.notify('🚩 Waypoint dropped! Your bot will navigate here.');
+    // Update any live bot brain adapters with the new waypoint
+    for (const bot of [this.scrapBot, this.scrapBot2]) {
+      if (bot?._adapter) bot._adapter.waypoint = this._waypoint;
     }
   }
 
@@ -416,6 +470,19 @@ export class Game {
     if (this.player.hasTool('night_goggles') && this.dayNight.isNight) {
       this.renderer.ambientLight.intensity = Math.min(0.6,
         this.renderer.ambientLight.intensity + 0.4);
+    }
+    // Headlamp: auto-off if item lost; pulse when on at night
+    if (this._headlampOn && !this.player.hasTool('headlamp')) {
+      this._headlampOn = false;
+      this.renderer.setHeadlamp(false);
+    }
+    // Waypoint sparkle — pulse every 3s so the player can visually find it
+    if (this._waypoint) {
+      this._waypointMarkerTimer = (this._waypointMarkerTimer ?? 0) + dt;
+      if (this._waypointMarkerTimer >= 3) {
+        this._waypointMarkerTimer = 0;
+        this.particles.burst(this._waypoint.x, 1.5, this._waypoint.z, 'pickup', 5);
+      }
     }
     // Grapple hook: extends mining / targeting reach
     this.renderer.raycaster.far = this.player.hasTool('grapple_hook') ? 10 : 6;
@@ -652,6 +719,28 @@ export class Game {
         this.audio.sprint();
         this.particles.burst(p.x, p.y, p.z, 'smoke', 8);
         break;
+      case 'headlamp':
+        this._headlampOn = !this._headlampOn;
+        this.renderer.setHeadlamp(this._headlampOn);
+        this.ui.notify(this._headlampOn ? '🔦 Headlamp ON' : '🔦 Headlamp OFF');
+        this.audio.pickup();
+        break;
+      case 'battery_dead': {
+        // Charge at a forge: battery_dead → battery_pack
+        const nearForge = this.world.getNearbyInteractives(p.x, p.y, p.z, 4)
+          .some(b => b.station === 'forge');
+        if (nearForge) {
+          this.player.removeItem('battery_dead', 1);
+          this.player.addItem('battery_pack', 1);
+          this.ui.notify('🔋 Dead battery recharged at the forge!');
+          this.audio.brainLoad?.() ?? this.audio.pickup();
+          this.particles.burst(p.x, p.y + 1, p.z, 'circuit', 8);
+          this.xpSystem.gain(10);
+        } else {
+          this.ui.notify('⚡ Take a dead battery to a Forge to recharge it.');
+        }
+        break;
+      }
       case 'battery_pack':
         this.player.removeItem('battery_pack', 1);
         this.xpSystem.gain(15);
