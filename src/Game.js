@@ -14,6 +14,7 @@ import { BLOCK_DEF, B } from './data/blocks.js';
 import { getItem } from './data/items.js';
 import { EXAMPLE_WALL_AVOIDER } from './maker/TileProgram.js';
 import { TileEditor } from './TileEditor.js';
+import { SaveSystem } from './SaveSystem.js';
 
 export class Game {
   constructor(canvas) {
@@ -62,12 +63,17 @@ export class Game {
     this.scrapBot.setGame(this);
 
     this.tileEditor = new TileEditor(this);
+    this.saveSystem = new SaveSystem(this);
 
     this.world.on('change', () => this.renderer.rebuildMeshes(this.world));
 
     this._bindInput();
 
-    setTimeout(() => this.foreman.greet(), 1200);
+    // Load saved state — if none, show first-time greeting
+    const loaded = this.saveSystem.load();
+    if (!loaded) setTimeout(() => this.foreman.greet(), 1200);
+    else         setTimeout(() => this.foreman.say('idle'), 1200);
+
     this.ui.updateHotbar(this.player);
   }
 
@@ -84,6 +90,8 @@ export class Game {
         else { this.tileEditor.open(); }
         return;
       }
+      if (e.code === 'F5') { e.preventDefault(); this.saveSystem.save(); }
+      if (e.code === 'F9') { e.preventDefault(); this.saveSystem.load(); }
       if (e.code === 'KeyF') {
         const msg = prompt('Talk to Big Earl:') ?? '';
         if (msg) this.foreman.playerTalks(msg);
@@ -178,6 +186,7 @@ export class Game {
     if (def.altDrop && Math.random() < def.altDropChance) giveLoot(def.altDrop);
 
     this.achievements.track('mine', { isNight });
+    this.saveSystem.markDirty();
     this.achievements.track('inventory', {
       fill: this.player.inventory.filter(Boolean).length / 36,
     });
@@ -193,6 +202,7 @@ export class Game {
 
   onCraft(recipeId, output, qty) {
     this.achievements.track('craft', { id: output });
+    this.saveSystem.markDirty();
     this.audio.craft();
     this.particles.burst(
       this.player.pos.x, this.player.pos.y + 1, this.player.pos.z, 'craft', 18,
@@ -230,6 +240,7 @@ export class Game {
     this.achievements.tick(dt);
     this.scrapBot.tick(dt, this.world);
     this.audio.tick(dt, this.player, this.world);
+    this.saveSystem.tick(dt);
 
     const locked = !!document.pointerLockElement;
 
