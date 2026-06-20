@@ -3,7 +3,7 @@
  * Opens over the game with [T], wires into ScrapBot.setBrain() for live testing.
  */
 
-import { TileProgram } from './maker/TileProgram.js';
+import { TileProgram, EXAMPLE_WALL_AVOIDER, EXAMPLE_LIGHT_RUNNER, EXAMPLE_SQUARE, EXAMPLE_LINE_FOLLOWER } from './maker/TileProgram.js';
 import { SENSORS, ACTUATORS, BRAINS, withDefaults } from './maker/primitives.js';
 import { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG, compile } from './maker/index.js';
 import { Spark } from './Spark.js';
@@ -118,6 +118,7 @@ export class TileEditor {
     this._sparkLog   = null;
     this._sparkInput = null;
     this._botSel     = null;
+    this._presetSel  = null;
     this._sensorsEl  = null;
 
     this._buildDOM();
@@ -158,7 +159,21 @@ export class TileEditor {
     this._panel.querySelector('#te-dl-wokwi')?.addEventListener('click', () => this._downloadWokwi());
     this._panel.querySelector('#te-dl-svg')?.addEventListener('click',   () => this._downloadSVG());
 
-    this._botSel = this._panel.querySelector('#te-bot-sel');
+    this._botSel    = this._panel.querySelector('#te-bot-sel');
+    this._presetSel = this._panel.querySelector('#te-preset-sel');
+    if (this._presetSel) {
+      this._presetSel.addEventListener('change', () => {
+        const PRESETS = {
+          wall_avoider:  EXAMPLE_WALL_AVOIDER,
+          line_follower: EXAMPLE_LINE_FOLLOWER,
+          light_runner:  EXAMPLE_LIGHT_RUNNER,
+          square:        EXAMPLE_SQUARE,
+        };
+        const prog = PRESETS[this._presetSel.value];
+        if (prog) { this.loadProgram(prog); this._game.ui?.notify(`📋 Loaded: ${prog.name}`); }
+        this._presetSel.value = '';
+      });
+    }
 
     this._panel.querySelectorAll('.te-code-tab').forEach(btn => {
       btn.addEventListener('click', () => {

@@ -24,6 +24,14 @@ const BOT_LINES = [
   '[ALERT] CIRCUIT BOARD DETECTED. EMOTIONAL RESPONSE: EXCITEMENT.',
   '[BLEEP] QUERY: WHY IS THERE A RUBBER CHUNK IN THE FORGE? QUERY: NEVER MIND.',
   '[PROCESSING] MY DREAMS ARE MADE OF COPPER WIRE AND AMBITION.',
+  '[SENSOR CHECK] HUMAN LOCATED. FOLLOWING AT SAFE DISTANCE.',
+  '[ANALYSIS] THIS SCRAPYARD HAS GREAT FENG SHUI. MOSTLY THE RUST.',
+  '[DIAGNOSTIC] ALL SYSTEMS: NOMINAL. MORALE: SURPRISINGLY HIGH.',
+  '[OBSERVATION] YOU WALK FAST FOR A BIOLOGICAL UNIT.',
+  '[MEMO TO SELF] ASK EARL ABOUT THE BLUE DRUM. THEN DON\'T.',
+  '[ALERT] NIGHT CYCLE DETECTED. ACTIVATING UNNECESSARY BRAVERY MODE.',
+  '[BEEP BOOP] I COUNTED THE GEARS IN THIS YARD. THERE ARE MANY.',
+  '[STATUS] FOLLOWING HUMAN. THIS IS MY PURPOSE. I HAVE ACCEPTED THIS.',
 ];
 
 export class ScrapBot {
@@ -217,13 +225,40 @@ export class ScrapBot {
     const dist = toTarget.length();
 
     if (dist > FOLLOW_DIST) {
-      toTarget.normalize().multiplyScalar(BOT_SPEED * Math.min(1, (dist - FOLLOW_DIST + 1)));
-      this._velocity.lerp(toTarget, 5 * dt);
+      const dir = toTarget.clone().normalize();
+      let moveDir = dir.clone();
+
+      // Simple wall avoidance: if blocked ahead, try 45° right or left
+      if (world) {
+        const nx = this._pos.x + dir.x * 0.9;
+        const nz = this._pos.z + dir.z * 0.9;
+        if (world.isSolidAt?.(Math.floor(nx), 1, Math.floor(nz))) {
+          const rAngle = Math.PI / 4;
+          const cos = Math.cos(rAngle), sin = Math.sin(rAngle);
+          const rx = dir.x * cos - dir.z * sin, rz = dir.x * sin + dir.z * cos;
+          const lx = dir.x * cos + dir.z * sin, lz = -dir.x * sin + dir.z * cos;
+          if (!world.isSolidAt?.(Math.floor(this._pos.x + rx * 0.9), 1, Math.floor(this._pos.z + rz * 0.9))) {
+            moveDir.set(rx, 0, rz);
+          } else if (!world.isSolidAt?.(Math.floor(this._pos.x + lx * 0.9), 1, Math.floor(this._pos.z + lz * 0.9))) {
+            moveDir.set(lx, 0, lz);
+          }
+        }
+      }
+
+      moveDir.normalize().multiplyScalar(BOT_SPEED * Math.min(1, (dist - FOLLOW_DIST + 1)));
+      this._velocity.lerp(moveDir, 5 * dt);
     } else {
       this._velocity.multiplyScalar(0.9);
     }
 
-    this._pos.addScaledVector(this._velocity, dt);
+    const nextPos = this._pos.clone().addScaledVector(this._velocity, dt);
+    // Only move if the destination is clear
+    const nx = Math.floor(nextPos.x), nz = Math.floor(nextPos.z);
+    if (!world?.isSolidAt?.(nx, 1, nz)) {
+      this._pos.copy(nextPos);
+    } else {
+      this._velocity.set(0, 0, 0);
+    }
     this._pos.y = 1;
     this._mesh.position.copy(this._pos);
 
