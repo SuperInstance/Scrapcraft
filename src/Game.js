@@ -93,7 +93,7 @@ export class Game {
       }
       if (e.code === 'KeyT') {
         if (this.tileEditor.isOpen) { this.tileEditor.close(); }
-        else { this.tileEditor.open(); }
+        else { this.tileEditor.open(this._getBrainTier()); }
         return;
       }
       if (e.code === 'F5') { e.preventDefault(); this.saveSystem.save(); }
@@ -240,6 +240,15 @@ export class Game {
       this.saveSystem.markDirty();
       this.ui.updateHotbar(this.player);
     }
+  }
+
+  /** Returns the highest brain tier the player has in their inventory. */
+  _getBrainTier() {
+    const inv = this.player.inventory;
+    if (inv.some(s => s?.id === 'vision_brain')) return 'vision';
+    if (inv.some(s => s?.id === 'spark_brain'))  return 'spark';
+    if (inv.some(s => s?.id === 'tin_brain'))    return 'tin';
+    return 'tin'; // default — always get basic tile access
   }
 
   onCraft(recipeId, output, qty) {

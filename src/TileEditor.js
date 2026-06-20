@@ -4,9 +4,11 @@
  */
 
 import { TileProgram } from './maker/TileProgram.js';
-import { SENSORS, ACTUATORS, withDefaults } from './maker/primitives.js';
-import { toArduino, toMicroPython, compile } from './maker/index.js';
+import { SENSORS, ACTUATORS, BRAINS, withDefaults } from './maker/primitives.js';
+import { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG, compile } from './maker/index.js';
 import { Spark } from './Spark.js';
+
+const BRAIN_ORDER = ['tin', 'spark', 'vision'];
 
 // ── Tile appearance ──────────────────────────────────────────────────────────
 
@@ -104,6 +106,7 @@ export class TileEditor {
     this._rafId      = null;
     this._codeLang   = 'arduino';
     this._codeOpen   = false;
+    this._brainTier  = 'tin'; // highest tier player has crafted
 
     this._panel  = null;
     this._canvas = null;
@@ -148,6 +151,8 @@ export class TileEditor {
     this._panel.querySelector('#te-close-btn').addEventListener('click', () => this.close());
     this._panel.querySelector('#te-spark-btn')?.addEventListener('click', () => this._toggleSpark());
     this._panel.querySelector('#te-dl').addEventListener('click', () => this._download());
+    this._panel.querySelector('#te-dl-wokwi')?.addEventListener('click', () => this._downloadWokwi());
+    this._panel.querySelector('#te-dl-svg')?.addEventListener('click',   () => this._downloadSVG());
 
     this._panel.querySelectorAll('.te-code-tab').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -405,15 +410,17 @@ export class TileEditor {
     });
     div.appendChild(notBtn);
 
-    // Sensor select
+    // Sensor select — filter to what the selected brain tier supports
     const ssel = document.createElement('select');
     ssel.className = 'te-select';
-    SENSOR_LIST.forEach(s => {
-      const o = document.createElement('option');
-      o.value = s.id; o.textContent = s.label;
-      if (s.id === cond.sensor) o.selected = true;
-      ssel.appendChild(o);
-    });
+    const brainIdx = BRAIN_ORDER.indexOf(this._program.brain);
+    SENSOR_LIST.filter(s => !s.requiresBrain || BRAIN_ORDER.indexOf(s.requiresBrain) <= brainIdx)
+      .forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.id; o.textContent = s.label;
+        if (s.id === cond.sensor) o.selected = true;
+        ssel.appendChild(o);
+      });
     ssel.addEventListener('change', () => {
       node.cond.sensor = ssel.value;
       const s = SENSORS[ssel.value];
@@ -601,6 +608,29 @@ export class TileEditor {
     URL.revokeObjectURL(a.href);
   }
 
+  _downloadWokwi() {
+    const name   = (this._program.name || 'brain').replace(/[^a-z0-9]+/gi, '_');
+    const sketch = toArduino(this._program);
+    const diagram= toWokwiDiagram(this._program);
+    this._dlBlob(sketch,  `${name}.ino`,    'text/plain');
+    setTimeout(() => this._dlBlob(diagram, 'diagram.json', 'application/json'), 150);
+    this._game.ui?.notify('⬇ Saved sketch + diagram.json — paste both into Wokwi!');
+  }
+
+  _downloadSVG() {
+    const name = (this._program.name || 'brain').replace(/[^a-z0-9]+/gi, '_');
+    this._dlBlob(toWiringSVG(this._program), `${name}_wiring.svg`, 'image/svg+xml');
+  }
+
+  _dlBlob(text, filename, mime) {
+    const blob = new Blob([text], { type: mime });
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
   // ── Runtime ───────────────────────────────────────────────────────────────
 
   _run() {
@@ -686,8 +716,16 @@ export class TileEditor {
 
   // ── Public API ────────────────────────────────────────────────────────────
 
-  open() {
+  open(brainTier = 'tin') {
     if (!this._panel) return;
+    this._brainTier = brainTier;
+    // Limit brain selector to tiers the player has earned
+    if (this._brainSel) {
+      const maxIdx = BRAIN_ORDER.indexOf(brainTier);
+      Array.from(this._brainSel.options).forEach(opt => {
+        opt.disabled = BRAIN_ORDER.indexOf(opt.value) > maxIdx;
+      });
+    }
     this._panel.style.display = 'flex';
     this._open = true;
     if (this._running && !this._rafId) this._rafId = requestAnimationFrame(() => this._tickHL());

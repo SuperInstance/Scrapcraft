@@ -24,7 +24,7 @@ export { TileProgram, T } from './TileProgram.js';
 export { compile } from './TileCompiler.js';
 export { TileVM } from './TileVM.js';
 export { VirtualRobot } from './VirtualRobot.js';
-export { toArduino, toMicroPython } from './FirmwareGen.js';
+export { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG } from './FirmwareGen.js';
 export { SENSORS, ACTUATORS, BRAINS } from './primitives.js';
 export { GameWorldAdapter } from './GameWorldAdapter.js';
 

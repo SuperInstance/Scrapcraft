@@ -229,6 +229,107 @@ function splitRoots(nodes) {
   return { loopBody: nodes, setupExtra: [] };
 }
 
+// ── Wokwi diagram export ──────────────────────────────────────────────────────
+
+/** Generate a Wokwi diagram.json for the used primitives. */
+export function toWokwiDiagram(program) {
+  const used = program.usedPrimitives();
+  const parts = [];
+  const connections = [];
+
+  const chip    = BRAINS[program.brain]?.platform ?? 'esp32';
+  const mcuType = chip === 'uno' ? 'wokwi-arduino-uno' : 'wokwi-esp32-devkit-v1';
+  parts.push({ type: mcuType, id: 'mcu1', top: 0, left: 0, attrs: {} });
+
+  const seen = new Set();
+  for (const id of [...used.actuators, ...used.sensors]) {
+    const spec = WOKWI_PARTS[id];
+    if (!spec || seen.has(spec.type)) continue;
+    seen.add(spec.type);
+    const partId = id + '1';
+    parts.push({ type: spec.type, id: partId, top: spec.top ?? 100, left: spec.left ?? 300, attrs: {} });
+
+    const def  = getActuator(id) ?? getSensor(id);
+    const pins = _pinPairs(def);
+    for (const { mcuPin, devPin, color } of pins) {
+      connections.push([`mcu1:${mcuPin}`, `${partId}:${devPin}`, color, []]);
+    }
+    connections.push([`mcu1:3.3V`,   `${partId}:VCC`, 'red',   []]);
+    connections.push([`mcu1:GND.1`,  `${partId}:GND`, 'black', []]);
+  }
+
+  return JSON.stringify({ version: 1, author: 'Scrapcraft Maker Lab', parts, connections }, null, 2);
+}
+
+/** Generate a human-readable wiring SVG from the pin map. */
+export function toWiringSVG(program) {
+  const used = program.usedPrimitives();
+  const W = 900, H = 600;
+  const L = [];
+  L.push(`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`);
+  L.push(`  <rect width="${W}" height="${H}" fill="#1a1a2e"/>`);
+  L.push(`  <rect x="30" y="50" width="120" height="400" rx="6" fill="#2a2a4a" stroke="#4488ff" stroke-width="2"/>`);
+  L.push(`  <text x="90" y="38" fill="#aabbff" font-size="13" text-anchor="middle" font-family="monospace">${BRAINS[program.brain]?.chip ?? 'MCU'}</text>`);
+
+  const allIds = [...new Set([...used.actuators, ...used.sensors])];
+  let row = 0;
+  const seen = new Set();
+  for (const id of allIds) {
+    const def = getActuator(id) ?? getSensor(id);
+    if (!def?.hw) continue;
+    const pairs = _pinPairs(def);
+    if (!pairs.length) continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+
+    const bx = 750, by = 70 + row * 110;
+    L.push(`  <rect x="${bx-70}" y="${by}" width="140" height="50" rx="4" fill="#1a2a1a" stroke="#44aa44" stroke-width="1.5"/>`);
+    L.push(`  <text x="${bx}" y="${by+22}" fill="#aaffaa" font-size="12" text-anchor="middle" font-family="monospace">${def.label ?? id}</text>`);
+    L.push(`  <text x="${bx}" y="${by+38}" fill="#667766" font-size="9" text-anchor="middle" font-family="monospace">${def.hw.peripheral ?? ''}</text>`);
+
+    for (let i = 0; i < pairs.length; i++) {
+      const { mcuPin, devPin, color } = pairs[i];
+      const my = 65 + (parseInt(mcuPin) % 22) * 17;
+      const cy = by + 8 + i * 14;
+      L.push(`  <polyline points="150,${my} 210,${my} 210,${cy} ${bx-70},${cy}" fill="none" stroke="${color}" stroke-width="1.5" stroke-dasharray="4,2"/>`);
+      L.push(`  <text x="155" y="${my-3}" fill="${color}" font-size="8" font-family="monospace">${mcuPin}</text>`);
+      L.push(`  <text x="${bx-72}" y="${cy-2}" fill="${color}" font-size="8" text-anchor="end" font-family="monospace">${devPin}</text>`);
+    }
+    row++;
+  }
+
+  L.push('</svg>');
+  return L.join('\n');
+}
+
+const WOKWI_PARTS = {
+  distance_ahead: { type: 'wokwi-hc-sr04',                top:  80, left: 350 },
+  bumped:         { type: 'wokwi-pushbutton',               top: 180, left: 350 },
+  brightness:     { type: 'wokwi-photoresistor-sensor',     top: 280, left: 350 },
+  is_dark:        { type: 'wokwi-photoresistor-sensor',     top: 280, left: 350 },
+  player_near:    { type: 'wokwi-pir-motion-sensor',        top: 380, left: 350 },
+  beep:           { type: 'wokwi-buzzer',                   top:  80, left: 550 },
+  led:            { type: 'wokwi-rgb-led',                  top: 180, left: 550 },
+  drive:          { type: 'wokwi-l298n',                    top: 280, left: 550 },
+  turn:           { type: 'wokwi-l298n',                    top: 280, left: 550 },
+  stop:           { type: 'wokwi-l298n',                    top: 280, left: 550 },
+  grab:           { type: 'wokwi-servo',                    top: 380, left: 550 },
+};
+
+function _pinPairs(def) {
+  if (!def?.hw) return [];
+  const COL = { TRIG: 'green', ECHO: 'blue', IN1: '#f0b429', IN2: '#ff8800',
+                ENA: '#ffcc00', ENB: '#ff6600', A0: 'green', D4: 'green',
+                D13: 'cyan', D15: 'magenta', D19: 'lime', 'CSI-0': 'purple' };
+  const frags = [];
+  if (def.hw.pin)  frags.push(...String(def.hw.pin).split(','));
+  if (def.hw.pins) for (const p of def.hw.pins) frags.push(...String(p).split(','));
+  return frags.map(f => {
+    const m = f.trim().match(/([A-Za-z0-9_-]+)\s*=\s*(\d+)/);
+    return m ? { mcuPin: m[2], devPin: m[1], color: COL[m[1]] ?? '#aaaaaa' } : null;
+  }).filter(Boolean);
+}
+
 /** Build pin #define lines from hw mappings (best-effort, de-duplicated). */
 function collectPins(ids) {
   const defines = new Map();

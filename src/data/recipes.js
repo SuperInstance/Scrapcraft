@@ -134,6 +134,103 @@ export const RECIPES = [
     unlockAfter: 'go_kart',
     foremanQuip: "I take back every dumb thing I ever said about you. This is genuinely impressive. Now DON'T FLY IT INTO THE SHED.",
   },
+
+  // ── Maker Lab — Tier 1 (Tin Brain / basic modules) ──
+  {
+    id: 'r_tin_brain',
+    output: 'tin_brain',
+    qty: 1,
+    ingredients: { circuit_board: 2, copper_wire: 4, iron_scrap: 3 },
+    station: 'workbench',
+    tool: 'pliers',
+    tier: 1,
+    foremanQuip: "A tiny brain for a tiny robot. Don't take that personally. It's actually impressive.",
+  },
+  {
+    id: 'r_ultrasonic_module',
+    output: 'ultrasonic_module',
+    qty: 1,
+    ingredients: { circuit_board: 1, copper_wire: 2 },
+    station: 'workbench',
+    tier: 1,
+  },
+  {
+    id: 'r_ldr_module',
+    output: 'ldr_module',
+    qty: 2,
+    ingredients: { circuit_board: 1, copper_wire: 1 },
+    station: 'workbench',
+    tier: 1,
+  },
+  {
+    id: 'r_buzzer_module',
+    output: 'buzzer_module',
+    qty: 2,
+    ingredients: { gear_small: 1, copper_wire: 1 },
+    station: 'workbench',
+    tier: 1,
+  },
+  {
+    id: 'r_motor_driver',
+    output: 'motor_driver',
+    qty: 1,
+    ingredients: { circuit_board: 1, iron_scrap: 2 },
+    station: 'workbench',
+    tier: 1,
+  },
+
+  // ── Maker Lab — Tier 2 (Spark Brain / ESP32 modules) ──
+  {
+    id: 'r_spark_brain',
+    output: 'spark_brain',
+    qty: 1,
+    ingredients: { tin_brain: 1, circuit_board: 3, copper_wire: 6, fuel_can: 1 },
+    station: 'smelter',
+    tool: 'blowtorch',
+    tier: 2,
+    unlockAfter: 'r_tin_brain',
+    foremanQuip: "WiFi. Bluetooth. More sensors. I'm choosing to be impressed rather than threatened.",
+  },
+  {
+    id: 'r_pir_module',
+    output: 'pir_module',
+    qty: 1,
+    ingredients: { circuit_board: 1, rubber_chunk: 1 },
+    station: 'workbench',
+    tier: 2,
+    unlockAfter: 'r_spark_brain',
+  },
+  {
+    id: 'r_servo_module',
+    output: 'servo_module',
+    qty: 1,
+    ingredients: { gear_small: 2, copper_wire: 2 },
+    station: 'workbench',
+    tier: 2,
+    unlockAfter: 'r_spark_brain',
+  },
+
+  // ── Maker Lab — Tier 3 (Vision Brain / Jetson) ──
+  {
+    id: 'r_vision_brain',
+    output: 'vision_brain',
+    qty: 1,
+    ingredients: { spark_brain: 1, circuit_board: 5, glass_shard: 3, fuel_can: 2 },
+    station: 'smelter',
+    tool: 'blowtorch',
+    tier: 3,
+    unlockAfter: 'r_spark_brain',
+    foremanQuip: "It can SEE? Like, with actual computer vision? ...I need a moment.",
+  },
+  {
+    id: 'r_camera_module',
+    output: 'camera_module',
+    qty: 1,
+    ingredients: { glass_shard: 2, circuit_board: 2 },
+    station: 'workbench',
+    tier: 3,
+    unlockAfter: 'r_vision_brain',
+  },
 ];
 
 export function getRecipe(id) {
