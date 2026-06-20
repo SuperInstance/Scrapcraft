@@ -12,6 +12,7 @@ import { Achievements } from './Achievements.js';
 import { ScrapBot } from './ScrapBot.js';
 import { BLOCK_DEF, B } from './data/blocks.js';
 import { getItem } from './data/items.js';
+import { EXAMPLE_WALL_AVOIDER } from './maker/TileProgram.js';
 
 export class Game {
   constructor(canvas) {
@@ -57,6 +58,7 @@ export class Game {
 
     this.scrapBot = new ScrapBot(this.renderer.scene, this.player);
     this.scrapBot.setUI(this.ui);
+    this.scrapBot.setGame(this);
 
     this.world.on('change', () => this.renderer.rebuildMeshes(this.world));
 
@@ -81,6 +83,13 @@ export class Game {
       }
       if (e.code === 'Escape' && this.ui.isOpen) this.ui.closeInventory();
       if (e.code === 'KeyM') this.audio.toggle();
+      if (e.code === 'KeyB' && this.scrapBot.isActive) {
+        if (this.scrapBot._brainMode) {
+          this.scrapBot.clearBrain();
+        } else {
+          this.scrapBot.setBrain(EXAMPLE_WALL_AVOIDER, this.world, this.player, this.dayNight);
+        }
+      }
     });
 
     // Hold-to-mine: track button state, do work in update loop

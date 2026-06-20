@@ -1,8 +1,11 @@
 import * as THREE from 'three';
+import { MakerRuntime, GameWorldAdapter } from './maker/index.js';
+import { EXAMPLE_WALL_AVOIDER } from './maker/TileProgram.js';
 
 /**
  * ScrapBot — your robot companion, built from the robot_helper recipe.
- * Follows the player around, highlights nearby resources, says funny things.
+ * Follows the player around in default mode; can be given a tile-program brain
+ * via setBrain() to run autonomously.
  */
 
 const BOT_SPEED = 4.5;
@@ -36,9 +39,20 @@ export class ScrapBot {
     this._ui = null;
     this._glowTimer = 0;
     this._glowLight = null;
+
+    // Maker Lab brain
+    this._runtime   = null;
+    this._brainMode = false;
+    this._game      = null;
+
+    // Eye material refs for LED tile colour changes
+    this._eyeMat = null;
   }
 
   setUI(ui) { this._ui = ui; }
+
+  /** Called from Game.init() — gives access to audio + particles. */
+  setGame(game) { this._game = game; }
 
   activate(spawnPos) {
     if (this._active) return;
@@ -73,6 +87,7 @@ export class ScrapBot {
     const eyeR = eyeL.clone();
     eyeR.position.set(0.1, 1.28, 0.175);
     group.add(eyeR);
+    this._eyeMat = eyeMat;   // store ref for LED tile colour changes
 
     // Antenna
     const ant = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.2, 0.04), mat(0xCCCCCC));
@@ -116,10 +131,52 @@ export class ScrapBot {
     this._ui?.notify(`🤖 ${line}`);
   }
 
+  /**
+   * Load a tile program and switch to autonomous mode.
+   * @param {TileProgram} program
+   * @param {World}       world
+   * @param {Player}      player
+   * @param {DayNight}    dayNight  optional
+   */
+  setBrain(program, world, player, dayNight = null) {
+    const spawn = {
+      x: this._pos.x,
+      z: this._pos.z,
+      heading: this._mesh?.rotation.y ?? 0,
+    };
+    const adapter = new GameWorldAdapter(world, player, dayNight);
+    this._runtime   = new MakerRuntime(program, spawn, adapter);
+    this._brainMode = true;
+
+    if (this._runtime.errors.length) {
+      this.speak(`[COMPILE ERROR] ${this._runtime.errors[0]}`);
+    } else {
+      this.speak(`[BRAIN LOADED] Running "${program.name || 'custom program'}".`);
+    }
+  }
+
+  /** Return to follow-player mode. */
+  clearBrain() {
+    this._brainMode = false;
+    this._runtime   = null;
+    this.speak('[BRAIN CLEARED] Back to following you around. Lucky you.');
+  }
+
   tick(dt, world) {
     if (!this._active || !this._mesh) return;
 
-    // Follow player
+    if (this._brainMode && this._runtime) {
+      this._tickBrain(dt);
+    } else {
+      this._tickFollow(dt, world);
+    }
+
+    this._tickCommon(dt);
+  }
+
+  // ── Private tick methods ───────────────────────────────────────────────────
+
+  _tickFollow(dt, world) {
     const target = this.player.pos.clone();
     const toTarget = target.clone().sub(this._pos);
     toTarget.y = 0;
@@ -133,36 +190,81 @@ export class ScrapBot {
     }
 
     this._pos.addScaledVector(this._velocity, dt);
-    // Stay on ground
     this._pos.y = 1;
-
     this._mesh.position.copy(this._pos);
 
-    // Look at player
     const look = target.clone().sub(this._pos);
     if (look.length() > 0.1) {
       this._mesh.rotation.y = Math.atan2(look.x, look.z);
     }
 
-    // Walking animation
     const walk = this._velocity.length() > 0.5;
     const swing = walk ? Math.sin(Date.now() * 0.008) * 0.3 : 0;
     this._legL.rotation.x = swing;
     this._legR.rotation.x = -swing;
     this._armL.rotation.x = -swing * 0.5;
     this._armR.rotation.x = swing * 0.5;
+  }
 
-    // Glow pulse
+  _tickBrain(dt) {
+    this._runtime.tick(dt);
+
+    const r = this._runtime.robot;
+    this._pos.set(r.x, 1, r.z);
+    this._mesh.position.copy(this._pos);
+    this._mesh.rotation.y = r.heading;
+
+    // Walking animation when motors are running
+    const moving = Math.abs(r.drivePower) > 0.05 || Math.abs(r.turnPower) > 0.05;
+    const swing = moving ? Math.sin(Date.now() * 0.012) * 0.4 : 0;
+    this._legL.rotation.x = swing;
+    this._legR.rotation.x = -swing;
+
+    for (const ev of this._runtime.drainEvents()) {
+      this._handleEffect(ev);
+    }
+  }
+
+  _tickCommon(dt) {
     this._glowTimer += dt;
     this._glowLight.intensity = 0.6 + Math.sin(this._glowTimer * 2) * 0.2;
 
-    // Random speech
-    this._lineTimer += dt;
-    if (this._lineTimer >= this._lineInterval) {
-      this._lineTimer = 0;
-      this._lineInterval = 20 + Math.random() * 30;
-      const line = BOT_LINES[Math.floor(Math.random() * BOT_LINES.length)];
-      this.speak(line);
+    // Random speech only in follow mode; brain programs have their own moments
+    if (!this._brainMode) {
+      this._lineTimer += dt;
+      if (this._lineTimer >= this._lineInterval) {
+        this._lineTimer = 0;
+        this._lineInterval = 20 + Math.random() * 30;
+        this.speak(BOT_LINES[Math.floor(Math.random() * BOT_LINES.length)]);
+      }
     }
+  }
+
+  _handleEffect(ev) {
+    switch (ev.kind) {
+      case 'beep':
+        this._game?.audio?.spark?.();
+        break;
+      case 'led':
+        this._setEyeColor(ev.state);
+        break;
+      case 'grab':
+        this._game?.particles?.burst(this._pos.x, 1, this._pos.z, 'pickup', 4);
+        break;
+    }
+  }
+
+  _setEyeColor(state) {
+    const COLOURS = {
+      off:   { color: 0x00FFFF, emissive: 0x00AAFF },
+      red:   { color: 0xFF2200, emissive: 0xAA0000 },
+      green: { color: 0x00FF44, emissive: 0x00AA22 },
+      blue:  { color: 0x2244FF, emissive: 0x0022AA },
+      white: { color: 0xFFFFFF, emissive: 0xAAAAAA },
+    };
+    const c = COLOURS[state] ?? COLOURS.off;
+    if (!this._eyeMat) return;
+    this._eyeMat.color.setHex(c.color);
+    this._eyeMat.emissive.setHex(c.emissive);
   }
 }
