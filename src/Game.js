@@ -87,6 +87,10 @@ export class Game {
     this._helpOverlay = document.getElementById('help-overlay');
     document.getElementById('help-close')?.addEventListener('click', () => this._toggleHelp(false));
 
+    // Minimap
+    this._minimapCtx   = document.getElementById('minimap')?.getContext('2d') ?? null;
+    this._minimapTimer = 0;
+
     this._bindInput();
 
     // Load saved state — if none, show first-time greeting
@@ -474,6 +478,80 @@ export class Game {
     }
 
     this.ui.updateHotbar(this.player);
+
+    // Minimap — refresh every 0.5 s
+    this._minimapTimer += dt;
+    if (this._minimapTimer >= 0.5) { this._minimapTimer = 0; this._updateMinimap(); }
+  }
+
+  _updateMinimap() {
+    const ctx = this._minimapCtx;
+    if (!ctx) return;
+
+    const SIZE   = 96;   // canvas px
+    const RADIUS = 48;   // half-side in world blocks
+    const px = Math.floor(this.player.pos.x);
+    const pz = Math.floor(this.player.pos.z);
+    const img = ctx.createImageData(SIZE, SIZE);
+
+    // Block-id → [r,g,b] derived from BLOCK_DEF.color hex
+    const colorOf = (id) => {
+      if (!id) return [20, 20, 20];
+      const c = BLOCK_DEF[id]?.color ?? 0x444444;
+      return [(c >> 16) & 0xff, (c >> 8) & 0xff, c & 0xff];
+    };
+
+    for (let dz = 0; dz < SIZE; dz++) {
+      for (let dx = 0; dx < SIZE; dx++) {
+        const wx = px - RADIUS + dx;
+        const wz = pz - RADIUS + dz;
+        // Sample topmost block (y = 3 down to 0)
+        let id = 0;
+        for (let y = 3; y >= 0; y--) {
+          const b = this.world.getBlock(wx, y, wz);
+          if (b) { id = b; break; }
+        }
+        const [r, g, b] = colorOf(id);
+        const i = (dz * SIZE + dx) * 4;
+        img.data[i]   = r; img.data[i+1] = g;
+        img.data[i+2] = b; img.data[i+3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+
+    // Player dot (white)
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(RADIUS - 1, RADIUS - 1, 3, 3);
+
+    // Bot 1 dot (cyan)
+    if (this.scrapBot?.isActive) {
+      const bx = Math.floor(this.scrapBot._pos.x) - px + RADIUS;
+      const bz = Math.floor(this.scrapBot._pos.z) - pz + RADIUS;
+      if (bx >= 0 && bx < SIZE && bz >= 0 && bz < SIZE) {
+        ctx.fillStyle = '#00ccff';
+        ctx.fillRect(bx - 1, bz - 1, 3, 3);
+      }
+    }
+    // Bot 2 dot (orange)
+    if (this.scrapBot2?.isActive) {
+      const bx = Math.floor(this.scrapBot2._pos.x) - px + RADIUS;
+      const bz = Math.floor(this.scrapBot2._pos.z) - pz + RADIUS;
+      if (bx >= 0 && bx < SIZE && bz >= 0 && bz < SIZE) {
+        ctx.fillStyle = '#ff8c00';
+        ctx.fillRect(bx - 1, bz - 1, 3, 3);
+      }
+    }
+    // Landmark dots (yellow) — workbench / forge / smelter
+    for (const key of ['workbench', 'forge', 'smelter']) {
+      const lm = this.world.landmarks?.[key];
+      if (!lm) continue;
+      const lx = lm.x - px + RADIUS;
+      const lz = lm.z - pz + RADIUS;
+      if (lx >= 0 && lx < SIZE && lz >= 0 && lz < SIZE) {
+        ctx.fillStyle = '#f0b429';
+        ctx.fillRect(lx - 1, lz - 1, 3, 3);
+      }
+    }
   }
 
   _updateSpeechBubble(bot, el) {

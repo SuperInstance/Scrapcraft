@@ -8,6 +8,8 @@
  * Schema version is bumped (bump SAVE_KEY) on breaking changes.
  */
 
+import { TileProgram } from './maker/TileProgram.js';
+
 const SAVE_KEY     = 'scrapcraft_save_v4';
 const AUTOSAVE_INT = 60;  // seconds between autosaves
 
@@ -107,6 +109,8 @@ export class SaveSystem {
 
       xp: g.xpSystem?.toSaveData() ?? null,
 
+      tileEditor: g.tileEditor?._program?.toJSON() ?? null,
+
       earl: {
         questIndex: g.foreman._questIndex ?? 0,
         history:    (g.foreman._history ?? []).slice(-20),
@@ -166,6 +170,16 @@ export class SaveSystem {
 
     // XP system
     if (data.xp) g.xpSystem?.fromSaveData(data.xp);
+
+    // Tile editor brain
+    if (data.tileEditor) {
+      try {
+        const prog = TileProgram.fromJSON(data.tileEditor);
+        g.tileEditor?.loadProgram(prog);
+      } catch (e) {
+        console.warn('[SaveSystem] Failed to restore tile editor program:', e);
+      }
+    }
 
     // World mined-block diffs
     const wd = data.world;
