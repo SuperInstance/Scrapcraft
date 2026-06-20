@@ -146,6 +146,29 @@ export class World {
     // Robot test track — rectangular loop at y=0 for line_under sensor
     for (let x = 30; x <= 46; x++) { this.setBlock(x, 0, 14, B.TRACK); this.setBlock(x, 0, 22, B.TRACK); }
     for (let z = 14; z <= 22; z++) { this.setBlock(30, 0, z, B.TRACK); this.setBlock(46, 0, z, B.TRACK); }
+
+    // Start/finish gate arch (two pylons at x=30 and x=46, straddling start line z=13)
+    for (const gx of [30, 46]) {
+      for (let y = 1; y <= 3; y++) this.setBlock(gx, y, 13, B.WALL_METAL);
+      this.setBlock(gx, 4, 13, B.FLOODLIGHT);
+    }
+    // Crossbar
+    for (let x = 31; x < 46; x++) this.setBlock(x, 4, 13, B.CLEAN_METAL);
+
+    // Racing bleachers — east side of test track (x=48-51, z=14-22)
+    for (let bz = 14; bz <= 22; bz++) {
+      this.setBlock(48, 1, bz, B.CONCRETE);   // floor
+      this.setBlock(48, 2, bz, B.WALL_METAL); // row 1 seat
+      this.setBlock(49, 2, bz, B.CONCRETE);   // floor level 2
+      this.setBlock(49, 3, bz, B.WALL_METAL); // row 2 seat
+      this.setBlock(50, 3, bz, B.CONCRETE);   // floor level 3
+      this.setBlock(50, 4, bz, B.WALL_METAL); // row 3 seat
+    }
+    // Bleacher supports (vertical pillars at each end)
+    for (const bz of [14, 22]) {
+      for (let y = 1; y <= 4; y++) this.setBlock(48, y, bz, B.WALL_METAL);
+      for (let y = 1; y <= 4; y++) this.setBlock(50, y, bz, B.WALL_METAL);
+    }
   }
 
   _band1(rng, W) {
@@ -278,6 +301,44 @@ export class World {
     this.setBlock(102, 1, 72, B.WORKBENCH);
     this.setBlock(104, 1, 72, B.FORGE);
     this.setBlock(106, 1, 72, B.SMELTER);
+
+    // Radio / comms tower (x=80, z=71) — tallest structure in Circuit City
+    const tx = 80, tz = 71;
+    for (let y = 1; y <= 9; y++) this.setBlock(tx, y, tz, B.CLEAN_METAL);
+    // Cross-arms at mid and high
+    for (const armY of [5, 7]) {
+      for (let d = -2; d <= 2; d++) {
+        if (d !== 0) {
+          this.setBlock(tx+d, armY, tz, B.CLEAN_METAL);
+          this.setBlock(tx,   armY, tz+d, B.CLEAN_METAL);
+        }
+      }
+    }
+    this.setBlock(tx, 9, tz, B.POWER_BOX);  // blinking "beacon" at apex
+    // Diagonal support struts (base)
+    for (let d = 1; d <= 2; d++) {
+      this.setBlock(tx+d, d,   tz,   B.WALL_METAL);
+      this.setBlock(tx-d, d,   tz,   B.WALL_METAL);
+      this.setBlock(tx,   d,   tz+d, B.WALL_METAL);
+      this.setBlock(tx,   d,   tz-d, B.WALL_METAL);
+    }
+    this.landmarks.radio_tower = { x: tx, y: 1, z: tz };
+
+    // Oval-track grandstand — tiered bleachers north of the oval (z=77, x=21-27)
+    for (let bx = 21; bx <= 27; bx++) {
+      this.setBlock(bx, 1, 77, B.CONCRETE);
+      this.setBlock(bx, 2, 78, B.WALL_METAL);
+      this.setBlock(bx, 3, 79, B.WALL_METAL);
+      this.setBlock(bx, 3, 78, B.CONCRETE);
+      this.setBlock(bx, 4, 79, B.WALL_METAL);
+    }
+    // Grandstand pillars
+    for (const bx of [21, 27]) {
+      for (let y = 1; y <= 4; y++) this.setBlock(bx, y, 79, B.WALL_METAL);
+    }
+    // Grandstand floodlights
+    this.setBlock(22, 5, 79, B.FLOODLIGHT);
+    this.setBlock(26, 5, 79, B.FLOODLIGHT);
   }
 
   _band3(rng, W) {
@@ -344,6 +405,24 @@ export class World {
     // Sign: stacked blocks forming 'END' on the far wall
     this._scatter(rng, B.CRATE, 20, 2, W - 2, z0, z1);
     this._scatter(rng, B.POWER_BOX, 15, 2, W - 2, z0, z1);
+
+    // Robot graveyard — 8 decommissioned bots in a 4×2 grid (x=72-87, z=100-112)
+    for (let i = 0; i < 8; i++) {
+      const gx = 72 + (i % 4) * 4;
+      const gz = z0 + 4 + Math.floor(i / 4) * 7;
+      const lean = (i % 3 === 0) ? 1 : 0; // some are tilted (collapsed)
+      // body
+      for (let y = 1; y <= 2; y++) this.setBlock(gx, y, gz, B.RUST_METAL);
+      // head (shifted if leaning)
+      this.setBlock(gx + lean, 3, gz, B.SCRAP_PILE);
+      // arms
+      this.setBlock(gx-1, 2, gz, B.RUST_METAL);
+      this.setBlock(gx+1, 2, gz, B.RUST_METAL);
+      // legs
+      this.setBlock(gx, 1, gz-1, B.RUST_METAL);
+      this.setBlock(gx, 1, gz+1, B.RUST_METAL);
+    }
+    this.landmarks.robot_graveyard = { x: 79, y: 1, z: z0 + 7 };
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────

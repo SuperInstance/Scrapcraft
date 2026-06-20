@@ -159,7 +159,8 @@ export class ScrapBot {
       z: this._pos.z,
       heading: this._mesh?.rotation.y ?? 0,
     };
-    const adapter = new GameWorldAdapter(world, player, dayNight);
+    const weather = this._game?.weather ?? null;
+    const adapter = new GameWorldAdapter(world, player, dayNight, weather);
     this._runtime   = new MakerRuntime(program, spawn, adapter);
     this._brainMode = true;
 

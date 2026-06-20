@@ -26,14 +26,16 @@ const LINE_IDS = new Set([B.WOOD_PLANK, B.OIL_DRUM, B.TRACK]);
 
 export class GameWorldAdapter {
   /**
-   * @param {World}    world     the voxel world (getBlock/isSolidAt)
-   * @param {object}   player    has .pos {x,y,z}
-   * @param {DayNight} dayNight  has .timeOfDay / .isNight (optional)
+   * @param {World}          world     the voxel world (getBlock/isSolidAt)
+   * @param {object}         player    has .pos {x,y,z}
+   * @param {DayNight}       dayNight  has .timeOfDay / .isNight (optional)
+   * @param {WeatherSystem}  weather   has .intensityValue (optional)
    */
-  constructor(world, player, dayNight = null) {
+  constructor(world, player, dayNight = null, weather = null) {
     this.world = world;
     this.player = player;
     this.dayNight = dayNight;
+    this.weather = weather;
   }
 
   /** Solid at ground level (y=1, where the robot rolls). */
@@ -161,6 +163,11 @@ export class GameWorldAdapter {
   colorUnder(x, z) {
     const id = this.world.getBlock?.(Math.floor(x), 0, Math.floor(z));
     return COLOURFUL_IDS.has(id);
+  }
+
+  /** Weather intensity: 0 clear → 0.65 rain → 1.0 storm */
+  weatherIntensity() {
+    return this.weather?.intensityValue ?? 0;
   }
 
   /** Vision Brain stub: "sees target" if facing the player within a cone. */

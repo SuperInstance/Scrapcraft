@@ -110,6 +110,21 @@ const QUIPS = {
     "IR sensors. Invisible light, real results. That's physics working for you.",
     "You can build a line follower now. The oval track in Circuit City is waiting.",
   ],
+  weather_rain: [
+    "Rain. Perfect conditions for getting no sympathy from me. Get back to work.",
+    "It's raining. In the scrapyard, rain means slippery scrap and bad moods. Same as usual, basically.",
+    "That's rain, kid. Your bot doesn't care. You probably shouldn't either.",
+  ],
+  weather_storm: [
+    "Storm rolling in. Get your bot under cover if you care about it. I don't. (I do.)",
+    "Thunder. Lightning. Perfect weather for building things indoors. Which we don't have. Well, sheds.",
+    "Thunderstorm. You want a tip? Don't hold copper wire over your head right now.",
+  ],
+  weather_clear: [
+    "Sun's out. No excuses now, rookie. The scrap doesn't sort itself.",
+    "Cleared up. Earl appreciates a fine day. Earl won't say so again.",
+    "Weather's good. Which means my back hurts less. Which means I expect more from you today.",
+  ],
 };
 
 // Quests Earl assigns in sequence
@@ -258,6 +273,9 @@ export class Foreman {
       'near_smelter':       'near_smelter',
       'player_die':         'die',
       'quest_complete':     'quest_complete',
+      'weather_rain':       'weather_rain',
+      'weather_storm':      'weather_storm',
+      'weather_clear':      'weather_clear',
     };
     const key = map[event];
     if (key) this.say(key);
