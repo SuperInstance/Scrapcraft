@@ -29,14 +29,18 @@ Design docs, in order of altitude:
 | 4 parallel level bands, hold-to-mine, UX polish | ✅ shipped | `src/World.js`, `src/Game.js` |
 | Big Earl AI foreman (Claude + offline) + quests | ✅ shipped | `src/Foreman.js` |
 | **Tile engine: schema, compiler, VM, robot, firmware gen** | ✅ **built + tested (26/26)** | `src/maker/` |
-| ScrapBot ↔ tile-engine integration | ⏳ next | `DEV_GUIDE_scrapbot_integration.md` |
-| Drag-drop tile editor UI | ⏳ next | `DEV_GUIDE_tile_editor.md` |
-| **Spark — AI build companion** | ⏳ next (the killer feature) | `DEV_GUIDE_spark_companion.md` |
-| Hardware brains, vision, real-hardware export | ⏳ next | `DEV_GUIDE_hardware_brains_and_export.md` |
-| Save system (localStorage) | ⏳ planned | `DEV_GUIDE_save_system.md` |
-| Block placement | ⏳ planned | `DEV_GUIDE_block_placement.md` |
-| Recipe expansion (14 → 45) | ⏳ planned | `src/data/recipes.js`, `src/data/items.js` |
-| Functional items (spring boots, go-kart) | ⏳ planned | `src/Player.js`, `src/Game.js` |
+| ScrapBot ↔ tile-engine integration | ✅ shipped | `src/ScrapBot.js` |
+| Drag-drop tile editor UI | ✅ shipped | `src/TileEditor.js` |
+| **Spark — AI build companion** | ✅ shipped | `src/Foreman.js` (Spark mode) |
+| Hardware brains, vision, real-hardware export | ✅ shipped | `src/TileEditor.js`, `src/maker/FirmwareGen.js` |
+| Save system (localStorage) | ✅ shipped | `src/SaveSystem.js` |
+| Block placement | ✅ shipped | `src/Game.js`, `src/World.js` |
+| Recipe expansion (14 → 35) | ✅ shipped | `src/data/recipes.js`, `src/data/items.js` |
+| Functional items (spring boots, go-kart, goggles, grapple) | ✅ shipped | `src/Player.js`, `src/Game.js` |
+| Achievements expansion (20 → 29) + program_run / place events | ✅ shipped | `src/Achievements.js` |
+| Phase 2.2: additional sensor/actuator primitives (7 new) | ✅ shipped | `src/maker/primitives.js`, `src/maker/GameWorldAdapter.js` |
+| Phase 2.1: Skill tree / XP system | ⏳ next | see Phase 2.1 below |
+| Phase 2.3: Multi-bot programs (BotManager) | ⏳ next | see Phase 2.3 below |
 | Machine canvas (Incredible-Machine sim) | 🔭 future | `/KILLER_APP.md` |
 | In-world circuits (placeable wires, gates) | 🔭 future | `/KILLER_APP.md` |
 | CraftMind cross-game progression, teacher dashboard | 🔭 future | `/KILLER_APP.md` |

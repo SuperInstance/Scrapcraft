@@ -179,6 +179,98 @@ console.log('\nFirmwareGen');
   ok('MicroPython: reads brightness', py.includes('read_brightness()'));
 }
 
+// ── 9. Phase 2.2 sensors ──────────────────────────────────────────────────
+console.log('\nPhase 2.2 · new sensors');
+{
+  // line_under — digital, backed by lineUnder()
+  const prog = new TileProgram({ nodes: [
+    T.ifElse(T.is('line_under', true),
+      [ T.action('led', { state: 'green' }) ],
+      [ T.action('led', { state: 'red' }) ]),
+  ]});
+
+  const lineWorld = new MockWorld();
+  lineWorld.lineUnder = () => true;
+  const rtLine = new MakerRuntime(prog, {}, lineWorld);
+  rtLine.tick(0.016);
+  ok('line_under true → green LED', rtLine.robot.led === 'green', `led=${rtLine.robot.led}`);
+
+  const noLineWorld = new MockWorld();
+  noLineWorld.lineUnder = () => false;
+  const rtNoLine = new MakerRuntime(prog, {}, noLineWorld);
+  rtNoLine.tick(0.016);
+  ok('line_under false → red LED', rtNoLine.robot.led === 'red', `led=${rtNoLine.robot.led}`);
+
+  // compass — analog, normalized 0..1 from heading
+  const progComp = new TileProgram({ nodes: [
+    T.ifElse(T.cond('compass', 'lt', 0.5),
+      [ T.action('led', { state: 'blue' }) ],
+      [ T.action('led', { state: 'white' }) ]),
+  ]});
+  const rtComp = new MakerRuntime(progComp, { heading: Math.PI * 0.4 }, new MockWorld());
+  rtComp.tick(0.016);
+  ok('compass < 0.5 when heading is π×0.4', rtComp.robot.led === 'blue', `led=${rtComp.robot.led}`);
+
+  // temperature — analog, backed by temperatureAt()
+  const progTemp = new TileProgram({ nodes: [
+    T.ifElse(T.cond('temperature', 'gt', 0.5),
+      [ T.action('beep', { pitch: 'high' }) ],
+      [ T.action('beep', { pitch: 'low'  }) ]),
+  ]});
+  const hotWorld  = new MockWorld(); hotWorld.temperatureAt  = () => 0.9;
+  const coldWorld = new MockWorld(); coldWorld.temperatureAt = () => 0.2;
+
+  const rtHot  = new MakerRuntime(progTemp, {}, hotWorld);  rtHot.tick(0.016);
+  ok('temperature >0.5 (hot) → high beep',
+     rtHot.drainEvents().some(e => e.kind === 'beep' && e.pitch === 'high'));
+
+  const rtCold = new MakerRuntime(progTemp, {}, coldWorld); rtCold.tick(0.016);
+  ok('temperature <0.5 (cold) → low beep',
+     rtCold.drainEvents().some(e => e.kind === 'beep' && e.pitch === 'low'));
+
+  // color_sensor — digital, backed by colorUnder()
+  const progCol = new TileProgram({ nodes: [
+    T.ifElse(T.is('color_sensor', true),
+      [ T.action('led', { state: 'red' }) ],
+      [ T.action('led', { state: 'off' }) ]),
+  ]});
+  const colWorld = new MockWorld(); colWorld.colorUnder = () => true;
+  const rtCol = new MakerRuntime(progCol, {}, colWorld);
+  rtCol.tick(0.016);
+  ok('color_sensor true → red LED', rtCol.robot.led === 'red', `led=${rtCol.robot.led}`);
+}
+
+// ── 10. Phase 2.2 actuators ───────────────────────────────────────────────
+console.log('\nPhase 2.2 · new actuators');
+{
+  // speak
+  const progSpeak = new TileProgram({ nodes: [ T.action('speak', { phrase: 'done' }) ]});
+  const rtSpeak = new MakerRuntime(progSpeak, {}, new MockWorld());
+  rtSpeak.tick(0.016);
+  ok('speak emits "speak" event with phrase',
+     rtSpeak.drainEvents().some(e => e.kind === 'speak' && e.phrase === 'done'));
+
+  // servo_angle — sets robot.gripping based on angle
+  const progServo = new TileProgram({ nodes: [ T.action('servo_angle', { angle: 45 }) ]});
+  const rtServo = new MakerRuntime(progServo, {}, new MockWorld());
+  rtServo.tick(0.016);
+  ok('servo_angle < 90 sets gripping=true', rtServo.robot.gripping === true,
+     `gripping=${rtServo.robot.gripping}`);
+
+  const progServo2 = new TileProgram({ nodes: [ T.action('servo_angle', { angle: 120 }) ]});
+  const rtServo2 = new MakerRuntime(progServo2, {}, new MockWorld());
+  rtServo2.tick(0.016);
+  ok('servo_angle >= 90 sets gripping=false', rtServo2.robot.gripping === false,
+     `gripping=${rtServo2.robot.gripping}`);
+
+  // neopixel
+  const progNeo = new TileProgram({ nodes: [ T.action('neopixel', { color: 'cyan' }) ]});
+  const rtNeo = new MakerRuntime(progNeo, {}, new MockWorld());
+  rtNeo.tick(0.016);
+  ok('neopixel emits "neopixel" event with colour',
+     rtNeo.drainEvents().some(e => e.kind === 'neopixel' && e.color === 'cyan'));
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
