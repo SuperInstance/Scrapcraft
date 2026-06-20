@@ -17,6 +17,7 @@ export const B = {
   ROOF_METAL: 14,
   JUNK_CAR: 15,
   POWER_BOX: 16,
+  TRACK: 17,
 };
 
 // hex color, emissive tint, roughness, whether it's solid/interactive/drops loot
@@ -56,12 +57,16 @@ export const BLOCK_DEF = {
   [B.POWER_BOX]:  { name: 'Power Box',         color: 0xddcc00, rough: 0.4,  solid: true, hardness: 0.6,
                     drop: 'copper_wire', dropChance: 1.0,
                     altDrop: 'circuit_board', altDropChance: 0.4 },
+  [B.TRACK]:      { name: 'Track Strip',        color: 0x222211, rough: 0.9,  solid: true, hardness: 0.25,
+                    emissive: 0xddcc00, emissiveIntensity: 0.08,
+                    drop: 'track_strip', dropChance: 1.0 },
 };
 
 // Items the player can place as blocks (item ID → block ID)
 export const ITEM_TO_BLOCK = {
-  wood_plank: B.WOOD_PLANK,
-  iron_scrap: B.RUST_METAL,
+  wood_plank:  B.WOOD_PLANK,
+  iron_scrap:  B.RUST_METAL,
+  track_strip: B.TRACK,
 };
 
 export function isInteractive(id) {

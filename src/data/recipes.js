@@ -358,6 +358,15 @@ export const RECIPES = [
     tier: 3,
     unlockAfter: 'r_vision_brain',
   },
+  {
+    id: 'r_track_strip',
+    output: 'track_strip',
+    qty: 8,
+    ingredients: { rubber_chunk: 2, iron_scrap: 1 },
+    station: 'workbench',
+    tier: 1,
+    foremanQuip: "A track for your robot. Build a course. Bet on it. I'm not saying anything else.",
+  },
 ];
 
 export function getRecipe(id) {

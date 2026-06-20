@@ -71,6 +71,14 @@ export const ITEMS = {
     category: 'material',
     stackSize: 16,
   },
+  track_strip: {
+    name: 'Track Strip',
+    icon: '▬',
+    desc: 'Dark rubber strip with a painted center line. Place it for your ScrapBot to follow.',
+    category: 'material',
+    stackSize: 64,
+    placeable: true,
+  },
 
   // ── Tools ──
   wrench: {

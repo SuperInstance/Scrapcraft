@@ -22,7 +22,7 @@ import { B } from '../data/blocks.js';
 // Blocks that count as "distinctly coloured" for the Vision Brain colour sensor.
 const COLOURFUL_IDS = new Set([B.RUST_METAL, B.FORGE, B.OIL_DRUM, B.POWER_BOX, B.WOOD_PLANK, B.SCRAP_PILE]);
 // Blocks that act as a floor "line" for line-following.
-const LINE_IDS = new Set([B.WOOD_PLANK, B.OIL_DRUM]);
+const LINE_IDS = new Set([B.WOOD_PLANK, B.OIL_DRUM, B.TRACK]);
 
 export class GameWorldAdapter {
   /**
