@@ -126,6 +126,12 @@ export class Game {
         else this._toggleHelp(false);
       }
       if (e.code === 'KeyH' && !this.ui.isOpen && !this.tileEditor.isOpen) this._toggleHelp();
+      if (e.code === 'KeyR' && document.pointerLockElement) {
+        this.player.pos.set(8, 2, 5);
+        this.player.vel?.set(0, 0, 0);
+        this.player.yaw = 0;
+        this.ui.notify('🏁 Respawned at the yard gate.');
+      }
       if (e.code === 'KeyM') this.audio.toggle();
       if (e.code === 'KeyB') {
         if (e.shiftKey) {
@@ -354,6 +360,14 @@ export class Game {
   _update(dt) {
     this.player.tick(dt, this.world);
     this.dayNight.tick(dt);
+
+    // Auto-respawn if player falls off the world
+    if (this.player.pos.y < -5) {
+      this.player.pos.set(8, 2, 5);
+      this.player.vel?.set(0, 0, 0);
+      this.ui.notify('🏁 Respawned at the yard gate.');
+      this.foreman.onEvent('player_die', {});
+    }
 
     // Night goggles: boost ambient light at night
     if (this.player.hasTool('night_goggles') && this.dayNight.isNight) {

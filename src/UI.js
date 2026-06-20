@@ -200,7 +200,9 @@ export class UI {
   // ── Zone / Time HUD ──────────────────────────────────────────────────
 
   setZone(zone, timeLabel) {
-    if (this._zoneLabel) this._zoneLabel.textContent = `${zone}  ·  ${timeLabel}`;
+    if (!this._zoneLabel) return;
+    const icon = { Night:'🌙', Dawn:'🌅', Morning:'☀️', Midday:'☀️', Afternoon:'🌤️', Dusk:'🌇' }[timeLabel] ?? '🌙';
+    this._zoneLabel.textContent = `${zone}  ·  ${icon} ${timeLabel}`;
   }
 
   showZoneToast(name) {
