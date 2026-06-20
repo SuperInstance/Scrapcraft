@@ -16,6 +16,7 @@ import { EXAMPLE_WALL_AVOIDER, EXAMPLE_LINE_FOLLOWER } from './maker/TileProgram
 import { TileEditor } from './TileEditor.js';
 import { SaveSystem } from './SaveSystem.js';
 import { XPSystem } from './XPSystem.js';
+import { WeatherSystem } from './WeatherSystem.js';
 
 export class Game {
   constructor(canvas) {
@@ -73,6 +74,10 @@ export class Game {
 
     // Second bot — spawned at Level 5 (Engineer) via Shift+B
     this.scrapBot2 = null;
+
+    this.weather = new WeatherSystem(this.renderer.scene, this.audio);
+    // Expose weather to bot world adapters — updated by setGame() in ScrapBot
+    this._weatherForBots = this.weather;
 
     this.tileEditor = new TileEditor(this);
     this.saveSystem = new SaveSystem(this);
@@ -390,6 +395,14 @@ export class Game {
 
     this.player.tick(dt, this.world);
     this.dayNight.tick(dt);
+
+    // Weather
+    const weatherChanged = this.weather.tick(dt, this.player.pos, this.renderer.ambientLight);
+    if (weatherChanged) {
+      const evtName = `weather_${this.weather.state}`;
+      this.foreman.onEvent(evtName, {});
+      this.ui.setWeather(this.weather.state, this.weather.intensityValue);
+    }
 
     // Auto-respawn if player falls off the world
     if (this.player.pos.y < -5) {

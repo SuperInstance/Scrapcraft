@@ -222,6 +222,32 @@ export class AudioSystem {
     this._osc(300, 'sawtooth', t, 0.05, 0.08);
   }
 
+  /** Thunder crack + rumble */
+  thunder() {
+    this._ensure(); this._resume();
+    const t = this._ctx.currentTime;
+    // Sharp crack
+    this._noise(0.08, 0.28, 220, t);
+    // Low rumble that decays slowly
+    this._noise(1.8, 0.18, 60, t + 0.04);
+    this._noise(1.2, 0.12, 100, t + 0.06);
+  }
+
+  /** Rain start — soft hiss swell */
+  rainStart() {
+    this._ensure(); this._resume();
+    const t = this._ctx.currentTime;
+    this._noise(0.9, 0.06, 3000, t);
+    this._noise(1.2, 0.05, 6000, t + 0.3);
+  }
+
+  /** Rain stop — soft hiss fade-out (same noise, quieter) */
+  rainStop() {
+    this._ensure(); this._resume();
+    const t = this._ctx.currentTime;
+    this._noise(0.6, 0.03, 4000, t);
+  }
+
   tick(dt, player, world) {
     // Footstep rhythm
     const moving = player._keys?.['KeyW'] || player._keys?.['KeyS'] || player._keys?.['KeyA'] || player._keys?.['KeyD'];

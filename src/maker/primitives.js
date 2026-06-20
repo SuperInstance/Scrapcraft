@@ -248,6 +248,28 @@ export const SENSORS = {
     },
   },
 
+  weather: {
+    id: 'weather',
+    category: 'sense',
+    kind: 'analog',
+    label: 'weather intensity',
+    blurb: 'current weather severity: 0 = clear sky, ~0.65 = rain, 1.0 = thunderstorm',
+    read: (robot, world) => world.weatherIntensity?.() ?? 0,
+    hw: {
+      platform: ['esp32', 'jetson'],
+      peripheral: 'DHT22 humidity sensor (storm = high humidity + low pressure)',
+      pin: 'D22',
+      setup: {
+        arduino: 'dht22.begin();',
+        micropython: 'weather_sensor = DHT22(Pin(22))',
+      },
+    },
+    firmware: {
+      arduino: () => '(dht22.readHumidity() / 100.0)',
+      micropython: () => '(weather_sensor.humidity / 100.0)',
+    },
+  },
+
   color_sensor: {
     id: 'color_sensor',
     category: 'sense',

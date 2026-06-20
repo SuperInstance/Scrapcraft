@@ -180,6 +180,7 @@ export class UI {
 
   updateHotbar(player) {
     const slots = this._hotbar.querySelectorAll('.hotbar-slot');
+    const prevIndex = this._lastHotbarIndex ?? player.hotbarIndex;
     slots.forEach((slot, i) => {
       const item = player.inventory[i];
       slot.classList.toggle('active', i === player.hotbarIndex);
@@ -193,6 +194,27 @@ export class UI {
       this._activeLabel.textContent = def ? `${def.icon} ${def.name}` : '';
       this._activeLabel.style.opacity = def ? '1' : '0';
     }
+    // Flash item tooltip on keyboard slot switch
+    if (player.hotbarIndex !== prevIndex) {
+      this._lastHotbarIndex = player.hotbarIndex;
+      this._showItemFlash(active);
+    } else if (this._lastHotbarIndex === undefined) {
+      this._lastHotbarIndex = player.hotbarIndex;
+    }
+  }
+
+  _showItemFlash(item) {
+    const el = document.getElementById('item-flash');
+    if (!el) return;
+    clearTimeout(this._itemFlashTimer);
+    if (!item) { el.classList.remove('show'); return; }
+    const def = getItem(item.id);
+    if (!def) { el.classList.remove('show'); return; }
+    el.querySelector('.if-icon').textContent = def.icon ?? '';
+    el.querySelector('.if-name').textContent = def.name;
+    el.querySelector('.if-desc').textContent = def.desc ?? '';
+    el.classList.add('show');
+    this._itemFlashTimer = setTimeout(() => el.classList.remove('show'), 2600);
   }
 
   // ── Crosshair state ───────────────────────────────────────────────────
@@ -219,6 +241,17 @@ export class UI {
     if (this._pauseOverlay) {
       this._pauseOverlay.style.display = paused ? 'flex' : 'none';
     }
+  }
+
+  // ── Weather HUD ───────────────────────────────────────────────────────
+
+  setWeather(state, intensity) {
+    const el = document.getElementById('weather-hud');
+    if (!el) return;
+    const icons = { clear: '☀️', rain: '🌧️', storm: '⛈️' };
+    el.textContent = icons[state] ?? '☀️';
+    el.style.opacity = state === 'clear' ? '0.5' : '1';
+    el.title = `${state.charAt(0).toUpperCase() + state.slice(1)} (${(intensity * 100).toFixed(0)}%)`;
   }
 
   // ── Zone / Time HUD ──────────────────────────────────────────────────
