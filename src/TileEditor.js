@@ -6,6 +6,7 @@
 import { TileProgram } from './maker/TileProgram.js';
 import { SENSORS, ACTUATORS, withDefaults } from './maker/primitives.js';
 import { toArduino, toMicroPython, compile } from './maker/index.js';
+import { Spark } from './Spark.js';
 
 // ── Tile appearance ──────────────────────────────────────────────────────────
 
@@ -55,6 +56,12 @@ const SENSOR_LIST = Object.values(SENSORS);
 const CMP_OPS    = ['gt', 'lt', 'gte', 'lte', 'eq', 'neq', 'is'];
 const CMP_LABELS = { gt: '>', lt: '<', gte: '≥', lte: '≤', eq: '=', neq: '≠', is: 'is' };
 
+// ── Utilities ────────────────────────────────────────────────────────────────
+
+function _esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 // ── Node factory ─────────────────────────────────────────────────────────────
 
 function makeNode(spec) {
@@ -102,6 +109,12 @@ export class TileEditor {
     this._canvas = null;
     this._tray   = null;
 
+    this._spark      = null;
+    this._sparkOpen  = false;
+    this._sparkPanel = null;
+    this._sparkLog   = null;
+    this._sparkInput = null;
+
     this._buildDOM();
   }
 
@@ -131,8 +144,9 @@ export class TileEditor {
     this._btnRun.addEventListener('click',  () => this._run());
     this._btnStop.addEventListener('click', () => this._stop());
 
-    this._panel.querySelector('#te-code-btn').addEventListener('click', () => this._toggleCode());
+    this._panel.querySelector('#te-code-btn').addEventListener('click',  () => this._toggleCode());
     this._panel.querySelector('#te-close-btn').addEventListener('click', () => this.close());
+    this._panel.querySelector('#te-spark-btn')?.addEventListener('click', () => this._toggleSpark());
     this._panel.querySelector('#te-dl').addEventListener('click', () => this._download());
 
     this._panel.querySelectorAll('.te-code-tab').forEach(btn => {
@@ -145,7 +159,45 @@ export class TileEditor {
     });
 
     this._buildTray();
+    this._buildSparkPanel();
     this._renderProgram();
+  }
+
+  _buildSparkPanel() {
+    this._sparkPanel = this._panel.querySelector('#spark-panel');
+    if (!this._sparkPanel) return;
+    this._sparkLog   = this._sparkPanel.querySelector('.sp-log');
+    this._sparkInput = this._sparkPanel.querySelector('.sp-input');
+    const sendBtn    = this._sparkPanel.querySelector('.sp-send');
+
+    this._spark = new Spark(this);
+
+    const send = async () => {
+      const text = this._sparkInput.value.trim();
+      if (!text) return;
+      this._sparkInput.value = '';
+      this._sparkLog.innerHTML += `<div class="sp-msg sp-user">${_esc(text)}</div>`;
+      this._sparkLog.scrollTop = this._sparkLog.scrollHeight;
+
+      const thinking = document.createElement('div');
+      thinking.className = 'sp-msg sp-spark sp-thinking';
+      thinking.textContent = '⚡ …';
+      this._sparkLog.appendChild(thinking);
+      this._sparkLog.scrollTop = this._sparkLog.scrollHeight;
+
+      const reply = await this._spark.ask(text);
+
+      thinking.remove();
+      const cls = reply.kind === 'program' ? 'sp-msg sp-spark sp-built' : 'sp-msg sp-spark';
+      this._sparkLog.innerHTML += `<div class="${cls}">⚡ ${_esc(reply.text)}</div>`;
+      this._sparkLog.scrollTop = this._sparkLog.scrollHeight;
+    };
+
+    sendBtn.addEventListener('click', send);
+    this._sparkInput.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+
+    // Seed with a welcome line
+    this._sparkLog.innerHTML = `<div class="sp-msg sp-spark">⚡ Tell me what your robot should do and I'll build it!</div>`;
   }
 
   _buildTray() {
@@ -603,6 +655,33 @@ export class TileEditor {
   _clearHL() {
     this._canvas.querySelectorAll('.te-active').forEach(el => el.classList.remove('te-active'));
     this._activeId = null;
+  }
+
+  // ── Spark panel ───────────────────────────────────────────────────────────
+
+  _toggleSpark() {
+    if (!this._sparkPanel) return;
+    this._sparkOpen = !this._sparkOpen;
+    this._sparkPanel.style.display = this._sparkOpen ? 'flex' : 'none';
+    const btn = this._panel.querySelector('#te-spark-btn');
+    if (btn) { btn.style.borderColor = this._sparkOpen ? '#00ccff' : ''; btn.style.color = this._sparkOpen ? '#00ccff' : ''; }
+  }
+
+  /** Called by Spark when it successfully builds a program. */
+  loadProgram(program) {
+    this._program = program;
+    this._assignIds(this._program.nodes);
+    this._nameIn.value       = program.name  ?? 'Spark Brain';
+    this._brainSel.value     = program.brain ?? 'tin';
+    this._renderProgram();
+  }
+
+  _assignIds(nodes) {
+    for (const n of nodes) {
+      if (!n.id) n.id = crypto.randomUUID();
+      if (n.body)     this._assignIds(n.body);
+      if (n.elseBody) this._assignIds(n.elseBody);
+    }
   }
 
   // ── Public API ────────────────────────────────────────────────────────────
