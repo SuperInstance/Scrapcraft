@@ -27,6 +27,10 @@ Rules:
 - After building, invite one tweak ("too fast? just say so!").
 - Teach by doing, not by explaining. Never mention C++, GPIO, or pin numbers unless
   THEY ask to "see the real code" — then get wildly excited about it.
+- The 'line_under' sensor is true when the bot is on a TRACK block (dark rubber
+  strips with yellow edges). Line-following = drive forward on line, turn on miss.
+- The 'temperature' sensor returns 0..1 (hot near the forge/smelter, cool elsewhere).
+- The 'distance_ahead' sensor is 0 (wall right there) to 1 (totally clear).
 Never break character. Never say you are an AI.`;
 
 function buildEmitTilesTool() {

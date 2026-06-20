@@ -216,6 +216,48 @@ export const ACHIEVEMENT_LIST = [
     desc: 'Export your first Wokwi diagram. Your game robot just became a real-world circuit.',
     check: (s) => (s.wokwiExported ?? 0) >= 1,
   },
+  {
+    id: 'track_builder',
+    icon: '🏁',
+    name: 'Circuit Designer',
+    desc: 'Place 16 TRACK strips in the world. Your scrapyard now has a race circuit.',
+    check: (s) => (s.tracksPlaced ?? 0) >= 16,
+  },
+  {
+    id: 'bot_racer',
+    icon: '🏆',
+    name: 'Lap Record',
+    desc: 'Bot completes a full lap of the TRACK circuit. Earl timed it with a stopwatch. From his chair.',
+    check: (s) => (s.lapsCompleted ?? 0) >= 1,
+  },
+  {
+    id: 'illuminator',
+    icon: '💡',
+    name: 'Let There Be Light',
+    desc: 'Place your first Floodlight. The scrapyard has never been this bright. Earl squints.',
+    check: (s) => (s.floodlightsPlaced ?? 0) >= 1,
+  },
+  {
+    id: 'shared_brain',
+    icon: '🔗',
+    name: 'Shareable Science',
+    desc: 'Share a tile program via URL. Your robot brain is now on the internet. Be proud.',
+    check: (s) => (s.brainsShared ?? 0) >= 1,
+  },
+  {
+    id: 'spark_made',
+    icon: '✨',
+    name: 'AI Collaborator',
+    desc: "Let Spark build a program for you. That's not cheating — it's engineering.",
+    check: (s) => (s.sparkPrograms ?? 0) >= 1,
+  },
+  {
+    id: 'sensor_explorer',
+    icon: '📡',
+    name: 'Sensor Sweep',
+    desc: 'Use 4 different sensor types in tile programs. You are basically a scientist now.',
+    check: (s) => (s.uniqueSensorsUsed ?? 0) >= 4,
+  },
 ];
 
 export class Achievements {
@@ -236,6 +278,12 @@ export class Achievements {
       programsRun: 0,
       blocksPlaced: 0,
       wokwiExported: 0,
+      tracksPlaced: 0,
+      floodlightsPlaced: 0,
+      lapsCompleted: 0,
+      brainsShared: 0,
+      sparkPrograms: 0,
+      uniqueSensorsUsed: 0,
     };
   }
 
@@ -266,9 +314,23 @@ export class Achievements {
         break;
       case 'place':
         s.blocksPlaced++;
+        if (data.blockId === 'track_strip')  s.tracksPlaced     = (s.tracksPlaced ?? 0) + 1;
+        if (data.blockId === 'floodlight')   s.floodlightsPlaced = (s.floodlightsPlaced ?? 0) + 1;
         break;
       case 'wokwi_export':
         s.wokwiExported = (s.wokwiExported ?? 0) + 1;
+        break;
+      case 'lap_complete':
+        s.lapsCompleted = (s.lapsCompleted ?? 0) + 1;
+        break;
+      case 'brain_share':
+        s.brainsShared = (s.brainsShared ?? 0) + 1;
+        break;
+      case 'spark_program':
+        s.sparkPrograms = (s.sparkPrograms ?? 0) + 1;
+        break;
+      case 'sensor_used':
+        s.uniqueSensorsUsed = (s.uniqueSensorsUsed ?? 0) + 1;
         break;
     }
     this._check();

@@ -163,11 +163,14 @@ export class ScrapBot {
     this._runtime   = new MakerRuntime(program, spawn, adapter);
     this._brainMode = true;
 
-    // Award XP for each distinct sensor type used in this program
-    if (this._game?.xpSystem) {
-      this._extractSensorIds(program.nodes ?? []).forEach(id =>
-        this._game.xpSystem.trackSensor(id)
-      );
+    // Award XP and track achievements for each distinct sensor type used
+    if (this._game) {
+      const sensorIds = this._extractSensorIds(program.nodes ?? []);
+      sensorIds.forEach(id => {
+        const isNew = !this._game.xpSystem?._seenSensors?.has(id);
+        this._game.xpSystem?.trackSensor(id);
+        if (isNew) this._game.achievements?.track('sensor_used', {});
+      });
     }
 
     if (this._runtime.errors.length) {

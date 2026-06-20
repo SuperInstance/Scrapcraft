@@ -165,6 +165,62 @@ export const OFFLINE_RECIPES = [
       ]),
     ]}),
   },
+  {
+    keywords: ['line', 'track', 'follow', 'strip', 'ir', 'infrared', 'rail', 'course'],
+    reply:    "Line follower engaged! It'll stick to those TRACK strips like glue. Place some on the ground first!",
+    program:  new TileProgram({ name: 'Line Follower', brain: 'tin', nodes: [
+      T.forever([
+        T.ifElse(T.is('line_under', true),
+          [T.action('drive', { dir: 'forward', speed: 0.5 })],
+          [T.action('turn', { dir: 'right', speed: 0.5 }), T.wait(0.15)],
+        ),
+      ]),
+    ]}),
+  },
+  {
+    keywords: ['heat', 'warm', 'temperature', 'hot', 'cold', 'forge', 'thermal', 'temp'],
+    reply:    "Heat seeker! It heads for warmth and honks when it gets toasty. The forge will set it off.",
+    program:  new TileProgram({ name: 'Heat Seeker', brain: 'spark', nodes: [
+      T.forever([
+        T.ifElse(T.cond('temperature', 'gt', 0.6),
+          [T.action('led', { state: 'red' }), T.action('beep', { pitch: 'high' }), T.wait(0.3)],
+          T.ifElse(T.cond('temperature', 'gt', 0.4),
+            [T.action('led', { state: 'green' }), T.action('drive', { dir: 'forward', speed: 0.4 })],
+            [T.action('led', { state: 'blue' }), T.action('turn', { dir: 'right', speed: 0.3 })],
+          ),
+        ),
+      ]),
+    ]}),
+  },
+  {
+    keywords: ['zigzag', 'zig', 'zag', 'weave', 'serpentine', 'snake', 'slalom'],
+    reply:    "Zigzag mode! Left, right, left, right — it drives like Earl backing up a forklift.",
+    program:  new TileProgram({ name: 'Zigzag Bot', brain: 'tin', nodes: [
+      T.forever([
+        T.action('drive', { dir: 'forward', speed: 0.6 }), T.wait(0.6),
+        T.action('turn',  { dir: 'left', speed: 0.6 }),   T.wait(0.25),
+        T.action('drive', { dir: 'forward', speed: 0.6 }), T.wait(0.6),
+        T.action('turn',  { dir: 'right', speed: 0.6 }),   T.wait(0.25),
+      ]),
+    ]}),
+  },
+  {
+    keywords: ['alarm', 'guard', 'watch', 'intruder', 'alert', 'sentry', 'security'],
+    reply:    "Sentry mode! Scans for you and raises the alarm. Earl asked for this one.",
+    program:  new TileProgram({ name: 'Sentry Bot', brain: 'tin', nodes: [
+      T.forever([
+        T.action('turn', { dir: 'right', speed: 0.3 }),
+        T.wait(0.2),
+        T.if(T.is('player_near', true), [
+          T.action('led', { state: 'red' }),
+          T.action('beep', { pitch: 'high' }), T.wait(0.1),
+          T.action('beep', { pitch: 'high' }), T.wait(0.1),
+          T.action('beep', { pitch: 'high' }), T.wait(0.3),
+          T.action('led', { state: 'off' }),
+        ]),
+      ]),
+    ]}),
+  },
 ];
 
 /** Returns best-matching recipe or null if no keyword hits. */
