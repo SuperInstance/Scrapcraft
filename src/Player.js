@@ -33,7 +33,8 @@ export class Player {
     document.addEventListener('keydown', e => {
       this._keys[e.code] = true;
       if (e.code === 'Space' && this.onGround) {
-        this.vel.y = JUMP_VEL;
+        const boost = this.hasTool('spring_boots') ? 2.5 : 1;
+        this.vel.y = JUMP_VEL * boost;
         this.onGround = false;
       }
       const n = parseInt(e.code[5]);
@@ -101,7 +102,8 @@ export class Player {
     if (this._keys['KeyS']) want.sub(fwd);
     if (this._keys['KeyA']) want.sub(right);
     if (this._keys['KeyD']) want.add(right);
-    if (want.lengthSq() > 0) want.normalize().multiplyScalar(SPEED);
+    const speed = SPEED * (this.hasTool('go_kart') ? 3 : 1);
+    if (want.lengthSq() > 0) want.normalize().multiplyScalar(speed);
 
     // Smooth horizontal accel
     this.vel.x = THREE.MathUtils.lerp(this.vel.x, want.x, Math.min(1, dt / FRICTION));

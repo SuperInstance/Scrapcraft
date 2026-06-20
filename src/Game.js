@@ -287,6 +287,14 @@ export class Game {
   _update(dt) {
     this.player.tick(dt, this.world);
     this.dayNight.tick(dt);
+
+    // Night goggles: boost ambient light at night
+    if (this.player.hasTool('night_goggles') && this.dayNight.isNight) {
+      this.renderer.ambientLight.intensity = Math.min(0.6,
+        this.renderer.ambientLight.intensity + 0.4);
+    }
+    // Grapple hook: extends mining / targeting reach
+    this.renderer.raycaster.far = this.player.hasTool('grapple_hook') ? 10 : 6;
     this.particles.tick(dt);
     this.achievements.tick(dt);
     this.scrapBot.tick(dt, this.world);

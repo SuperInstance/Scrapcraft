@@ -175,6 +175,51 @@ export const ITEMS = {
     stackSize: 1,
   },
 
+  // ── Functional equipment ──
+  night_goggles: {
+    name: 'Night Goggles',
+    icon: '🥽',
+    desc: 'Military surplus. Or possibly novelty. Either way, you can see in the dark now.',
+    category: 'wearable',
+    stackSize: 1,
+  },
+  grapple_hook: {
+    name: 'Grapple Hook',
+    icon: '🪝',
+    desc: 'Doubles your reach. Also looks very cool. Mostly the second thing.',
+    category: 'tool',
+    stackSize: 1,
+    tool: true,
+  },
+  steel_cable: {
+    name: 'Steel Cable',
+    icon: '🧵',
+    desc: 'Strong enough to tow a car. Not that we have a car. Yet.',
+    category: 'material',
+    stackSize: 8,
+  },
+  signal_flare: {
+    name: 'Signal Flare',
+    icon: '🚨',
+    desc: "Burns bright red. Earl says they're for emergencies. Earl uses them for barbeques.",
+    category: 'utility',
+    stackSize: 8,
+  },
+  repair_kit: {
+    name: 'Repair Kit',
+    icon: '🩹',
+    desc: "Duct tape, solder, and hope. The holy trinity of scrapyard maintenance.",
+    category: 'consumable',
+    stackSize: 4,
+  },
+  charging_pad: {
+    name: 'Charging Pad',
+    icon: '🔌',
+    desc: 'Wireless induction charging for your robot buddy. He appreciates it, probably.',
+    category: 'device',
+    stackSize: 1,
+  },
+
   // ── Maker Lab brains ──
   tin_brain: {
     name: 'Tin Brain',
