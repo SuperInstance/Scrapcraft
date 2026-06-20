@@ -309,6 +309,30 @@ export const ITEMS = {
     category: 'maker',
     stackSize: 1,
   },
+  ir_module: {
+    name: 'IR Line Sensor',
+    icon: '🏁',
+    desc: 'TCRT5000 infrared reflective sensor. Detects dark lines on pale floors. The line follower bot needs this.',
+    category: 'maker',
+    stackSize: 4,
+  },
+
+  // ── Special tools ──
+  scrap_magnet: {
+    name: 'Scrap Magnet',
+    icon: '🧲',
+    desc: 'Pulls scrap drops toward you when held. Earl put one on his fishing rod once. He won\'t say why.',
+    category: 'tool',
+    stackSize: 1,
+    tool: true,
+  },
+  antenna: {
+    name: 'Signal Antenna',
+    icon: '📻',
+    desc: 'Extends Spark\'s offline range. And Earl\'s radio. And your Wi-Fi. Probably.',
+    category: 'device',
+    stackSize: 1,
+  },
 };
 
 export function getItem(id) {

@@ -97,6 +97,14 @@ const QUIPS = {
     "It lapped the circuit. In my day we used stopwatches and yelled. This is better.",
     "Personal best on the track. I've seen racers with worse times. Professional ones.",
   ],
+  craft_scrap_magnet: [
+    "A scrap magnet. The lazy genius way to collect iron. I say that with full respect.",
+    "Electromagnetic induction in your back pocket. Faraday would be proud and confused.",
+  ],
+  craft_ir_module: [
+    "IR sensors. Invisible light, real results. That's physics working for you.",
+    "You can build a line follower now. The oval track in Circuit City is waiting.",
+  ],
 };
 
 // Quests Earl assigns in sequence
@@ -214,8 +222,10 @@ export class Foreman {
       'craft_device':       'craft_device',
       'craft_robot_helper': 'robot_built',
       'craft_flying_machine':'flying_machine',
-      'craft_track_strip':  'craft_track',
-      'bot_lap_record':     'bot_lap_record',
+      'craft_track_strip':   'craft_track',
+      'craft_scrap_magnet':  'craft_scrap_magnet',
+      'craft_ir_module':     'craft_ir_module',
+      'bot_lap_record':      'bot_lap_record',
       'near_workbench':     'near_workbench',
       'near_forge':         'near_forge',
       'near_smelter':       'near_smelter',

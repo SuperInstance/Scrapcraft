@@ -376,6 +376,33 @@ export const RECIPES = [
     tier: 1,
     foremanQuip: "A floodlight. Place it anywhere. The dark doesn't stand a chance. Neither does your power bill.",
   },
+  {
+    id: 'r_ir_module',
+    output: 'ir_module',
+    qty: 4,
+    ingredients: { circuit_board: 1, copper_wire: 2 },
+    station: 'workbench',
+    tier: 2,
+    foremanQuip: "IR sensors. Your bot can see the track now. Invisible light. Science is wild.",
+  },
+  {
+    id: 'r_scrap_magnet',
+    output: 'scrap_magnet',
+    qty: 1,
+    ingredients: { iron_scrap: 4, copper_wire: 3, battery_pack: 1 },
+    station: 'forge',
+    tier: 3,
+    foremanQuip: "An electromagnet. Hold it, and scrap comes to you. Earl's been wanting one of these.",
+  },
+  {
+    id: 'r_antenna',
+    output: 'antenna',
+    qty: 1,
+    ingredients: { copper_wire: 4, iron_scrap: 2, glass_shard: 1 },
+    station: 'workbench',
+    tier: 2,
+    foremanQuip: "Signal antenna. Better range, better reception, better everything. Except looks.",
+  },
 ];
 
 export function getRecipe(id) {

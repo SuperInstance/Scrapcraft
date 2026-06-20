@@ -244,6 +244,11 @@ export class Game {
     };
     if (def.drop    && Math.random() < def.dropChance)    giveLoot(def.drop);
     if (def.altDrop && Math.random() < def.altDropChance) giveLoot(def.altDrop);
+    // Magnet passive: bonus drop for metallic blocks
+    const METAL_BLOCKS = new Set([B.SCRAP_PILE, B.RUST_METAL, B.CLEAN_METAL, B.WALL_METAL]);
+    if (this.player.hasTool('scrap_magnet') && METAL_BLOCKS.has(id) && def.drop && Math.random() < 0.6) {
+      giveLoot(def.drop);
+    }
 
     this.achievements.track('mine', { isNight });
     this.xpSystem.gain(1);

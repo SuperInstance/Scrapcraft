@@ -258,6 +258,20 @@ export const ACHIEVEMENT_LIST = [
     desc: 'Use 4 different sensor types in tile programs. You are basically a scientist now.',
     check: (s) => (s.uniqueSensorsUsed ?? 0) >= 4,
   },
+  {
+    id: 'magnetic_personality',
+    icon: '🧲',
+    name: 'Magnetic Personality',
+    desc: 'Craft a Scrap Magnet. Scrap comes to you now. You have earned this.',
+    check: (s) => s.crafted.has('scrap_magnet'),
+  },
+  {
+    id: 'oval_racer',
+    icon: '🏎️',
+    name: 'Oval Office',
+    desc: 'Bot completes a lap on the Circuit City oval track. Earl watched. He won\'t admit it.',
+    check: (s) => (s.lapsCompleted ?? 0) >= 3,
+  },
 ];
 
 export class Achievements {
