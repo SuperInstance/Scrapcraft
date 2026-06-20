@@ -753,17 +753,26 @@ export class TileEditor {
     if (!robot || !world) return;
 
     // Read all sensors that exist on the world adapter
+    const dist = world.distanceAhead?.(robot.x, robot.z, robot.heading) ?? null;
     const readings = [
-      { key: 'distance',   val: world.distanceAhead?.(robot.x, robot.z, robot.heading) ?? null, kind: 'analog' },
+      { key: 'distance',   val: dist, kind: 'analog' },
       { key: 'brightness', val: world.lightAt?.(robot.x, robot.z) ?? null, kind: 'analog' },
-      { key: 'bumped',     val: world.distanceAhead?.(robot.x, robot.z, robot.heading) < 0.08, kind: 'digital' },
+      { key: 'bumped',     val: dist !== null ? dist < 0.08 : null, kind: 'digital' },
       { key: 'player',     val: (world.playerDistance?.(robot.x, robot.z) ?? 999) < 4, kind: 'digital' },
       { key: 'line',       val: world.lineUnder?.(robot.x, robot.z) ?? null, kind: 'digital' },
       { key: 'temp',       val: world.temperatureAt?.(robot.x, robot.z) ?? null, kind: 'analog' },
     ].filter(r => r.val !== null && r.val !== undefined);
 
+    // Heading compass (N/NE/E/SE/S/SW/W/NW)
+    const hdgDeg = ((robot.heading ?? 0) * 180 / Math.PI + 360) % 360;
+    const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+    const hdgLabel = dirs[Math.round(hdgDeg / 45) % 8];
+    const posLabel = `(${robot.x?.toFixed(1)}, ${robot.z?.toFixed(1)})`;
+
     this._sensorsEl.style.display = 'flex';
-    this._sensorsEl.innerHTML = readings.map(r => {
+    this._sensorsEl.innerHTML = `<div class="te-sensor-row" style="font-size:9px;color:#777;width:100%">`
+      + `<span>pos ${posLabel}</span><span style="margin-left:auto">hdg ${hdgLabel} ${Math.round(hdgDeg)}°</span></div>`
+      + readings.map(r => {
       const fval = typeof r.val === 'boolean'
         ? (r.val ? '<span style="color:#00ff88">ON</span>' : '<span style="color:#445">OFF</span>')
         : r.val.toFixed(2);

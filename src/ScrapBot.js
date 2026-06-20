@@ -177,6 +177,8 @@ export class ScrapBot {
       this.speak(`[COMPILE ERROR] ${this._runtime.errors[0]}`);
     } else {
       this.speak(`[BRAIN LOADED] Running "${program.name || 'custom program'}".`);
+      // Circuit burst when brain successfully loads
+      this._game?.particles?.burst(this._pos.x, 1.6, this._pos.z, 'circuit', 12);
     }
   }
 
