@@ -15,6 +15,7 @@ import { getItem } from './data/items.js';
 import { EXAMPLE_WALL_AVOIDER } from './maker/TileProgram.js';
 import { TileEditor } from './TileEditor.js';
 import { SaveSystem } from './SaveSystem.js';
+import { XPSystem } from './XPSystem.js';
 
 export class Game {
   constructor(canvas) {
@@ -64,9 +65,14 @@ export class Game {
 
     this.craftingSystem = new CraftingSystem(this.player, this.foreman);
 
+    this.xpSystem = new XPSystem();
+
     this.scrapBot = new ScrapBot(this.renderer.scene, this.player);
     this.scrapBot.setUI(this.ui);
     this.scrapBot.setGame(this);
+
+    // Second bot — spawned at Level 5 (Engineer) via Shift+B
+    this.scrapBot2 = null;
 
     this.tileEditor = new TileEditor(this);
     this.saveSystem = new SaveSystem(this);
@@ -105,12 +111,24 @@ export class Game {
       }
       if (e.code === 'Escape' && this.ui.isOpen) this.ui.closeInventory();
       if (e.code === 'KeyM') this.audio.toggle();
-      if (e.code === 'KeyB' && this.scrapBot.isActive) {
-        if (this.scrapBot._brainMode) {
-          this.scrapBot.clearBrain();
-        } else {
-          this.scrapBot.setBrain(EXAMPLE_WALL_AVOIDER, this.world, this.player, this.dayNight);
-          this.achievements.track('program_run', {});
+      if (e.code === 'KeyB') {
+        if (e.shiftKey) {
+          // Shift+B → second bot (requires Level 5 Engineer skill)
+          if (!this.xpSystem.hasSkill('engineer')) {
+            this.ui.notify('⚙️ Engineer skill (Level 5) required for a second bot.');
+          } else if (!this.player.hasTool('robot_helper') || this.player.countItem('robot_helper') < 2) {
+            this.ui.notify('Craft a second robot_helper to run two bots.');
+          } else {
+            this._toggleBot2();
+          }
+        } else if (this.scrapBot.isActive) {
+          if (this.scrapBot._brainMode) {
+            this.scrapBot.clearBrain();
+          } else {
+            this.scrapBot.setBrain(EXAMPLE_WALL_AVOIDER, this.world, this.player, this.dayNight);
+            this.achievements.track('program_run', {});
+            this.xpSystem.gain(15);
+          }
         }
       }
     });
@@ -190,6 +208,7 @@ export class Game {
         this.audio.pickup();
         this.particles.burst(x, y + 0.5, z, 'pickup', 6);
         this.achievements.track('mine', { isNight, item: drop });
+        this.xpSystem.gain(2);
         this.foreman.onEvent(`mine_${drop}`, {});
       }
     };
@@ -197,6 +216,7 @@ export class Game {
     if (def.altDrop && Math.random() < def.altDropChance) giveLoot(def.altDrop);
 
     this.achievements.track('mine', { isNight });
+    this.xpSystem.gain(1);
     this.saveSystem.markDirty();
     this.achievements.track('inventory', {
       fill: this.player.inventory.filter(Boolean).length / 36,
@@ -239,8 +259,26 @@ export class Game {
       this.audio.place();
       this.particles.burst(px, py + 0.5, pz, 'pickup', 4);
       this.achievements.track('place', {});
+      this.xpSystem.gain(2);
       this.saveSystem.markDirty();
       this.ui.updateHotbar(this.player);
+    }
+  }
+
+  _toggleBot2() {
+    if (!this.scrapBot2) {
+      this.scrapBot2 = new ScrapBot(this.renderer.scene, this.player);
+      this.scrapBot2.setGame(this);
+      // Spawn offset from player
+      const p = this.player.pos;
+      this.scrapBot2.activate({ x: p.x - 1.5, y: p.y, z: p.z });
+      this.ui.notify('🤖 Second bot activated! Press Shift+B again to give it a brain.');
+    } else if (!this.scrapBot2._brainMode) {
+      this.scrapBot2.setBrain(EXAMPLE_WALL_AVOIDER, this.world, this.player, this.dayNight);
+      this.xpSystem.gain(15);
+      this.achievements.track('program_run', {});
+    } else {
+      this.scrapBot2.clearBrain();
     }
   }
 
@@ -254,7 +292,9 @@ export class Game {
   }
 
   onCraft(recipeId, output, qty) {
+    const isNew = !this.achievements.stats.crafted.has(output);
     this.achievements.track('craft', { id: output });
+    this.xpSystem.gain(isNew ? 10 : 3);
     this.saveSystem.markDirty();
     this.audio.craft();
     this.particles.burst(
@@ -267,6 +307,7 @@ export class Game {
 
   onQuestComplete() {
     this.achievements.track('quest', {});
+    this.xpSystem.gain(25);
     this.audio.questComplete();
   }
 
@@ -299,7 +340,19 @@ export class Game {
     this.renderer.raycaster.far = this.player.hasTool('grapple_hook') ? 10 : 6;
     this.particles.tick(dt);
     this.achievements.tick(dt);
+
+    // Drain newly unlocked skills → level-up toast + Earl quip
+    for (const skill of this.xpSystem.drainNewSkills()) {
+      this.ui?.showLevelUp(this.xpSystem.level, skill);
+      setTimeout(() => this.foreman.sayLine(skill.earlQuip), 2200);
+    }
+    // Update XP bar (skill badge shows highest unlocked skill name)
+    const lastSkillId = [...this.xpSystem.skills].at(-1);
+    const lastSkillName = lastSkillId ? lastSkillId.toUpperCase() : '';
+    this.ui?.setXP(this.xpSystem.level, this.xpSystem.progress, lastSkillName);
+
     this.scrapBot.tick(dt, this.world);
+    if (this.scrapBot2) this.scrapBot2.tick(dt, this.world);
     this.audio.tick(dt, this.player, this.world);
     this.saveSystem.tick(dt);
 

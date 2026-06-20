@@ -8,7 +8,7 @@
  * Schema version is bumped (bump SAVE_KEY) on breaking changes.
  */
 
-const SAVE_KEY     = 'scrapcraft_save_v3';
+const SAVE_KEY     = 'scrapcraft_save_v4';
 const AUTOSAVE_INT = 60;  // seconds between autosaves
 
 export class SaveSystem {
@@ -49,7 +49,7 @@ export class SaveSystem {
     if (!raw) return false;
     try {
       const data = JSON.parse(raw);
-      if (data.version !== 3) {
+      if (data.version !== 4) {
         console.warn('[SaveSystem] Version mismatch — starting fresh.');
         return false;
       }
@@ -77,7 +77,7 @@ export class SaveSystem {
     const s = g.achievements.stats;
 
     return {
-      version:   3,
+      version:   4,
       lastSaved: new Date().toISOString(),
 
       player: {
@@ -99,8 +99,12 @@ export class SaveSystem {
           itemsCrafted:    { ...s.itemsCrafted },
           questsCompleted: s.questsCompleted,
           recentCrafts:    s.recentCrafts,
+          programsRun:     s.programsRun,
+          blocksPlaced:    s.blocksPlaced,
         },
       },
+
+      xp: g.xpSystem?.toSaveData() ?? null,
 
       earl: {
         questIndex: g.foreman._questIndex ?? 0,
@@ -142,6 +146,8 @@ export class SaveSystem {
         itemsCrafted:    s.itemsCrafted    ?? {},
         questsCompleted: s.questsCompleted ?? 0,
         recentCrafts:    s.recentCrafts    ?? 0,
+        programsRun:     s.programsRun     ?? 0,
+        blocksPlaced:    s.blocksPlaced    ?? 0,
       });
     }
 
@@ -155,6 +161,9 @@ export class SaveSystem {
         g.foreman._activeQuest = null;   // will be started by _startNextQuest
       }
     }
+
+    // XP system
+    if (data.xp) g.xpSystem?.fromSaveData(data.xp);
 
     // World mined-block diffs
     const wd = data.world;

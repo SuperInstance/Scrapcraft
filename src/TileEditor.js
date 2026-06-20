@@ -641,6 +641,7 @@ export class TileEditor {
     }
     bot.setBrain(this._program, this._game.world, this._game.player, this._game.dayNight);
     this._game.achievements?.track('program_run', {});
+    this._game.xpSystem?.gain(15);
     this._btnRun.disabled  = true;
     this._btnStop.disabled = false;
     this._running = true;
