@@ -91,6 +91,9 @@ export class Game {
     this._minimapCtx   = document.getElementById('minimap')?.getContext('2d') ?? null;
     this._minimapTimer = 0;
 
+    // Item use (G key) state
+    this._fuelBoostTimer = 0;   // seconds remaining on fuel_can speed boost
+
     // Lap timer — tracks bots crossing the TRACK circuit start/finish gate (z≈14, x=30-46)
     this._lapState = {
       inGate:    false,
@@ -113,6 +116,9 @@ export class Game {
     document.addEventListener('keydown', e => {
       if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && document.pointerLockElement) {
         this.audio.sprint();
+      }
+      if (e.code === 'KeyG' && document.pointerLockElement && !this.ui.isOpen) {
+        this._useActiveItem();
       }
       if (e.code === 'KeyE') {
         if (this.ui.isOpen) { this.ui.closeInventory(); return; }
@@ -374,6 +380,14 @@ export class Game {
   }
 
   _update(dt) {
+    // Fuel boost timer
+    if (this._fuelBoostTimer > 0) {
+      this._fuelBoostTimer -= dt;
+      this.player.fuelBoosted = this._fuelBoostTimer > 0;
+    } else {
+      this.player.fuelBoosted = false;
+    }
+
     this.player.tick(dt, this.world);
     this.dayNight.tick(dt);
 
@@ -597,6 +611,56 @@ export class Game {
         ctx.fillRect(lx - 1, lz - 1, 3, 3);
       }
     }
+  }
+
+  _useActiveItem() {
+    const item = this.player.activeItem;
+    if (!item) return;
+    const p = this.player.pos;
+    switch (item.id) {
+      case 'repair_kit':
+        this.player.removeItem('repair_kit', 1);
+        this.xpSystem.gain(5);
+        this.ui.notify('🩹 Repair kit used — systems patched!');
+        this.audio.pickup();
+        this.particles.burst(p.x, p.y + 1, p.z, 'pickup', 10);
+        break;
+      case 'signal_flare':
+        this.player.removeItem('signal_flare', 1);
+        this.ui.notify('🚨 Flare fired! Earl has been notified.');
+        this.particles.burst(p.x, p.y + 1, p.z, 'ember', 30);
+        this.audio.spark();
+        setTimeout(() => this.foreman.say('idle', { force: true }), 800);
+        break;
+      case 'fuel_can':
+        this.player.removeItem('fuel_can', 1);
+        this._fuelBoostTimer = 8;   // 8 seconds of turbo
+        this.ui.notify('🛢️ Fuel injected — turbo boost for 8 seconds!');
+        this.audio.sprint();
+        this.particles.burst(p.x, p.y, p.z, 'smoke', 8);
+        break;
+      case 'battery_pack':
+        this.player.removeItem('battery_pack', 1);
+        this.xpSystem.gain(15);
+        this.ui.notify('🔋 Battery pack charged — +15 XP!');
+        this.audio.pickup();
+        this.particles.burst(p.x, p.y + 1, p.z, 'circuit', 8);
+        break;
+      case 'charging_pad':
+        if (this.scrapBot?.isActive) {
+          this.scrapBot.speak('[CHARGING] Thank you. My circuits feel warm.');
+          this.ui.notify('🔌 Bot recharged!');
+          this.audio.brainLoad();
+          this.particles.burst(this.scrapBot._pos.x, 1.5, this.scrapBot._pos.z, 'circuit', 10);
+        } else {
+          this.ui.notify('No active bot to charge.');
+        }
+        break;
+      default:
+        this.ui.notify(`${item.id.replace(/_/g,' ')} has no use action (yet!)`);
+    }
+    this.ui.updateHotbar(this.player);
+    this.saveSystem.markDirty();
   }
 
   _tickBotTrackSparks(dt) {
