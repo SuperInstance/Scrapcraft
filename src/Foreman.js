@@ -92,6 +92,11 @@ const QUIPS = {
     "Eight track strips from two rubber chunks. That's called efficiency. I taught you that. Indirectly.",
     "Now you can build your own race course. First rule: don't let the bot win unsupervised.",
   ],
+  bot_lap_record: [
+    "New lap record. I would clap but my hands are full of grease and dignity.",
+    "It lapped the circuit. In my day we used stopwatches and yelled. This is better.",
+    "Personal best on the track. I've seen racers with worse times. Professional ones.",
+  ],
 };
 
 // Quests Earl assigns in sequence
@@ -210,6 +215,7 @@ export class Foreman {
       'craft_robot_helper': 'robot_built',
       'craft_flying_machine':'flying_machine',
       'craft_track_strip':  'craft_track',
+      'bot_lap_record':     'bot_lap_record',
       'near_workbench':     'near_workbench',
       'near_forge':         'near_forge',
       'near_smelter':       'near_smelter',

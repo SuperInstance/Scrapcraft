@@ -64,6 +64,30 @@ const CODEX = [
     icon: '🏎️',
     text: `Internal combustion engines turn fuel explosions into rotation. The four-stroke cycle: intake (suck air + fuel in), compression (squeeze it), combustion (spark → boom), exhaust (push the gases out). That boom pushes a piston down, which turns a crankshaft, which turns your wheels.\n\nThe go-kart doesn't need an engine because Earl didn't put one in the plans. That's a future upgrade. For now, imagine it rolling downhill. Quickly.`,
   },
+  {
+    id: 'track_strip',
+    title: 'How Do IR Line Sensors Work?',
+    icon: '🏁',
+    text: `A line-following robot uses infrared (IR) sensors. An IR LED shines invisible light downward; a photodetector measures how much bounces back. Dark surfaces absorb light (low return); pale surfaces reflect it (high return). The robot reads the difference and steers to stay over the dark line.\n\nThis is exactly what robot vacuum cleaners use to detect cliff edges — they look down, see no reflection, and stop. The TRACK blocks in Scrapcraft simulate this: the bot's 'line_under' sensor goes true when it's over the dark rubber strips.`,
+  },
+  {
+    id: 'tin_brain',
+    title: 'What Is a Microcontroller?',
+    icon: '🧠',
+    text: `A microcontroller (MCU) is a tiny computer on a single chip. It has a CPU, memory, and input/output pins — all in one package smaller than your thumbnail. The Arduino Uno uses an ATmega328P; an ESP32 (the Spark Brain) adds WiFi and Bluetooth and runs at 240 MHz.\n\nUnlike a regular computer, a microcontroller runs one program in a loop forever. That's the "forever" tile in the Maker Lab — it's not a game abstraction, it's literally how embedded code works. void loop() {} in Arduino IS the forever block.`,
+  },
+  {
+    id: 'floodlight',
+    title: 'How Do LEDs Make Light?',
+    icon: '💡',
+    text: `LEDs (Light Emitting Diodes) produce light through electroluminescence. When electricity flows through a semiconductor junction, electrons drop to a lower energy state and release that energy as photons — particles of light. The color depends on the semiconductor material used.\n\nOld lights waste 90% of their energy as heat. LEDs convert 50-90% into light, making them wildly more efficient. A 10W LED produces as much light as a 60W incandescent bulb. The Floodlight in Scrapcraft uses a point-light model — the same math graphics engines use to simulate physical lights.`,
+  },
+  {
+    id: 'robot_arm',
+    title: 'How Do Robot Arms Work?',
+    icon: '🦾',
+    text: `Industrial robot arms have multiple joints, each controlled by a servo motor with position feedback. The controller computes inverse kinematics — given "put the gripper at position XYZ," it works backward to figure out what angle each joint needs. That's serious math involving matrices and trigonometry.\n\nThe human arm does this instantly, without you thinking about it. Your brain's motor cortex is running continuous inverse kinematics. You are already a robot. Just a wet, squishy one.`,
+  },
 ];
 
 export class UI {

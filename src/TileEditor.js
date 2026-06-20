@@ -216,6 +216,10 @@ export class TileEditor {
       thinking.remove();
       const cls = reply.kind === 'program' ? 'sp-msg sp-spark sp-built' : 'sp-msg sp-spark';
       this._sparkLog.innerHTML += `<div class="${cls}">⚡ ${_esc(reply.text)}</div>`;
+      if (reply.kind === 'program') {
+        this._game.achievements?.track('spark_program', {});
+        this._game.xpSystem?.gain(10);
+      }
       this._sparkLog.scrollTop = this._sparkLog.scrollHeight;
     };
 
@@ -662,9 +666,9 @@ export class TileEditor {
       navigator.clipboard.writeText(url).then(() => {
         this._game.ui?.notify('🔗 Share link copied to clipboard!');
       }).catch(() => {
-        // Fallback: show URL in a prompt so user can copy manually
         prompt('Copy this share link:', url);
       });
+      this._game.achievements?.track('brain_share', {});
     } catch (e) {
       console.warn('[TileEditor] Share failed:', e);
     }

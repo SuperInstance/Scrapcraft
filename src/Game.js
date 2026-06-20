@@ -91,6 +91,14 @@ export class Game {
     this._minimapCtx   = document.getElementById('minimap')?.getContext('2d') ?? null;
     this._minimapTimer = 0;
 
+    // Lap timer — tracks bots crossing the TRACK circuit start/finish gate (z≈14, x=30-46)
+    this._lapState = {
+      inGate:    false,
+      lapStart:  0,
+      bestMs:    Infinity,
+      lapsEl:    document.getElementById('lap-timer'),
+    };
+
     this._bindInput();
 
     // Load saved state — if none, show first-time greeting
@@ -280,7 +288,7 @@ export class Game {
       this.ui.notify(`Placed ${item?.icon ?? ''} ${item?.name ?? activeItem.id}`);
       this.audio.place();
       this.particles.burst(px, py + 0.5, pz, 'pickup', 4);
-      this.achievements.track('place', {});
+      this.achievements.track('place', { blockId: activeItem.id });
       this.xpSystem.gain(2);
       this.saveSystem.markDirty();
       this.ui.updateHotbar(this.player);
@@ -391,6 +399,8 @@ export class Game {
 
     this.scrapBot.tick(dt, this.world);
     if (this.scrapBot2) this.scrapBot2.tick(dt, this.world);
+
+    this._tickLapTimer();
 
     // Speech bubble projection
     this._updateSpeechBubble(this.scrapBot,  this._speechEl1);
@@ -569,6 +579,45 @@ export class Game {
         ctx.fillRect(lx - 1, lz - 1, 3, 3);
       }
     }
+  }
+
+  // TRACK circuit lap timer — gate: x 30..46, z 13..15, y 0
+  _tickLapTimer() {
+    const ls = this._lapState;
+    if (!ls.lapsEl) return;
+
+    // Use whichever bot is running a brain program
+    const bot = (this.scrapBot?._brainMode ? this.scrapBot : null)
+             ?? (this.scrapBot2?._brainMode ? this.scrapBot2 : null);
+    if (!bot?.isActive) {
+      if (ls.inGate) { ls.inGate = false; }
+      return;
+    }
+
+    const bx = bot._pos.x, bz = bot._pos.z;
+    const inGate = bx >= 29.5 && bx <= 46.5 && bz >= 13.0 && bz <= 15.5;
+
+    if (inGate && !ls.inGate) {
+      // Entered the gate
+      const now = performance.now();
+      if (ls.lapStart > 0 && (now - ls.lapStart) > 2000) {
+        // Completed a lap
+        const ms = now - ls.lapStart;
+        const improved = ms < ls.bestMs;
+        ls.bestMs = Math.min(ls.bestMs, ms);
+        const secs = (ms / 1000).toFixed(2);
+        const best = (ls.bestMs / 1000).toFixed(2);
+        ls.lapsEl.innerHTML = `🏁 Lap: <b>${secs}s</b>${improved ? ' 🏆 NEW BEST!' : ''}<br><span style="font-size:10px">Best: ${best}s</span>`;
+        ls.lapsEl.classList.add('show');
+        this.ui.notify(improved ? `🏆 New lap record: ${secs}s!` : `🏁 Lap complete: ${secs}s`);
+        this.achievements.track('lap_complete', {});
+        this.xpSystem.gain(20);
+        if (improved) setTimeout(() => this.foreman.onEvent('bot_lap_record', {}), 500);
+        setTimeout(() => ls.lapsEl?.classList.remove('show'), 5000);
+      }
+      ls.lapStart = now;
+    }
+    ls.inGate = inGate;
   }
 
   _updateSpeechBubble(bot, el) {

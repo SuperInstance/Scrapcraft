@@ -139,6 +139,16 @@
       text-align:center; font-size:9px; color:#555; letter-spacing:1px; padding-top:2px;
     }
 
+    /* ── Lap Timer ── */
+    #lap-timer {
+      position:absolute; bottom:140px; right:16px;
+      background:rgba(0,0,0,0.82); border:2px solid #f0b429; border-radius:6px;
+      padding:6px 12px; font-size:13px; color:#f0b429; font-weight:bold;
+      pointer-events:none; opacity:0; transition:opacity 0.3s; text-align:center;
+      line-height:1.4;
+    }
+    #lap-timer.show { opacity:1; }
+
     /* ── Hotbar tooltip ── */
     #hotbar-tip {
       position:absolute; bottom:90px; left:50%; transform:translateX(-50%);
@@ -768,6 +778,9 @@
       <canvas id="minimap" width="96" height="96"></canvas>
       <div id="minimap-label">MAP</div>
     </div>
+
+    <!-- Lap Timer -->
+    <div id="lap-timer"></div>
 
     <!-- Codex shortcut -->
     <button id="codex-btn">📖 CODEX</button>
