@@ -261,6 +261,18 @@ export class World {
     this.setBlock(64, 1, 76, B.SMELTER);
     this.landmarks.band2_stations = { x: 62, y: 1, z: 76 };
 
+    // Advanced oval TRACK circuit — 28×14 oval in Circuit City for Line Follower challenge
+    // Center x=35, z=84; outer ring at ±14 x, ±7 z
+    const oCx = 35, oCz = 84, oRx = 14, oRz = 7;
+    for (let i = 0; i < 360; i++) {
+      const rad = (i * Math.PI) / 180;
+      const ox = Math.round(oCx + oRx * Math.cos(rad));
+      const oz = Math.round(oCz + oRz * Math.sin(rad));
+      if (ox >= 2 && ox < W - 2 && oz >= z0 && oz <= z1) {
+        this.setBlock(ox, 0, oz, B.TRACK);
+      }
+    }
+
     // Circuit lab — larger building with all three stations
     this._buildShed(100, 0, 68, 10, 4, 8, rng);
     this.setBlock(102, 1, 72, B.WORKBENCH);
