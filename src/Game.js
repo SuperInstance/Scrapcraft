@@ -264,7 +264,10 @@ export class Game {
         this.foreman.onEvent(`mine_${drop}`, {});
       }
     };
-    if (def.drop    && Math.random() < def.dropChance)    giveLoot(def.drop);
+    if (def.drop    && Math.random() < def.dropChance)    {
+      const qty = def.dropQty ?? 1;
+      for (let q = 0; q < qty; q++) giveLoot(def.drop);
+    }
     if (def.altDrop && Math.random() < def.altDropChance) giveLoot(def.altDrop);
     // Magnet passive: bonus drop for metallic blocks
     const METAL_BLOCKS = new Set([B.SCRAP_PILE, B.RUST_METAL, B.CLEAN_METAL, B.WALL_METAL]);
@@ -587,6 +590,8 @@ export class Game {
       }
       this._lastBandIndex = bandIdx;
       this._applyBandSky(bandIdx);
+      this.audio._currentBand = bandIdx;
+      this.audio.playBandAmbient(bandIdx);
     }
 
     // Nearby station hint
@@ -710,6 +715,27 @@ export class Game {
       if (lx >= 0 && lx < SIZE && lz >= 0 && lz < SIZE) {
         ctx.fillStyle = '#f0b429';
         ctx.fillRect(lx - 1, lz - 1, 3, 3);
+      }
+    }
+    // Waypoint flag (magenta)
+    if (this._waypoint) {
+      const wx_ = Math.floor(this._waypoint.x) - px + RADIUS;
+      const wz_ = Math.floor(this._waypoint.z) - pz + RADIUS;
+      if (wx_ >= 0 && wx_ < SIZE && wz_ >= 0 && wz_ < SIZE) {
+        ctx.fillStyle = '#ff44cc';
+        ctx.fillRect(wx_ - 2, wz_ - 2, 5, 5);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(wx_, wz_ - 2, 1, 4);
+      }
+    }
+    // Crystal cave dot (purple)
+    const crystalLm = this.world.landmarks?.['crystal_cave'];
+    if (crystalLm) {
+      const cx_ = crystalLm.x - px + RADIUS;
+      const cz_ = crystalLm.z - pz + RADIUS;
+      if (cx_ >= 0 && cx_ < SIZE && cz_ >= 0 && cz_ < SIZE) {
+        ctx.fillStyle = '#9933ff';
+        ctx.fillRect(cx_ - 1, cz_ - 1, 3, 3);
       }
     }
   }

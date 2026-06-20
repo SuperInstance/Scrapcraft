@@ -248,6 +248,37 @@ export class AudioSystem {
     this._noise(0.6, 0.03, 4000, t);
   }
 
+  /** Zone ambient — called by Game when band changes */
+  playBandAmbient(bandIdx) {
+    if (!this._enabled) return;
+    this._ensure(); this._resume();
+    const t = this._ctx.currentTime;
+    switch (bandIdx) {
+      case 0: // Yard Gate — distant birds + light breeze
+        this._osc(2400 + Math.random()*400, 'sine', t, 0.4, 0.025);
+        this._osc(3200 + Math.random()*300, 'sine', t+0.2, 0.3, 0.02);
+        this._noise(0.8, 0.012, 800, t+0.1);
+        break;
+      case 1: // Industrial — low machinery hum
+        this._osc(55, 'sawtooth', t, 1.2, 0.04);
+        this._osc(110, 'sawtooth', t+0.05, 1.0, 0.025);
+        this._noise(0.6, 0.022, 400, t+0.3);
+        break;
+      case 2: // Circuit City — glitchy electronic chirps
+        [800, 1200, 1600, 2000].forEach((f, i) => {
+          if (Math.random() < 0.5)
+            this._osc(f, 'square', t + i * 0.07, 0.08, 0.018);
+        });
+        this._osc(80, 'sine', t, 0.9, 0.03);
+        break;
+      case 3: // Deep Yard — low wind + eerie crystal resonance
+        this._noise(1.4, 0.03, 150, t);
+        this._osc(220, 'sine', t, 1.0, 0.02);
+        this._osc(440, 'sine', t+0.4, 0.6, 0.015);
+        break;
+    }
+  }
+
   tick(dt, player, world) {
     // Footstep rhythm
     const moving = player._keys?.['KeyW'] || player._keys?.['KeyS'] || player._keys?.['KeyA'] || player._keys?.['KeyD'];
@@ -261,6 +292,13 @@ export class AudioSystem {
       }
     } else {
       this._footTimer = 0;
+    }
+
+    // Periodic zone ambient stings (every ~15s)
+    this._ambientZoneTimer = (this._ambientZoneTimer ?? 0) + dt;
+    if (this._ambientZoneTimer >= 15 && this._currentBand != null) {
+      this._ambientZoneTimer = 0;
+      if (this._enabled) this.playBandAmbient(this._currentBand);
     }
   }
 }

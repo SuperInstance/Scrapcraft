@@ -214,7 +214,15 @@ export class Renderer {
   }
 
   tick(dt) {
-    this._fireLight.intensity = 1.2 + Math.sin(Date.now() * 0.008) * 0.4 + Math.random() * 0.2;
+    const now = Date.now();
+    this._fireLight.intensity = 1.2 + Math.sin(now * 0.008) * 0.4 + Math.random() * 0.2;
+
+    // Crystal ore pulse — gently breathe the emissive intensity
+    const crystalMat = this._matCache.get(B.CRYSTAL_ORE ?? 19);
+    if (crystalMat) {
+      crystalMat.emissiveIntensity = 0.35 + 0.25 * Math.sin(now * 0.0025);
+    }
+
     this.renderer.render(this.scene, this.camera);
   }
 }
