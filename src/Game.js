@@ -79,6 +79,14 @@ export class Game {
 
     this.world.on('change', () => this.renderer.rebuildMeshes(this.world));
 
+    // Speech bubble elements (screen-projected world-space)
+    this._speechEl1 = document.getElementById('bot-speech-1');
+    this._speechEl2 = document.getElementById('bot-speech-2');
+
+    // Help overlay
+    this._helpOverlay = document.getElementById('help-overlay');
+    document.getElementById('help-close')?.addEventListener('click', () => this._toggleHelp(false));
+
     this._bindInput();
 
     // Load saved state — if none, show first-time greeting
@@ -109,7 +117,11 @@ export class Game {
         if (msg) this.foreman.playerTalks(msg);
         else this.foreman.say('idle');
       }
-      if (e.code === 'Escape' && this.ui.isOpen) this.ui.closeInventory();
+      if (e.code === 'Escape') {
+        if (this.ui.isOpen) this.ui.closeInventory();
+        else this._toggleHelp(false);
+      }
+      if (e.code === 'KeyH' && !this.ui.isOpen && !this.tileEditor.isOpen) this._toggleHelp();
       if (e.code === 'KeyM') this.audio.toggle();
       if (e.code === 'KeyB') {
         if (e.shiftKey) {
@@ -265,13 +277,21 @@ export class Game {
     }
   }
 
+  _toggleHelp(forceState) {
+    const show = forceState !== undefined ? forceState : !this._helpOverlay?.classList.contains('show');
+    this._helpOverlay?.classList.toggle('show', show);
+    if (show && document.pointerLockElement) document.exitPointerLock();
+  }
+
   _toggleBot2() {
     if (!this.scrapBot2) {
       this.scrapBot2 = new ScrapBot(this.renderer.scene, this.player);
       this.scrapBot2.setGame(this);
-      // Spawn offset from player
+      // Spawn left and behind player; activate() adds +1.5 to x, so offset accordingly
       const p = this.player.pos;
-      this.scrapBot2.activate({ x: p.x - 1.5, y: p.y, z: p.z });
+      this.scrapBot2.activate({ x: p.x - 3, y: p.y, z: p.z });
+      // Orange eyes to distinguish from bot 1
+      setTimeout(() => this.scrapBot2.setBotColor(0xFF8C00, 0xFF6400), 200);
       this.ui.notify('🤖 Second bot activated! Press Shift+B again to give it a brain.');
     } else if (!this.scrapBot2._brainMode) {
       this.scrapBot2.setBrain(EXAMPLE_WALL_AVOIDER, this.world, this.player, this.dayNight);
@@ -353,6 +373,11 @@ export class Game {
 
     this.scrapBot.tick(dt, this.world);
     if (this.scrapBot2) this.scrapBot2.tick(dt, this.world);
+
+    // Speech bubble projection
+    this._updateSpeechBubble(this.scrapBot,  this._speechEl1);
+    this._updateSpeechBubble(this.scrapBot2, this._speechEl2);
+
     this.audio.tick(dt, this.player, this.world);
     this.saveSystem.tick(dt);
 
@@ -449,6 +474,21 @@ export class Game {
     }
 
     this.ui.updateHotbar(this.player);
+  }
+
+  _updateSpeechBubble(bot, el) {
+    if (!el || !bot?.isActive) { el?.classList.remove('show'); return; }
+    if (bot._speechTimer <= 0) { el.classList.remove('show'); return; }
+
+    // Project 3D position (above bot head) to screen coordinates
+    const pos = bot._pos.clone().setY(2.4);
+    const proj = pos.project(this.renderer.camera);
+    if (proj.z > 1) { el.classList.remove('show'); return; } // behind camera
+
+    el.style.left = `${((proj.x + 1) / 2) * window.innerWidth}px`;
+    el.style.top  = `${((1 - proj.y) / 2) * window.innerHeight}px`;
+    el.textContent = bot.speechText;
+    el.classList.add('show');
   }
 
   _render(dt) { this.renderer.tick(dt); }

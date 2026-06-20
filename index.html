@@ -205,6 +205,53 @@
     #levelup-toast .lu-skill { color:#ddd; font-size:13px; margin-top:6px; }
     #levelup-toast .lu-icon  { font-size:28px; margin-bottom:4px; }
 
+    /* ── Bot speech bubbles (screen-projected world-space) ── */
+    .bot-speech {
+      position:fixed; pointer-events:none;
+      background:rgba(0,0,0,0.88); border:1px solid #00ddff;
+      border-radius:10px 10px 10px 0; padding:5px 11px;
+      font-size:12px; color:#eee; white-space:nowrap;
+      transform:translate(-50%, -110%);
+      opacity:0; transition:opacity 0.2s;
+      z-index:200;
+    }
+    .bot-speech::after {
+      content:''; position:absolute; bottom:-7px; left:12px;
+      border:4px solid transparent; border-top-color:#00ddff;
+    }
+    .bot-speech.bot-speech-2 { border-color:#ff8c00; }
+    .bot-speech.bot-speech-2::after { border-top-color:#ff8c00; }
+    .bot-speech.show { opacity:1; }
+
+    /* ── Help overlay (H key) ── */
+    #help-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.84);
+      display:none; align-items:center; justify-content:center;
+      z-index:800; pointer-events:auto;
+    }
+    #help-overlay.show { display:flex; }
+    #help-inner {
+      background:rgba(12,12,12,0.98); border:2px solid #333;
+      border-radius:10px; padding:28px 36px; color:#ccc;
+      max-width:520px; width:100%;
+      animation:pauseIn 0.2s ease;
+    }
+    #help-inner h2 { color:#f0b429; letter-spacing:4px; font-size:16px; margin-bottom:18px; }
+    .help-section { margin-bottom:14px; }
+    .help-section h3 { color:#f0b429; font-size:11px; letter-spacing:2px; margin-bottom:6px; }
+    .help-row { display:flex; gap:12px; align-items:baseline; margin:4px 0; }
+    .help-key {
+      background:#222; border:1px solid #444; border-radius:4px;
+      padding:2px 8px; font-size:11px; color:#fff; min-width:36px; text-align:center;
+      flex-shrink:0;
+    }
+    .help-desc { font-size:12px; color:#888; }
+    #help-close {
+      margin-top:18px; font-size:10px; color:#555;
+      letter-spacing:1px; cursor:pointer; text-align:right;
+    }
+    #help-close:hover { color:#f0b429; }
+
     /* ══ PAUSE OVERLAY ══════════════════════════════════════════════════ */
     #pause-overlay {
       position:fixed; inset:0; background:rgba(0,0,0,0.72);
@@ -655,6 +702,10 @@
       <div class="lu-skill" id="lu-skill"></div>
     </div>
 
+    <!-- Bot speech bubbles (positioned by Game.js via screen projection) -->
+    <div id="bot-speech-1" class="bot-speech"></div>
+    <div id="bot-speech-2" class="bot-speech bot-speech-2"></div>
+
     <!-- Foreman panel -->
     <div id="foreman-panel">
       <div id="foreman-bubble">
@@ -677,6 +728,40 @@
 
     <!-- Codex shortcut -->
     <button id="codex-btn">📖 CODEX</button>
+  </div>
+
+  <!-- ══ Help overlay (H key) ═══════════════════════════════════════ -->
+  <div id="help-overlay">
+    <div id="help-inner">
+      <h2>⌨ CONTROLS</h2>
+      <div class="help-section">
+        <h3>MOVEMENT</h3>
+        <div class="help-row"><span class="help-key">WASD</span><span class="help-desc">Move</span></div>
+        <div class="help-row"><span class="help-key">SPACE</span><span class="help-desc">Jump (×2.5 with Spring Boots)</span></div>
+        <div class="help-row"><span class="help-key">1-9</span><span class="help-desc">Select hotbar slot</span></div>
+      </div>
+      <div class="help-section">
+        <h3>WORLD</h3>
+        <div class="help-row"><span class="help-key">LMB</span><span class="help-desc">Hold to mine block</span></div>
+        <div class="help-row"><span class="help-key">RMB</span><span class="help-desc">Place hotbar item as block</span></div>
+        <div class="help-row"><span class="help-key">E</span><span class="help-desc">Open workshop / inventory</span></div>
+      </div>
+      <div class="help-section">
+        <h3>MAKER LAB</h3>
+        <div class="help-row"><span class="help-key">T</span><span class="help-desc">Open Tile Editor (robot brain)</span></div>
+        <div class="help-row"><span class="help-key">B</span><span class="help-desc">Toggle bot program (run / stop)</span></div>
+        <div class="help-row"><span class="help-key">SHIFT+B</span><span class="help-desc">Spawn second bot (Level 5+)</span></div>
+      </div>
+      <div class="help-section">
+        <h3>SYSTEM</h3>
+        <div class="help-row"><span class="help-key">F</span><span class="help-desc">Talk to Big Earl (foreman AI)</span></div>
+        <div class="help-row"><span class="help-key">M</span><span class="help-desc">Toggle music / sound</span></div>
+        <div class="help-row"><span class="help-key">F5</span><span class="help-desc">Manual save</span></div>
+        <div class="help-row"><span class="help-key">F9</span><span class="help-desc">Reload last save</span></div>
+        <div class="help-row"><span class="help-key">H</span><span class="help-desc">This screen</span></div>
+      </div>
+      <div id="help-close">[ H / ESC ] CLOSE</div>
+    </div>
   </div>
 
   <!-- ══ Pause overlay ══════════════════════════════════════════════ -->

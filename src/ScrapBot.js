@@ -45,8 +45,13 @@ export class ScrapBot {
     this._brainMode = false;
     this._game      = null;
 
-    // Eye material refs for LED tile colour changes
-    this._eyeMat = null;
+    // Eye material refs for LED / neopixel colour changes
+    this._eyeMat  = null;
+    this._bodyMat = null;  // for neopixel body glow tint
+
+    // Speech bubble state (read by Game.js for screen projection)
+    this.speechText  = '';
+    this._speechTimer = 0;
   }
 
   setUI(ui) { this._ui = ui; }
@@ -69,8 +74,10 @@ export class ScrapBot {
 
     const mat = (color, emissive = 0x000000) => new THREE.MeshLambertMaterial({ color, emissive, emissiveIntensity: 0.4 });
 
-    // Body
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.55, 0.35), mat(0x7A8A9A));
+    // Body (store ref for neopixel tint)
+    const bodyMat = mat(0x7A8A9A);
+    this._bodyMat = bodyMat;
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.55, 0.35), bodyMat);
     body.position.y = 0.8;
     group.add(body);
 
@@ -148,11 +155,38 @@ export class ScrapBot {
     this._runtime   = new MakerRuntime(program, spawn, adapter);
     this._brainMode = true;
 
+    // Award XP for each distinct sensor type used in this program
+    if (this._game?.xpSystem) {
+      this._extractSensorIds(program.nodes ?? []).forEach(id =>
+        this._game.xpSystem.trackSensor(id)
+      );
+    }
+
     if (this._runtime.errors.length) {
       this.speak(`[COMPILE ERROR] ${this._runtime.errors[0]}`);
     } else {
       this.speak(`[BRAIN LOADED] Running "${program.name || 'custom program'}".`);
     }
+  }
+
+  /** Recursively extract all sensor IDs referenced in condition tiles. */
+  _extractSensorIds(nodes) {
+    const ids = new Set();
+    const scan = (node) => {
+      if (node.cond?.sensor) ids.add(node.cond.sensor);
+      ['body', 'elseBody'].forEach(k => (node[k] ?? []).forEach(scan));
+    };
+    nodes.forEach(scan);
+    return ids;
+  }
+
+  /** Tint the bot's body/eyes with a custom accent color (for bot 2, etc.). */
+  setBotColor(eyeHex, glowHex) {
+    if (this._eyeMat) {
+      this._eyeMat.color.setHex(eyeHex);
+      this._eyeMat.emissive.setHex(glowHex);
+    }
+    if (this._glowLight) this._glowLight.color.setHex(glowHex);
   }
 
   /** Return to follow-player mode. */
@@ -227,7 +261,12 @@ export class ScrapBot {
 
   _tickCommon(dt) {
     this._glowTimer += dt;
-    this._glowLight.intensity = 0.6 + Math.sin(this._glowTimer * 2) * 0.2;
+    if (this._glowLight && !this._brainMode) {
+      // Gentle cyan pulse in follow mode; brain mode controls glow directly
+      this._glowLight.intensity = 0.6 + Math.sin(this._glowTimer * 2) * 0.2;
+      this._glowLight.color.setHex(0x00AAFF);
+    }
+    if (this._speechTimer > 0) this._speechTimer -= dt;
 
     // Random speech only in follow mode; brain programs have their own moments
     if (!this._brainMode) {
@@ -251,6 +290,21 @@ export class ScrapBot {
       case 'grab':
         this._game?.particles?.burst(this._pos.x, 1, this._pos.z, 'pickup', 4);
         break;
+      case 'speak':
+        this.speechText   = `"${ev.phrase}"`;
+        this._speechTimer = 2.5;
+        this._game?.audio?.spark?.();
+        break;
+      case 'servo':
+        // Tilt the head to reflect arm angle (0=closed=head down, 180=open=head up)
+        if (this._mesh) {
+          const head = this._mesh.children.find(c => c.position.y > 1.15 && c.position.y < 1.4);
+          if (head) head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, (ev.angle - 90) * 0.008, 0.3);
+        }
+        break;
+      case 'neopixel':
+        this._setNeopixelColor(ev.color);
+        break;
     }
   }
 
@@ -266,5 +320,21 @@ export class ScrapBot {
     if (!this._eyeMat) return;
     this._eyeMat.color.setHex(c.color);
     this._eyeMat.emissive.setHex(c.emissive);
+  }
+
+  _setNeopixelColor(colorName) {
+    const HEX = {
+      off: 0x000000, red: 0xff0000, orange: 0xff6400, yellow: 0xdcb400,
+      green: 0x00c800, cyan: 0x00c8c8, blue: 0x0000ff, purple: 0x960096, white: 0xffffff,
+    };
+    const hex = HEX[colorName] ?? 0x00c800;
+    if (this._bodyMat) {
+      this._bodyMat.emissive.setHex(hex === 0 ? 0 : hex);
+      this._bodyMat.emissiveIntensity = hex === 0 ? 0 : 0.9;
+    }
+    if (this._glowLight) {
+      this._glowLight.color.setHex(hex === 0 ? 0x00aaff : hex);
+      this._glowLight.intensity = hex === 0 ? 0.6 : 1.8;
+    }
   }
 }
