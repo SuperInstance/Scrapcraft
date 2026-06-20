@@ -29,8 +29,10 @@ export class World {
     this.depth  = depth;
     this.height = height;
     this.blocks = new Uint8Array(width * depth * height);
-    this._listeners = [];
-    this.landmarks = {};
+    this._listeners  = [];
+    this.landmarks   = {};
+    this.seed        = 42;
+    this._minedBlocks = [];  // [{ x,y,z }] — player-mined diffs for save system
   }
 
   _idx(x, y, z) { return x + z * this.width + y * this.width * this.depth; }
@@ -50,6 +52,7 @@ export class World {
   _emit(ev, d) { this._listeners.filter(l => l.event === ev).forEach(l => l.fn(d)); }
 
   generate(seed = 42) {
+    this.seed = seed;
     const rng = lcg(seed);
     const W = this.width;
 
@@ -390,6 +393,7 @@ export class World {
     const id = this.getBlock(x, y, z);
     if (id === B.AIR) return null;
     this.setBlock(x, y, z, B.AIR);
+    this._minedBlocks.push({ x, y, z });
     return id;
   }
 
