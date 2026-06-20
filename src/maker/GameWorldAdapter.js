@@ -31,11 +31,12 @@ export class GameWorldAdapter {
    * @param {DayNight}       dayNight  has .timeOfDay / .isNight (optional)
    * @param {WeatherSystem}  weather   has .intensityValue (optional)
    */
-  constructor(world, player, dayNight = null, weather = null) {
+  constructor(world, player, dayNight = null, weather = null, waypoint = null) {
     this.world = world;
     this.player = player;
     this.dayNight = dayNight;
     this.weather = weather;
+    this.waypoint = waypoint;  // { x, z } or null — updated live by Game._dropWaypoint
   }
 
   /** Solid at ground level (y=1, where the robot rolls). */
@@ -168,6 +169,19 @@ export class GameWorldAdapter {
   /** Weather intensity: 0 clear → 0.65 rain → 1.0 storm */
   weatherIntensity() {
     return this.weather?.intensityValue ?? 0;
+  }
+
+  /** Normalized distance to the active waypoint (0 = at waypoint, 1 = far away). */
+  waypointDistance(x, z) {
+    if (!this.waypoint) return 1;
+    return Math.min(1, Math.hypot(this.waypoint.x - x, this.waypoint.z - z) / SONAR_RANGE);
+  }
+
+  /** Signed bearing to the waypoint from current heading (−1 = full left, +1 = full right). */
+  waypointBearing(x, z, heading) {
+    if (!this.waypoint) return 0;
+    const dx = this.waypoint.x - x, dz = this.waypoint.z - z;
+    return Math.sin(Math.atan2(dx, dz) - heading);
   }
 
   /** Vision Brain stub: "sees target" if facing the player within a cone. */

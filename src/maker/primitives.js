@@ -290,6 +290,44 @@ export const SENSORS = {
     },
   },
 
+  waypoint_dist: {
+    id: 'waypoint_dist',
+    category: 'sense',
+    kind: 'analog',
+    label: 'waypoint distance',
+    blurb: 'how far away the active waypoint flag is (0 = here, 1 = far away). Set with Y key.',
+    read: (robot, world) => world.waypointDistance?.(robot.x, robot.z) ?? 1,
+    hw: {
+      platform: ['esp32', 'jetson'],
+      peripheral: 'GPS/UWB positioning module',
+      pin: 'UART1',
+      setup: { arduino: 'gps.begin(9600);', micropython: 'gps = GPS(uart)' },
+    },
+    firmware: {
+      arduino: () => 'getWaypointDistance()',
+      micropython: () => 'gps.distance_to(waypoint)',
+    },
+  },
+
+  waypoint_bearing: {
+    id: 'waypoint_bearing',
+    category: 'sense',
+    kind: 'analog',
+    label: 'waypoint bearing',
+    blurb: 'steering offset to waypoint (−1 = hard left, 0 = straight ahead, +1 = hard right)',
+    read: (robot, world) => world.waypointBearing?.(robot.x, robot.z, robot.heading) ?? 0,
+    hw: {
+      platform: ['esp32', 'jetson'],
+      peripheral: 'GPS + compass (HMC5883L)',
+      pin: 'SDA=21, SCL=22',
+      setup: { arduino: 'compass.begin();', micropython: 'mag = HMC5883L(i2c)' },
+    },
+    firmware: {
+      arduino: () => 'getWaypointBearing()',
+      micropython: () => 'mag.bearing_to(waypoint)',
+    },
+  },
+
   // Vision Brain (Jetson) — abstracted computer vision. "Just works" in-game;
   // maps to a real on-device inference call on actual hardware.
   sees_target: {

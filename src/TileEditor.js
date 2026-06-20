@@ -3,7 +3,7 @@
  * Opens over the game with [T], wires into ScrapBot.setBrain() for live testing.
  */
 
-import { TileProgram, EXAMPLE_WALL_AVOIDER, EXAMPLE_LIGHT_RUNNER, EXAMPLE_SQUARE, EXAMPLE_LINE_FOLLOWER } from './maker/TileProgram.js';
+import { TileProgram, EXAMPLE_WALL_AVOIDER, EXAMPLE_LIGHT_RUNNER, EXAMPLE_SQUARE, EXAMPLE_LINE_FOLLOWER, EXAMPLE_WAYPOINT_NAV } from './maker/TileProgram.js';
 import { SENSORS, ACTUATORS, BRAINS, withDefaults } from './maker/primitives.js';
 import { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG, compile } from './maker/index.js';
 import { Spark } from './Spark.js';
@@ -164,10 +164,11 @@ export class TileEditor {
     if (this._presetSel) {
       this._presetSel.addEventListener('change', () => {
         const PRESETS = {
-          wall_avoider:  EXAMPLE_WALL_AVOIDER,
-          line_follower: EXAMPLE_LINE_FOLLOWER,
-          light_runner:  EXAMPLE_LIGHT_RUNNER,
-          square:        EXAMPLE_SQUARE,
+          wall_avoider:    EXAMPLE_WALL_AVOIDER,
+          line_follower:   EXAMPLE_LINE_FOLLOWER,
+          light_runner:    EXAMPLE_LIGHT_RUNNER,
+          square:          EXAMPLE_SQUARE,
+          waypoint_nav:    EXAMPLE_WAYPOINT_NAV,
         };
         const prog = PRESETS[this._presetSel.value];
         if (prog) { this.loadProgram(prog); this._game.ui?.notify(`📋 Loaded: ${prog.name}`); }
