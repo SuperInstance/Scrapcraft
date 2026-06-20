@@ -209,6 +209,13 @@ export const ACHIEVEMENT_LIST = [
     desc: 'Place your first block back in the world. Creation begins where destruction ends.',
     check: (s) => s.blocksPlaced >= 1,
   },
+  {
+    id: 'wokwi_exporter',
+    icon: '🔌',
+    name: 'Game → Reality',
+    desc: 'Export your first Wokwi diagram. Your game robot just became a real-world circuit.',
+    check: (s) => (s.wokwiExported ?? 0) >= 1,
+  },
 ];
 
 export class Achievements {
@@ -228,6 +235,7 @@ export class Achievements {
       _recentTimer: 0,
       programsRun: 0,
       blocksPlaced: 0,
+      wokwiExported: 0,
     };
   }
 
@@ -258,6 +266,9 @@ export class Achievements {
         break;
       case 'place':
         s.blocksPlaced++;
+        break;
+      case 'wokwi_export':
+        s.wokwiExported = (s.wokwiExported ?? 0) + 1;
         break;
     }
     this._check();

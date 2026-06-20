@@ -138,6 +138,38 @@ export const QUESTS = [
     reward: null,
     rewardText: "That's it. You've won the yard. I'm retiring. (I'm not retiring. But seriously — nicely done.)",
   },
+
+  // ── Maker Lab quest chain ────────────────────────────────────────────────
+  {
+    id: 'q6',
+    title: 'Build a Brain',
+    intro: "Alright, one more thing. There's a Maker Lab tucked behind the smelter. You need a Tin Brain — that's an ATmega microcontroller — to get started. Circuit boards and scrap. Go build it.",
+    steps: [
+      { label: 'Craft the Tin Brain', check: (p) => p.crafted.has('tin_brain') },
+    ],
+    reward: { item: 'copper_wire', qty: 5 },
+    rewardText: "Copper wire for your new brain. I hope it's smarter than it looks.",
+  },
+  {
+    id: 'q7',
+    title: 'First Program',
+    intro: "Press [T] to open the Tile Editor. Drag some tiles into a program. Hit Run. Your bot should do something. I don't care what. Just prove it's not broken.",
+    steps: [
+      { label: 'Run a tile program', check: (_, g) => (g?.achievements?.stats?.programsRun ?? 0) >= 1 },
+    ],
+    reward: { item: 'circuit_board', qty: 2 },
+    rewardText: "It moved. I'll admit, I didn't think it would work. Circuit boards, for your trouble.",
+  },
+  {
+    id: 'q8',
+    title: 'Go Real',
+    intro: "The Tile Editor has a Wokwi button. Click it. That exports a diagram.json you can drop straight into Wokwi — the browser circuit simulator. Your game robot becomes a real one. Do it.",
+    steps: [
+      { label: 'Export a Wokwi diagram', check: (_, g) => (g?.achievements?.stats?.wokwiExported ?? 0) >= 1 },
+    ],
+    reward: { item: 'battery_pack', qty: 2 },
+    rewardText: "There you go. Game robot, real robot, same program. Earl is mildly impressed.",
+  },
 ];
 
 export class Foreman {
@@ -218,7 +250,7 @@ export class Foreman {
   _checkQuest() {
     if (!this._activeQuest) return;
     const p = this.game.player;
-    const done = this._activeQuest.steps.every(s => s.check(p));
+    const done = this._activeQuest.steps.every(s => s.check(p, this.game));
     if (!done) return;
 
     // Quest complete!

@@ -101,6 +101,7 @@ export class SaveSystem {
           recentCrafts:    s.recentCrafts,
           programsRun:     s.programsRun,
           blocksPlaced:    s.blocksPlaced,
+          wokwiExported:   s.wokwiExported ?? 0,
         },
       },
 
@@ -148,6 +149,7 @@ export class SaveSystem {
         recentCrafts:    s.recentCrafts    ?? 0,
         programsRun:     s.programsRun     ?? 0,
         blocksPlaced:    s.blocksPlaced    ?? 0,
+        wokwiExported:   s.wokwiExported   ?? 0,
       });
     }
 

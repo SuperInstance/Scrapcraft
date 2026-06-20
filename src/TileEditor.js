@@ -615,6 +615,8 @@ export class TileEditor {
     this._dlBlob(sketch,  `${name}.ino`,    'text/plain');
     setTimeout(() => this._dlBlob(diagram, 'diagram.json', 'application/json'), 150);
     this._game.ui?.notify('⬇ Saved sketch + diagram.json — paste both into Wokwi!');
+    this._game.achievements?.track('wokwi_export', {});
+    this._game.xpSystem?.gain(20);
   }
 
   _downloadSVG() {
