@@ -409,6 +409,7 @@ export class Game {
     if (this.scrapBot2) this.scrapBot2.tick(dt, this.world);
 
     this._tickLapTimer();
+    this._tickBotTrackSparks(dt);
 
     // Speech bubble projection
     this._updateSpeechBubble(this.scrapBot,  this._speechEl1);
@@ -598,6 +599,19 @@ export class Game {
     }
   }
 
+  _tickBotTrackSparks(dt) {
+    this._sparkTimer = (this._sparkTimer ?? 0) + dt;
+    if (this._sparkTimer < 0.18) return;
+    this._sparkTimer = 0;
+    for (const bot of [this.scrapBot, this.scrapBot2]) {
+      if (!bot?.isActive || !bot._brainMode) continue;
+      const bx = Math.floor(bot._pos.x), bz = Math.floor(bot._pos.z);
+      if (this.world.getBlock(bx, 0, bz) === B.TRACK) {
+        this.particles.burst(bot._pos.x, 1.1, bot._pos.z, 'track', 3);
+      }
+    }
+  }
+
   // TRACK circuit lap timer — gate: x 30..46, z 13..15, y 0
   _tickLapTimer() {
     const ls = this._lapState;
@@ -628,6 +642,8 @@ export class Game {
         ls.lapsEl.classList.add('show');
         this.ui.notify(improved ? `🏆 New lap record: ${secs}s!` : `🏁 Lap complete: ${secs}s`);
         this.audio.lapComplete(improved);
+        // Confetti burst at start/finish gate
+        this.particles.burst(38, 1.5, 14, 'confetti', improved ? 30 : 14);
         this.achievements.track('lap_complete', {});
         this.xpSystem.gain(20);
         if (improved) setTimeout(() => this.foreman.onEvent('bot_lap_record', {}), 500);

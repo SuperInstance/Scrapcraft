@@ -52,11 +52,17 @@ export class ParticleSystem {
    */
   burst(x, y, z, type = 'mine', count = 12) {
     const presets = {
-      mine:   { r:[1,0.5,0],  g:[0.6,0.3,0],  b:[0,0,0],   speed:3,   life:0.6, spread:0.4, gravity: 5 },
-      pickup: { r:[0.4,0.6,0],g:[1,0.9,0.5],  b:[0.4,0.5,0],speed:2,  life:0.5, spread:0.2, gravity: 2 },
-      craft:  { r:[0.4,0.8,1],g:[0.6,1,0.8],  b:[1,1,1],   speed:2.5, life:0.8, spread:0.5, gravity: 1 },
-      ember:  { r:[1,0.8,0],  g:[0.3,0.2,0],  b:[0,0,0],   speed:1.5, life:1.0, spread:0.3, gravity:-1 },
-      smoke:  { r:[0.5,0.5,0.5],g:[0.5,0.5,0.5],b:[0.5,0.5,0.5],speed:0.5,life:2,spread:0.2,gravity:-1 },
+      mine:    { r:[1,0.5,0],    g:[0.6,0.3,0],    b:[0,0,0],      speed:3,   life:0.6, spread:0.4, gravity: 5 },
+      pickup:  { r:[0.4,0.6,0],  g:[1,0.9,0.5],    b:[0.4,0.5,0],  speed:2,   life:0.5, spread:0.2, gravity: 2 },
+      craft:   { r:[0.4,0.8,1],  g:[0.6,1,0.8],    b:[1,1,1],      speed:2.5, life:0.8, spread:0.5, gravity: 1 },
+      ember:   { r:[1,0.8,0],    g:[0.3,0.2,0],    b:[0,0,0],      speed:1.5, life:1.0, spread:0.3, gravity:-1 },
+      smoke:   { r:[0.5,0.5,0.5],g:[0.5,0.5,0.5],  b:[0.5,0.5,0.5],speed:0.5, life:2,   spread:0.2, gravity:-1 },
+      // Bot on track — yellow sparks trailing low
+      track:   { r:[1,1,0.6],    g:[0.8,0.6,0.1],  b:[0,0,0],      speed:1,   life:0.3, spread:0.3, gravity: 6 },
+      // Brain load — cyan circuit burst
+      circuit: { r:[0,0.6,1],    g:[0.2,0.9,0.8],  b:[0.5,1,1],    speed:2,   life:0.6, spread:0.6, gravity: 0 },
+      // Lap complete — confetti colors
+      confetti:{ r:[1,0,0.5],    g:[0.8,1,0],      b:[0,0.6,1],    speed:3,   life:1.2, spread:0.8, gravity: 3 },
     };
     const p = presets[type] ?? presets.mine;
 
