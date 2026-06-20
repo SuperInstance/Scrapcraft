@@ -79,6 +79,14 @@ export const ITEMS = {
     stackSize: 64,
     placeable: true,
   },
+  floodlight: {
+    name: 'Floodlight',
+    icon: '💡',
+    desc: "Ugly as sin, bright as the sun. Place it on a wall and light up the whole yard.",
+    category: 'tool',
+    stackSize: 8,
+    placeable: true,
+  },
 
   // ── Tools ──
   wrench: {

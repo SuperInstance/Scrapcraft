@@ -102,7 +102,8 @@ export class Player {
     if (this._keys['KeyS']) want.sub(fwd);
     if (this._keys['KeyA']) want.sub(right);
     if (this._keys['KeyD']) want.add(right);
-    const speed = SPEED * (this.hasTool('go_kart') ? 3 : 1);
+    const sprinting = this._keys['ShiftLeft'] || this._keys['ShiftRight'];
+    const speed = SPEED * (this.hasTool('go_kart') ? 3 : sprinting ? 1.8 : 1);
     if (want.lengthSq() > 0) want.normalize().multiplyScalar(speed);
 
     // Smooth horizontal accel

@@ -49,6 +49,14 @@ export class Renderer {
     this._fireLight.position.set(14, 3, 8);
     this.scene.add(this._fireLight);
 
+    // Pre-allocated pool for placed Floodlight blocks (max 6 active at once)
+    this._floodPool = Array.from({ length: 6 }, () => {
+      const l = new THREE.PointLight(0xfff5cc, 2.2, 18);
+      l.visible = false;
+      this.scene.add(l);
+      return l;
+    });
+
     window.addEventListener('resize', () => {
       const w = window.innerWidth, h = window.innerHeight;
       this.camera.aspect = w / h;
@@ -134,6 +142,25 @@ export class Renderer {
     for (const entry of this._instanceMeshes.values()) {
       entry.mesh.count = entry.cursor;
       entry.mesh.instanceMatrix.needsUpdate = true;
+    }
+  }
+
+  /** Position Floodlight point lights around the player (called each update). */
+  updateFloodlights(placedBlocks, playerPos, floodBlockId) {
+    const floods = placedBlocks.filter(b => b.id === floodBlockId);
+    // Sort by distance to player, take closest pool.length
+    const sorted = floods.map(b => ({ ...b, d2: (b.x - playerPos.x) ** 2 + (b.z - playerPos.z) ** 2 }))
+      .sort((a, b) => a.d2 - b.d2)
+      .slice(0, this._floodPool.length);
+
+    for (let i = 0; i < this._floodPool.length; i++) {
+      const l = this._floodPool[i];
+      if (i < sorted.length) {
+        l.position.set(sorted[i].x, sorted[i].y + 0.5, sorted[i].z);
+        l.visible = true;
+      } else {
+        l.visible = false;
+      }
     }
   }
 
