@@ -106,6 +106,16 @@ export class UI {
     this._zoneToast   = document.getElementById('zone-toast');
     this._activeLabel = document.getElementById('active-item-label');
 
+    // XP bar
+    this._xpFill      = document.getElementById('xp-fill');
+    this._xpLevelText = document.getElementById('xp-level-text');
+    this._xpSkillBadge= document.getElementById('xp-skill-badge');
+    this._levelupToast = document.getElementById('levelup-toast');
+    this._luIcon  = document.getElementById('lu-icon');
+    this._luTitle = document.getElementById('lu-title');
+    this._luSkill = document.getElementById('lu-skill');
+    this._luTimer = null;
+
     this._buildHotbar();
     this._buildCodex();
     this._bindOverlayEvents();
@@ -421,6 +431,26 @@ export class UI {
   }
 
   hideTooltip() { this._tooltip.style.display = 'none'; }
+
+  // ── XP Bar ────────────────────────────────────────────────────────────
+
+  setXP(level, progress, skillName = '') {
+    if (this._xpFill)       this._xpFill.style.width       = `${Math.round(progress * 100)}%`;
+    if (this._xpLevelText)  this._xpLevelText.textContent  = `Lv.${level}`;
+    if (this._xpSkillBadge) this._xpSkillBadge.textContent = skillName;
+  }
+
+  showLevelUp(level, skill = null) {
+    if (!this._levelupToast) return;
+    this._luIcon.textContent  = skill?.icon ?? '⬆️';
+    this._luTitle.textContent = `LEVEL ${level}`;
+    this._luSkill.textContent = skill ? skill.name : '';
+    this._levelupToast.classList.add('show');
+    clearTimeout(this._luTimer);
+    this._luTimer = setTimeout(() => {
+      this._levelupToast.classList.remove('show');
+    }, 3200);
+  }
 
   // ── Notifications ─────────────────────────────────────────────────────
 

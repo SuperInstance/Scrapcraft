@@ -171,6 +171,40 @@
     }
     #codex-btn:hover { border-color:#f0b429; color:#f0b429; }
 
+    /* ── XP bar (bottom-left) ── */
+    #xp-bar {
+      position:absolute; bottom:24px; left:16px;
+      width:130px; pointer-events:none;
+    }
+    #xp-label {
+      font-size:10px; color:#f0b429; letter-spacing:1px;
+      margin-bottom:3px; display:flex; justify-content:space-between;
+    }
+    #xp-label .xp-skill-badge {
+      font-size:10px; color:#888;
+    }
+    #xp-track {
+      height:4px; background:rgba(255,255,255,0.1); border-radius:2px;
+      overflow:hidden;
+    }
+    #xp-fill {
+      height:100%; width:0%; background:#f0b429; border-radius:2px;
+      transition: width 0.5s ease;
+    }
+
+    /* Level-up flash (center screen) */
+    #levelup-toast {
+      position:absolute; top:38%; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.92); border:2px solid #f0b429;
+      border-radius:10px; padding:18px 36px; text-align:center;
+      pointer-events:none;
+      opacity:0; transition:opacity 0.25s ease;
+    }
+    #levelup-toast.show { opacity:1; }
+    #levelup-toast .lu-title { color:#f0b429; font-size:20px; font-weight:bold; letter-spacing:2px; }
+    #levelup-toast .lu-skill { color:#ddd; font-size:13px; margin-top:6px; }
+    #levelup-toast .lu-icon  { font-size:28px; margin-bottom:4px; }
+
     /* ══ PAUSE OVERLAY ══════════════════════════════════════════════════ */
     #pause-overlay {
       position:fixed; inset:0; background:rgba(0,0,0,0.72);
@@ -604,6 +638,22 @@
     <div id="zone-toast"></div>
     <div id="notifications"></div>
     <div id="block-label"></div>
+
+    <!-- XP bar -->
+    <div id="xp-bar">
+      <div id="xp-label">
+        <span id="xp-level-text">Lv.0</span>
+        <span class="xp-skill-badge" id="xp-skill-badge"></span>
+      </div>
+      <div id="xp-track"><div id="xp-fill"></div></div>
+    </div>
+
+    <!-- Level-up toast -->
+    <div id="levelup-toast">
+      <div class="lu-icon" id="lu-icon">⬆️</div>
+      <div class="lu-title" id="lu-title">LEVEL UP!</div>
+      <div class="lu-skill" id="lu-skill"></div>
+    </div>
 
     <!-- Foreman panel -->
     <div id="foreman-panel">
