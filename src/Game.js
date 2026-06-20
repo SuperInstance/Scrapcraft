@@ -490,6 +490,15 @@ export class Game {
       this.ui.updateQuestProgress(this.foreman._activeQuest, this.player);
     }
 
+    // Near track hint — fire once when player enters the test circuit area
+    if (!this._nearTrackSeen) {
+      const px2 = p.x, pz2 = p.z;
+      if (px2 >= 28 && px2 <= 48 && pz2 >= 12 && pz2 <= 25) {
+        this._nearTrackSeen = true;
+        this.foreman.onEvent('near_track', {});
+      }
+    }
+
     // Idle prod
     if (locked) {
       this._idleTimer += dt;

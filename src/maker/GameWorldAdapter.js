@@ -67,6 +67,13 @@ export class GameWorldAdapter {
       const d2 = (p.x - x) ** 2 + (p.z - z) ** 2;
       if (d2 < 36) g = Math.max(g, 0.5 * (1 - Math.sqrt(d2) / 6));
     }
+    // Floodlights placed in the world also boost brightness
+    const placed = this.world._placedBlocks ?? [];
+    for (const { x: bx, z: bz, id } of placed) {
+      if (id !== B.FLOODLIGHT) continue;
+      const d = Math.hypot(bx - x, bz - z);
+      if (d < 12) g = Math.max(g, 0.7 * (1 - d / 12));
+    }
     return g;
   }
 
