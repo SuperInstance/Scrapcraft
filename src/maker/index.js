@@ -43,6 +43,7 @@ export class MakerRuntime {
     this.errors = result.errors;
     this.warnings = result.warnings;
     this.ok = result.ok;
+    this.sourceMap = result.sourceMap ?? [];
     this.vm = new TileVM(result.bytecode, this.robot, world);
   }
 
@@ -59,6 +60,7 @@ export class MakerRuntime {
     this.errors = result.errors;
     this.warnings = result.warnings;
     this.ok = result.ok;
+    this.sourceMap = result.sourceMap ?? [];
     this.vm = new TileVM(result.bytecode, this.robot, this.world);
   }
 

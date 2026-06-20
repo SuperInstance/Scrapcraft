@@ -316,6 +316,182 @@
     #tooltip .t-name { color:#f0b429; font-weight:bold; margin-bottom:3px; }
     #tooltip .t-desc { color:#777; line-height:1.45; }
 
+    /* ══ Tile Editor ════════════════════════════════════════════════════ */
+    #tile-editor {
+      position:fixed; inset:0; z-index:200;
+      background:rgba(4,4,4,0.96);
+      flex-direction:column;
+      font-family:'Courier New',monospace; color:#ddd;
+      user-select:none;
+    }
+
+    /* Header */
+    .te-header {
+      display:flex; align-items:center; gap:10px;
+      padding:9px 14px; flex-shrink:0;
+      background:rgba(0,0,0,0.7); border-bottom:1px solid #1c1c1c;
+    }
+    .te-title { color:#f0b429; font-size:12px; letter-spacing:3px; font-weight:bold; white-space:nowrap; }
+    .te-name-input {
+      background:#0e0e0e; border:1px solid #2a2a2a; color:#ddd;
+      padding:4px 8px; border-radius:3px; font-family:inherit; font-size:12px;
+      flex:1; max-width:200px; outline:none;
+    }
+    .te-name-input:focus { border-color:#f0b42966; }
+    .te-brain-select {
+      background:#0e0e0e; border:1px solid #2a2a2a; color:#666;
+      padding:4px 8px; border-radius:3px; font-family:inherit; font-size:10px;
+      letter-spacing:1px; outline:none;
+    }
+    .te-header-actions { margin-left:auto; display:flex; gap:5px; }
+
+    .te-btn {
+      padding:5px 12px; border:1px solid #2a2a2a; border-radius:3px;
+      font-family:inherit; font-size:10px; letter-spacing:1px; cursor:pointer;
+      background:#131313; color:#666; transition:all 0.12s; white-space:nowrap;
+    }
+    .te-btn:hover:not(:disabled) { border-color:#666; color:#bbb; }
+    .te-btn:disabled { opacity:0.3; cursor:default; }
+    .te-btn-run  { border-color:#1a3a1a; color:#4caf50; }
+    .te-btn-run:hover:not(:disabled)  { background:#0c200c; border-color:#4caf50; }
+    .te-btn-stop { border-color:#3a1a1a; color:#f44336; }
+    .te-btn-stop:hover:not(:disabled) { background:#200c0c; border-color:#f44336; }
+
+    /* Split */
+    .te-split { display:flex; flex:1; overflow:hidden; }
+
+    /* Left tray */
+    .te-tray {
+      width:145px; flex-shrink:0; background:#080808;
+      border-right:1px solid #161616; overflow-y:auto; padding:6px 6px 16px;
+    }
+    .te-tray-group {
+      font-size:8px; letter-spacing:2px; color:#383838;
+      margin:10px 0 4px 2px;
+    }
+    .te-tray-tile {
+      display:flex; align-items:center; gap:6px;
+      padding:7px 8px; border-radius:4px; margin-bottom:2px;
+      cursor:grab; border:1px solid transparent; transition:border-color 0.1s;
+    }
+    .te-tray-tile:hover  { border-color:#f0b42955; }
+    .te-tray-tile:active { cursor:grabbing; }
+    .te-tray-tile.te-dragging { opacity:0.35; }
+    .te-tile-icon  { font-size:13px; flex-shrink:0; }
+    .te-tile-label { font-size:10px; color:#888; }
+
+    /* Canvas */
+    .te-canvas-wrap {
+      flex:1; overflow:auto; padding:14px 18px;
+    }
+    #te-canvas {
+      display:flex; flex-direction:column; align-items:flex-start; gap:0;
+      min-height:100%;
+    }
+    .te-empty {
+      color:#383838; font-size:11px; margin:32px auto; text-align:center;
+      border:1px dashed #1c1c1c; border-radius:8px; padding:28px 44px; line-height:2.6;
+    }
+    .te-empty-sub { color:#2a2a2a; font-size:10px; }
+    .te-empty b { color:#3a3a3a; }
+
+    /* Drop zones */
+    .te-dz {
+      height:4px; width:100%; min-width:180px;
+      border-radius:2px; transition:height 0.08s, background 0.08s;
+    }
+    .te-dz.active {
+      height:20px; background:rgba(240,180,41,0.1);
+      border:1px dashed #f0b42988; border-radius:4px;
+    }
+
+    /* Tiles */
+    .te-node {
+      background:var(--nbg,#181818); border:1px solid rgba(255,255,255,0.05);
+      border-radius:5px; margin:1px 0; min-width:210px; max-width:480px;
+      cursor:grab; position:relative; transition:border-color 0.12s, box-shadow 0.12s;
+    }
+    .te-node:hover { border-color:rgba(255,255,255,0.1); }
+    .te-node.te-dragging { opacity:0.3; cursor:grabbing; }
+    .te-node.te-active {
+      border-color:#f0b429;
+      box-shadow:0 0 10px rgba(240,180,41,0.22), inset 0 0 6px rgba(240,180,41,0.06);
+    }
+    .te-node-head {
+      display:flex; align-items:center; gap:6px; padding:6px 8px;
+      border-bottom:1px solid rgba(255,255,255,0.04);
+    }
+    .te-nicon { font-size:12px; flex-shrink:0; }
+    .te-nlbl  { font-size:11px; color:#b0b0b0; flex:1; letter-spacing:0.5px; }
+    .te-del {
+      background:none; border:none; color:#333; cursor:pointer;
+      font-size:10px; padding:1px 4px; border-radius:2px; line-height:1;
+      transition:color 0.1s;
+    }
+    .te-del:hover { color:#f44336; }
+
+    /* Params */
+    .te-params { padding:5px 8px; display:flex; flex-direction:column; gap:4px; }
+    .te-param-row { display:flex; align-items:center; gap:5px; font-size:10px; color:#666; }
+    .te-param-key { min-width:48px; color:#484848; }
+    .te-select {
+      background:#0a0a0a; border:1px solid #222; color:#999;
+      padding:2px 4px; border-radius:2px; font-family:inherit; font-size:10px; outline:none;
+    }
+    .te-slider { flex:1; max-width:90px; accent-color:#f0b429; }
+    .te-num-inp {
+      background:#0a0a0a; border:1px solid #222; color:#999;
+      padding:2px 4px; border-radius:2px; font-family:inherit; font-size:10px;
+      width:52px; text-align:right; outline:none;
+    }
+
+    /* Condition row */
+    .te-cond {
+      display:flex; align-items:center; gap:4px; padding:4px 8px; flex-wrap:wrap;
+      border-bottom:1px solid rgba(255,255,255,0.04); font-size:10px;
+    }
+    .te-cond-not {
+      background:#131313; border:1px solid #2a2a2a; color:#444;
+      padding:1px 6px; border-radius:2px; cursor:pointer;
+      font-family:inherit; font-size:9px; letter-spacing:1px;
+    }
+    .te-cond-not.active { border-color:#f44336; color:#f44336; }
+
+    /* Bodies */
+    .te-body { margin:0 0 4px 14px; padding:4px 0 4px 10px; border-left:2px solid #1a1a1a; }
+    .te-body-lbl  { font-size:8px; color:#383838; letter-spacing:2px; margin-bottom:2px; }
+    .te-body-inner { display:flex; flex-direction:column; }
+    .te-body-ph { font-size:9px; color:#2a2a2a; font-style:italic; padding:3px 6px; }
+
+    /* Code view */
+    .te-code-view {
+      border-top:1px solid #1a1a1a; max-height:230px;
+      flex-direction:column; flex-shrink:0; background:#050505;
+    }
+    .te-code-tabs {
+      display:flex; align-items:center; gap:4px; padding:5px 10px;
+      background:#090909; border-bottom:1px solid #141414; flex-shrink:0;
+    }
+    .te-code-tab {
+      background:none; border:1px solid #222; color:#484848;
+      padding:2px 10px; border-radius:2px; cursor:pointer;
+      font-family:inherit; font-size:9px; letter-spacing:1px;
+    }
+    .te-code-tab.active { border-color:#f0b429; color:#f0b429; }
+    #te-code-pre {
+      flex:1; overflow:auto; padding:10px 14px; margin:0;
+      font-size:10px; line-height:1.7; color:#7aa2a8; background:transparent;
+      white-space:pre;
+    }
+
+    /* Errors */
+    #te-errors {
+      padding:5px 12px; flex-shrink:0; background:#070707;
+      border-top:1px solid #181818; max-height:80px; overflow:auto;
+    }
+    .te-err  { font-size:10px; color:#f44336; padding:1px 0; }
+    .te-warn { font-size:10px; color:#f0b429; padding:1px 0; }
+
     /* ══ Start screen ════════════════════════════════════════════════════ */
     #start-screen {
       position:fixed; inset:0; background:#080808;
@@ -358,7 +534,7 @@
     <button id="start-btn">CLOCK IN</button>
     <div class="controls-hint">
       <span>WASD</span> Move &nbsp;|&nbsp; <span>MOUSE</span> Look &nbsp;|&nbsp; <span>SPACE</span> Jump<br>
-      <span>HOLD LEFT CLICK</span> Mine &nbsp;|&nbsp; <span>E</span> Workshop &nbsp;|&nbsp; <span>F</span> Earl<br>
+      <span>HOLD LEFT CLICK</span> Mine &nbsp;|&nbsp; <span>E</span> Workshop &nbsp;|&nbsp; <span>T</span> Maker Bench &nbsp;|&nbsp; <span>F</span> Earl<br>
       <span>1–9</span> Hotbar &nbsp;|&nbsp; <span>M</span> Mute &nbsp;|&nbsp; <span>ESC</span> Pause
       <div class="bands-hint">
         <div>⚙️  THE YARD GATE &nbsp;→&nbsp; 🏭 INDUSTRIAL CORRIDOR</div>
@@ -412,7 +588,7 @@
 
     <!-- Hotbar -->
     <div id="hotbar"></div>
-    <div id="toolbar-hint">[ E ] WORKSHOP &nbsp;·&nbsp; [ F ] EARL &nbsp;·&nbsp; 1-9 HOTBAR &nbsp;·&nbsp; ESC PAUSE</div>
+    <div id="toolbar-hint">[ E ] WORKSHOP &nbsp;·&nbsp; [ T ] MAKER BENCH &nbsp;·&nbsp; [ F ] EARL &nbsp;·&nbsp; 1-9 HOTBAR &nbsp;·&nbsp; ESC PAUSE</div>
 
     <!-- Codex shortcut -->
     <button id="codex-btn">📖 CODEX</button>
@@ -481,6 +657,49 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- ══ Tile Editor ════════════════════════════════════════════════════ -->
+  <div id="tile-editor" style="display:none;">
+
+    <!-- Header bar -->
+    <div class="te-header">
+      <span class="te-title">MAKER BENCH</span>
+      <input id="te-name" class="te-name-input" type="text" value="My Brain" spellcheck="false" />
+      <select id="te-brain" class="te-brain-select">
+        <option value="tin">TIN BRAIN</option>
+        <option value="spark">SPARK BRAIN</option>
+        <option value="vision">VISION BRAIN</option>
+      </select>
+      <div class="te-header-actions">
+        <button id="te-run"       class="te-btn te-btn-run">▶ RUN</button>
+        <button id="te-stop"      class="te-btn te-btn-stop" disabled>■ STOP</button>
+        <button id="te-code-btn"  class="te-btn">&lt;/&gt; CODE</button>
+        <button id="te-close-btn" class="te-btn">✕ CLOSE</button>
+      </div>
+    </div>
+
+    <!-- Split: tray + canvas -->
+    <div class="te-split">
+      <div id="te-tray" class="te-tray"></div>
+      <div class="te-canvas-wrap">
+        <div id="te-canvas"></div>
+      </div>
+    </div>
+
+    <!-- Code view (hidden until toggled) -->
+    <div id="te-code-view" class="te-code-view" style="display:none;">
+      <div class="te-code-tabs">
+        <button class="te-code-tab active" data-lang="arduino">Arduino (.ino)</button>
+        <button class="te-code-tab" data-lang="micropython">MicroPython (.py)</button>
+        <button id="te-dl" class="te-btn" style="margin-left:auto;">⬇ Download</button>
+      </div>
+      <pre id="te-code-pre"></pre>
+    </div>
+
+    <!-- Compile errors / warnings -->
+    <div id="te-errors" style="display:none;"></div>
+
   </div>
 
   <!-- Tooltip -->
