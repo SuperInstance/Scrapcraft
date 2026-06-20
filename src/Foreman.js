@@ -97,6 +97,11 @@ const QUIPS = {
     "It lapped the circuit. In my day we used stopwatches and yelled. This is better.",
     "Personal best on the track. I've seen racers with worse times. Professional ones.",
   ],
+  near_track: [
+    "That's the robot test track. Load the Line Follower preset in the Maker Bench and run your bot on it.",
+    "Race circuit's right there. Bot needs a Line Follower brain. I'll time it. (With my watch. Don't tell anyone.)",
+    "I built that track myself. Took a weekend. Nobody's thanked me yet. You're welcome anyway.",
+  ],
   craft_scrap_magnet: [
     "A scrap magnet. The lazy genius way to collect iron. I say that with full respect.",
     "Electromagnetic induction in your back pocket. Faraday would be proud and confused.",
@@ -192,6 +197,27 @@ export const QUESTS = [
     reward: { item: 'battery_pack', qty: 2 },
     rewardText: "There you go. Game robot, real robot, same program. Earl is mildly impressed.",
   },
+  {
+    id: 'q9',
+    title: 'Race Circuit',
+    intro: "There's a track loop out by the wall at x=30-46, z=14-22. Load the Line Follower preset from the Maker Bench, run it on your bot, and watch it drive a lap. That's a real IR sensor algorithm. Go do it.",
+    steps: [
+      { label: 'Complete a bot lap on the track', check: (_, g) => (g?.achievements?.stats?.lapsCompleted ?? 0) >= 1 },
+    ],
+    reward: { item: 'ir_module', qty: 4 },
+    rewardText: "IR sensor modules. Four of them. Your bot earned those. Put 'em in a real robot someday.",
+  },
+  {
+    id: 'q10',
+    title: 'Light It Up',
+    intro: "The back of the yard is pitch dark at night. Craft a Floodlight — glass, copper wire, iron scrap at the workbench — and stick it somewhere useful. I'm done squinting.",
+    steps: [
+      { label: 'Craft a Floodlight', check: (p) => p.crafted.has('floodlight') },
+      { label: 'Place it in the world', check: (_, g) => (g?.achievements?.stats?.floodlightsPlaced ?? 0) >= 1 },
+    ],
+    reward: { item: 'scrap_magnet', qty: 1 },
+    rewardText: "A Scrap Magnet. Now scrap comes to you. That's peak scrapyard engineering. You're done growing.",
+  },
 ];
 
 export class Foreman {
@@ -226,6 +252,7 @@ export class Foreman {
       'craft_scrap_magnet':  'craft_scrap_magnet',
       'craft_ir_module':     'craft_ir_module',
       'bot_lap_record':      'bot_lap_record',
+      'near_track':          'near_track',
       'near_workbench':     'near_workbench',
       'near_forge':         'near_forge',
       'near_smelter':       'near_smelter',
