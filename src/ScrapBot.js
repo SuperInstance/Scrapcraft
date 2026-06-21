@@ -171,7 +171,8 @@ export class ScrapBot {
     };
     const weather  = this._game?.weather  ?? null;
     const waypoint = this._game?._waypoint ?? null;
-    const adapter  = new GameWorldAdapter(world, player, dayNight, weather, waypoint);
+    const bot      = this;  // closure for battery sensor
+    const adapter  = new GameWorldAdapter(world, player, dayNight, weather, waypoint, bot);
     this._adapter   = adapter;  // exposed so Game.js can update .waypoint live
     this._runtime   = new MakerRuntime(program, spawn, adapter);
     this._brainMode = true;
@@ -313,6 +314,32 @@ export class ScrapBot {
       this._game?.foreman?.onEvent('bot_battery_dead', {});
       this.clearBrain();
       return;
+    }
+
+    // Low-battery distress: warn at 15%, flash red eyes below 10%
+    if (this.battery <= 15 && !this._lowBattWarn) {
+      this._lowBattWarn = true;
+      this.speak('[LOW BATTERY] 15% remaining. Please locate a charging pad.');
+      this._game?.ui?.notify('🔋 Bot battery critical — 15% remaining!');
+    }
+    if (this.battery > 15) this._lowBattWarn = false;
+
+    // Eye color: cyan = OK, orange = low, red flash = critical
+    if (this._eyeMat) {
+      if (this.battery <= 10) {
+        const flash = Math.sin(Date.now() * 0.015) > 0;
+        this._eyeMat.emissive.setHex(flash ? 0xFF0000 : 0x220000);
+        this._eyeMat.color.setHex(flash ? 0xFF2200 : 0x330000);
+      } else if (this.battery <= 25) {
+        this._eyeMat.emissive.setHex(0xFF6600);
+        this._eyeMat.color.setHex(0xFF8800);
+      }
+      // Normal cyan restored by setBotColor / LED tile — only override if not set by user tile
+    }
+    if (this._glowLight) {
+      this._glowLight.color.setHex(
+        this.battery <= 10 ? 0xFF2200 : this.battery <= 25 ? 0xFF8800 : 0x00AAFF,
+      );
     }
 
     this._runtime.tick(dt);

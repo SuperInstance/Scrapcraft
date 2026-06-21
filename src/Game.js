@@ -171,6 +171,9 @@ export class Game {
         if (this.ui.isOpen) this.ui.closeInventory();
         else this._toggleHelp(false);
       }
+      if (e.code === 'KeyI' && this.ui.isOpen) {
+        this._sortInventory();
+      }
       if (e.code === 'KeyH' && !this.ui.isOpen && !this.tileEditor.isOpen) this._toggleHelp();
       if (e.code === 'KeyR' && document.pointerLockElement) {
         this.player.pos.set(8, 2, 5);
@@ -643,6 +646,38 @@ export class Game {
       this.achievements.track('airdrop_find', {});
       this.ui.notify(`📦 Supply drop landed! Find it at approx. (${tx}, ${tz})`);
     }, 1500);
+  }
+
+  _sortInventory() {
+    const inv = this.player.inventory;
+    // Collect all stacks, merge same-id items within stack limit, then sort
+    const totals = new Map();
+    for (const slot of inv) {
+      if (!slot) continue;
+      totals.set(slot.id, (totals.get(slot.id) ?? 0) + slot.qty);
+    }
+    inv.fill(null);
+    // Category order: brain/tools first, then devices, then materials
+    const CATS = ['brain', 'tool', 'device', 'utility', 'material', 'block'];
+    const sorted = [...totals.entries()].sort((a, b) => {
+      const ca = CATS.indexOf(getItem(a[0])?.category ?? 'material');
+      const cb = CATS.indexOf(getItem(b[0])?.category ?? 'material');
+      if (ca !== cb) return ca - cb;
+      return a[0].localeCompare(b[0]);
+    });
+    let i = 0;
+    for (const [id, total] of sorted) {
+      const maxStack = getItem(id)?.stackSize ?? 64;
+      let rem = total;
+      while (rem > 0 && i < inv.length) {
+        const qty = Math.min(maxStack, rem);
+        inv[i++] = { id, qty };
+        rem -= qty;
+      }
+    }
+    this.ui.updateHotbar(this.player);
+    this.ui.openInventory(this.ui._currentStation ?? 'any');
+    this.ui.notify('🗂 Inventory sorted  [I]');
   }
 
   /** Returns the highest brain tier the player has in their inventory. */

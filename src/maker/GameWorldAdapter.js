@@ -31,12 +31,13 @@ export class GameWorldAdapter {
    * @param {DayNight}       dayNight  has .timeOfDay / .isNight (optional)
    * @param {WeatherSystem}  weather   has .intensityValue (optional)
    */
-  constructor(world, player, dayNight = null, weather = null, waypoint = null) {
+  constructor(world, player, dayNight = null, weather = null, waypoint = null, bot = null) {
     this.world = world;
     this.player = player;
     this.dayNight = dayNight;
     this.weather = weather;
     this.waypoint = waypoint;  // { x, z } or null — updated live by Game._dropWaypoint
+    this._bot = bot;           // ScrapBot ref — used for battery sensor
   }
 
   /** Solid at ground level (y=1, where the robot rolls). */
@@ -225,6 +226,11 @@ export class GameWorldAdapter {
       return 0.1; // dirt / wood / misc
     }
     return 0;
+  }
+
+  /** Battery level as a 0..1 fraction (feeds the battery sensor tile). */
+  batteryLevel() {
+    return Math.max(0, Math.min(1, (this._bot?.battery ?? 100) / 100));
   }
 
   /** Vision Brain stub: "sees target" if facing the player within a cone. */
