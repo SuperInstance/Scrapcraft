@@ -189,6 +189,8 @@ export class ScrapBot {
       this.speak(`[BRAIN LOADED] Running "${program.name || 'custom program'}".`);
       // Circuit burst when brain successfully loads
       this._game?.particles?.burst(this._pos.x, 1.6, this._pos.z, 'circuit', 12);
+      // Trigger bot sensor HUD rebuild for new brain
+      if (this._game) this._game._bshBuilt = false;
     }
   }
 
@@ -260,7 +262,8 @@ export class ScrapBot {
         }
       }
 
-      moveDir.normalize().multiplyScalar(BOT_SPEED * Math.min(1, (dist - FOLLOW_DIST + 1)));
+      const speedMult = this._game?.player?.hasTool('speed_coil') ? 1.4 : 1;
+      moveDir.normalize().multiplyScalar(BOT_SPEED * speedMult * Math.min(1, (dist - FOLLOW_DIST + 1)));
       this._velocity.lerp(moveDir, 5 * dt);
     } else {
       this._velocity.multiplyScalar(0.9);

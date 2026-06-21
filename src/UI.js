@@ -88,6 +88,42 @@ const CODEX = [
     icon: '🦾',
     text: `Industrial robot arms have multiple joints, each controlled by a servo motor with position feedback. The controller computes inverse kinematics — given "put the gripper at position XYZ," it works backward to figure out what angle each joint needs. That's serious math involving matrices and trigonometry.\n\nThe human arm does this instantly, without you thinking about it. Your brain's motor cortex is running continuous inverse kinematics. You are already a robot. Just a wet, squishy one.`,
   },
+  {
+    id: 'ore_nearby',
+    title: 'How Do Hall-Effect Sensors Work?',
+    icon: '🧲',
+    text: `A hall-effect sensor detects magnetic fields. When electrons in a conductor are moving through a magnetic field, a force pushes them sideways — this sideways voltage is called the Hall voltage. Measure it, and you know the field strength.\n\nThe AS5600 chip uses a hall-effect sensor to measure the angle of a magnet rotating above it (used in robotics for wheel encoders). But the same physics can detect the presence of metallic ore underground — strong magnetic anomalies distort the Earth's local field.\n\nThe 'ore signal' bar in the bot HUD maps this: 0 = nothing magnetic in range, 1 = ore right beneath you. Real mining robots use exactly this technique for sub-surface mapping.`,
+  },
+  {
+    id: 'scrap_grenade',
+    title: 'What Makes an Explosion?',
+    icon: '💣',
+    text: `An explosion is a very rapid exothermic (heat-releasing) chemical reaction. The fuel reacts with oxygen so fast that the reaction completes in microseconds, releasing a huge volume of hot gas all at once. That sudden expansion creates a pressure wave — the blast.\n\nThe Scrap Grenade in Scrapcraft simulates the physics: projectile arc under gravity (real trajectory math using initial velocity and g = 9.8 m/s²), then a spherical blast radius that mines blocks within a defined distance. Real explosive simulations in games use the same equations as mining engineers.`,
+  },
+  {
+    id: 'waypoint_flag',
+    title: 'How Does GPS Navigation Work?',
+    icon: '🚩',
+    text: `GPS uses trilateration: satellites broadcast radio signals with precise timestamps. Your receiver calculates how long each signal took to arrive (at the speed of light), giving it a distance from each satellite. Knowing distances from 4+ satellites pins your exact position in 3D space.\n\nWaypoint navigation in Scrapcraft mimics the bot's behavior: calculate bearing and distance to target, steer using the 'waypoint_bearing' sensor. Real autonomous vehicles (like the Mars rover) navigate using almost identical logic — just with more sensors and much more careful math.`,
+  },
+  {
+    id: 'crystal_fragment',
+    title: 'How Do Crystals Form?',
+    icon: '🔮',
+    text: `Crystals form when molecules arrange themselves into repeating geometric patterns as a liquid cools or a solution becomes saturated. The orderly structure is called a crystal lattice. Diamonds are carbon atoms in a tetrahedral lattice. Salt is sodium and chlorine in a cubic lattice.\n\nIn nature, large crystals take millions of years to form under high pressure deep underground. The Crystal Ore in the Deep Yard is fictional — but the physics of piezoelectric crystals (crystals that generate voltage when squeezed) is real. Your phone's microphone uses a piezo crystal. So does your car's knock sensor.`,
+  },
+  {
+    id: 'signal_amp',
+    title: 'How Do Amplifiers Work?',
+    icon: '📶',
+    text: `An amplifier takes a weak electrical signal and outputs a stronger version of the same signal. Operational amplifiers (op-amps) do this using transistors: the input signal controls how much current flows from the power supply to the output, amplifying the original.\n\nThe LM358 op-amp is a classic two-channel chip used in robotics for signal conditioning — boosting sensor readings before they reach the microcontroller's ADC. In Scrapcraft the Signal Amplifier extends the ore scanner range from 10 to 16 blocks: a 60% increase, representing a real op-amp gain stage applied to the magnetic sensor signal.`,
+  },
+  {
+    id: 'floor_type',
+    title: 'How Do IR Reflectance Sensors Work?',
+    icon: '🏁',
+    text: `An IR reflectance sensor (like the TCRT5000) shines infrared light downward and measures how much bounces back with a phototransistor. Different materials have different IR reflectivity: bare metal reflects 70-80% of IR; concrete reflects 30-40%; dirt and rubber absorb most of it.\n\nThis creates a cheap, fast floor-type detector. The 'floor_type' sensor in Scrapcraft returns values from 0 (void/dirt) to 1.0 (track/crystal) — mirroring the actual analog voltage range you'd read from a real TCRT5000 on a robot. It's used in sumo robots to detect the ring edge, and in industrial robots to detect surface transitions.`,
+  },
 ];
 
 export class UI {

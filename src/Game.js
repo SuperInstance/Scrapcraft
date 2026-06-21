@@ -606,10 +606,11 @@ export class Game {
         this.particles.burst(this._waypoint.x, 1.5, this._waypoint.z, 'pickup', 5);
       }
     }
-    // Supply drop countdown
+    // Supply drop countdown (flare_pack halves interval)
     this._airdropTimer -= dt;
     if (this._airdropTimer <= 0) {
-      this._airdropTimer = 90 + Math.random() * 90;
+      const hasFlarePack = this.player.hasTool('flare_pack');
+      this._airdropTimer = (hasFlarePack ? 45 : 90) + Math.random() * (hasFlarePack ? 45 : 90);
       this._spawnAirdrop();
     }
 
@@ -858,6 +859,18 @@ export class Game {
         ctx.fillRect(cx_ - 1, cz_ - 1, 3, 3);
       }
     }
+    // Airdrop crate dots (blinking yellow-green)
+    const blinkOn = Math.floor(Date.now() / 500) % 2 === 0;
+    if (blinkOn) {
+      for (const key of this._airdropCrates) {
+        const [acx, , acz] = key.split(',').map(Number);
+        const ax = acx - px + RADIUS, az = acz - pz + RADIUS;
+        if (ax >= 0 && ax < SIZE && az >= 0 && az < SIZE) {
+          ctx.fillStyle = '#aaff44';
+          ctx.fillRect(ax - 1, az - 1, 3, 3);
+        }
+      }
+    }
   }
 
   _updateBotSensorHUD() {
@@ -879,6 +892,7 @@ export class Game {
     const SHOW = [
       { id: 'distance_ahead', label: 'DIST AHEAD', digital: false },
       { id: 'bumped',         label: 'BUMPED',      digital: true  },
+      { id: 'ore_nearby',     label: 'ORE SIGNAL',  digital: false },
       { id: 'waypoint_dist',  label: 'WP DIST',     digital: false },
       { id: 'brightness',     label: 'LIGHT',        digital: false },
       { id: 'player_near',    label: 'PLAYER NEAR',  digital: true  },
@@ -906,8 +920,8 @@ export class Game {
       if (valEl) valEl.textContent = s.digital ? (raw ? 'YES' : 'no') : num.toFixed(2);
       if (barEl) {
         barEl.style.width = Math.round(num * 100) + '%';
-        const isAlert = (s.id === 'bumped' && raw) || (s.id === 'distance_ahead' && num < 0.18);
-        const isWarn  = !isAlert && s.id === 'brightness' && num > 0.75;
+        const isAlert = (s.id === 'bumped' && raw) || (s.id === 'distance_ahead' && num < 0.18) || (s.id === 'ore_nearby' && num > 0.65);
+        const isWarn  = !isAlert && (s.id === 'brightness' && num > 0.75 || s.id === 'ore_nearby' && num > 0.3);
         barEl.classList.toggle('alert', isAlert);
         barEl.classList.toggle('warn',  isWarn);
       }

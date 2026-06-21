@@ -355,6 +355,31 @@ export const ITEMS = {
     stackSize: 8,
   },
 
+  // ── Bot upgrade modules ──
+  speed_coil: {
+    name: 'Speed Coil',
+    icon: '🌀',
+    desc: "A wound copper coil that boosts your bot's motor driver voltage headroom. Hold it in inventory for passive +40% bot speed.",
+    category: 'maker',
+    stackSize: 1,
+    tool: true,
+  },
+  signal_amp: {
+    name: 'Signal Amplifier',
+    icon: '📶',
+    desc: "A low-noise op-amp board that extends your bot's magnetic ore scanner range from 10 to 16 blocks. Passive effect when in inventory.",
+    category: 'maker',
+    stackSize: 1,
+    tool: true,
+  },
+  flare_pack: {
+    name: 'Flare Pack',
+    icon: '🚨',
+    desc: "A pack of emergency flares wired to a timer circuit. Doubles supply drop frequency when carried. Earl wonders where the drops come from. Do not tell Earl.",
+    category: 'utility',
+    stackSize: 1,
+  },
+
   // ── Special tools ──
   scrap_magnet: {
     name: 'Scrap Magnet',
