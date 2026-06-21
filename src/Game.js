@@ -498,6 +498,55 @@ export class Game {
     this.saveSystem.markDirty();
   }
 
+  _tickOreScanner() {
+    const hud = document.getElementById('ore-scanner-hud');
+    if (!hud) return;
+    const active = this.player.activeItem?.id === 'ore_scanner';
+    hud.classList.toggle('active', active);
+    if (!active) return;
+
+    // Find nearest crystal ore within 24 blocks of player
+    const p   = this.player.pos;
+    const px  = Math.round(p.x), pz = Math.round(p.z);
+    const RANGE = 24;
+    let bestDist2 = RANGE * RANGE + 1;
+    let bestX = null, bestZ = null;
+    for (let dz = -RANGE; dz <= RANGE; dz++) {
+      for (let dx = -RANGE; dx <= RANGE; dx++) {
+        const d2 = dx * dx + dz * dz;
+        if (d2 >= bestDist2) continue;
+        for (let y = 0; y < this.world.height; y++) {
+          if (this.world.getBlock(px + dx, y, pz + dz) === B.CRYSTAL_ORE) {
+            bestDist2 = d2; bestX = px + dx; bestZ = pz + dz; break;
+          }
+        }
+      }
+    }
+
+    if (bestX === null) {
+      // Also check crystal_cave landmark (may be >24 blocks)
+      const lm = this.world.landmarks?.crystal_cave;
+      if (lm) { bestX = lm.x; bestZ = lm.z; bestDist2 = (lm.x - px) ** 2 + (lm.z - pz) ** 2; }
+    }
+
+    const arrow = document.getElementById('ors-arrow');
+    const dist  = document.getElementById('ors-dist');
+    if (!arrow || !dist) return;
+
+    if (bestX === null) {
+      arrow.textContent = '?'; dist.textContent = 'No ore in range';
+      return;
+    }
+
+    const dist_m = Math.round(Math.sqrt(bestDist2));
+    const bearing = Math.atan2(bestX - px, bestZ - pz); // angle from north (+Z)
+    const screenAngle = bearing - this.player.yaw;       // relative to player facing
+    arrow.style.transform = `rotate(${(screenAngle * 180 / Math.PI).toFixed(1)}deg)`;
+    arrow.textContent = '↑';
+    dist.textContent = `${dist_m} blocks`;
+    dist.style.color = dist_m < 8 ? '#44ff44' : dist_m < 16 ? '#ffcc44' : '#aaddff';
+  }
+
   _tickStormDamage(dt) {
     if (this.weather.state !== 'storm' || this.weather.intensityValue < 0.5) {
       this._stormDmgTimer = 0;
@@ -871,6 +920,9 @@ export class Game {
         this._ghostMesh.visible = false;
       }
     }
+
+    // Ore Scanner HUD — active when ore_scanner is in the active hotbar slot
+    this._tickOreScanner();
 
     // Band entry detection → toast + sky/fog color shift
     const bandIdx = this.world.getBandIndex(Math.floor(this.player.pos.z));

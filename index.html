@@ -246,6 +246,22 @@
     #ch-bar-fill { height:100%; width:0%; background:#44cc44; border-radius:3px; transition:width 0.3s ease, background 0.3s; }
     #ch-counter { text-align:right; color:#44cc44; margin-top:3px; font-size:9px; }
 
+    /* ── Ore Scanner HUD (center, above hotbar) ── */
+    #ore-scanner-hud {
+      position:absolute; bottom:100px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.75); border:1px solid #5577aa;
+      border-radius:8px; padding:6px 14px;
+      display:none; align-items:center; gap:10px;
+      font-size:11px; color:#99bbff; pointer-events:none; user-select:none;
+    }
+    #ore-scanner-hud.active { display:flex; }
+    #ors-arrow {
+      font-size:22px; transition:transform 0.25s ease;
+      display:inline-block;
+    }
+    #ors-label { line-height:1.3; }
+    #ors-dist  { font-weight:bold; color:#aaddff; }
+
     /* ── Item flash (center-bottom, above hotbar) ── */
     #item-flash {
       position:absolute; bottom:98px; left:50%; transform:translateX(-50%) translateY(6px);
@@ -951,6 +967,12 @@
 
     <!-- Damage vignette (red flash on taking damage) -->
     <div id="damage-vignette"></div>
+
+    <!-- Ore Scanner HUD (shown when ore_scanner is active hotbar item) -->
+    <div id="ore-scanner-hud">
+      <span id="ors-arrow">↑</span>
+      <div id="ors-label">Crystal Ore<br><span id="ors-dist">-- blocks</span></div>
+    </div>
 
     <!-- Hotbar -->
     <div id="hotbar"></div>
