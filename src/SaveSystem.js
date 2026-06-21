@@ -140,6 +140,14 @@ export class SaveSystem {
         minedBlocks:  g.world._minedBlocks  ?? [],
         placedBlocks: g.world._placedBlocks ?? [],
       },
+
+      fogMap: (() => {
+        const fm = g._fogMap;
+        if (!fm) return null;
+        let str = '';
+        for (let i = 0; i < fm.length; i++) str += String.fromCharCode(fm[i]);
+        return btoa(str);
+      })(),
     };
   }
 
@@ -240,6 +248,16 @@ export class SaveSystem {
     if (wd?.placedBlocks?.length) {
       wd.placedBlocks.forEach(({ x, y, z, id }) => g.world.setBlock(x, y, z, id));
       g.world._placedBlocks = [...wd.placedBlocks];
+    }
+
+    // Fog of war map
+    if (data.fogMap) {
+      try {
+        const decoded = atob(data.fogMap);
+        const arr = new Uint8Array(decoded.length);
+        for (let i = 0; i < decoded.length; i++) arr[i] = decoded.charCodeAt(i);
+        g._fogMap = arr;
+      } catch (e) { console.warn('[SaveSystem] fogMap restore failed:', e); }
     }
 
     // Refresh HUD

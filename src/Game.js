@@ -102,6 +102,17 @@ export class Game {
     this._minimapCtx   = document.getElementById('minimap')?.getContext('2d') ?? null;
     this._minimapTimer = 0;
 
+    // Fog of war — Uint8Array 128×128 (1 = visited, 0 = unexplored)
+    // Pre-reveal the spawn area so the minimap isn't black on first load
+    this._fogMap = new Uint8Array(128 * 128);
+    { const sx = 8, sz = 5, sr = 8;
+      for (let dz = -sr; dz <= sr; dz++) for (let dx = -sr; dx <= sr; dx++) {
+        if (dx * dx + dz * dz > sr * sr) continue;
+        const wx = sx + dx, wz = sz + dz;
+        if (wx >= 0 && wx < 128 && wz >= 0 && wz < 128) this._fogMap[wz * 128 + wx] = 1;
+      }
+    }
+
     // Item use (G key) state
     this._fuelBoostTimer  = 0;   // seconds remaining on fuel_can speed boost
     this._headlampOn      = false;
@@ -1032,6 +1043,17 @@ export class Game {
       return [(c >> 16) & 0xff, (c >> 8) & 0xff, c & 0xff];
     };
 
+    // Mark tiles newly visible to the player
+    const fpx = Math.round(this.player.pos.x), fpz = Math.round(this.player.pos.z);
+    const VIS_R = 5;
+    for (let fdz = -VIS_R; fdz <= VIS_R; fdz++) {
+      for (let fdx = -VIS_R; fdx <= VIS_R; fdx++) {
+        if (fdx * fdx + fdz * fdz > VIS_R * VIS_R) continue;
+        const fwx = fpx + fdx, fwz = fpz + fdz;
+        if (fwx >= 0 && fwx < 128 && fwz >= 0 && fwz < 128) this._fogMap[fwz * 128 + fwx] = 1;
+      }
+    }
+
     for (let dz = 0; dz < SIZE; dz++) {
       for (let dx = 0; dx < SIZE; dx++) {
         const wx = px - RADIUS + dx;
@@ -1043,9 +1065,11 @@ export class Game {
           if (b) { id = b; break; }
         }
         const [r, g, b] = colorOf(id);
+        const explored = wx >= 0 && wx < 128 && wz >= 0 && wz < 128 ? this._fogMap[wz * 128 + wx] : 0;
+        const m = explored ? 1 : 0.12;
         const i = (dz * SIZE + dx) * 4;
-        img.data[i]   = r; img.data[i+1] = g;
-        img.data[i+2] = b; img.data[i+3] = 255;
+        img.data[i]   = r * m | 0; img.data[i+1] = g * m | 0;
+        img.data[i+2] = b * m | 0; img.data[i+3] = 255;
       }
     }
     ctx.putImageData(img, 0, 0);
