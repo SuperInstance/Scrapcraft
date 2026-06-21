@@ -177,6 +177,11 @@ const QUIPS = {
     "Supply drop contents secured. Earl approves of this level of initiative.",
     "Mystery crate. Real gear inside. That's the scrapyard lottery and you just won.",
   ],
+  challenge_complete: [
+    "Salvage run complete. Materials secured, skill confirmed. That's what working to a spec feels like — engineers do it every single day.",
+    "Done. On time, on target. Every real engineering project has a goal and a deadline. You just practiced both.",
+    "Task complete. In a real fab shop, that's called meeting your production quota. You're ahead of schedule. Don't let it go to your head.",
+  ],
   storm_exposed: [
     "GET INSIDE. Lightning is 30,000 Kelvin. That's five times hotter than the sun's surface. Metal scrapyard. You are the tallest thing. MOVE.",
     "Lightning looks for the path of least resistance to ground. Standing in an open scrapyard makes you that path. Find a roof.",
@@ -412,6 +417,7 @@ export class Foreman {
       'acid_hazard':        'acid_hazard',
       'bot_battery_dead':   'bot_battery_dead',
       'storm_exposed':      'storm_exposed',
+      'challenge_complete': 'challenge_complete',
     };
     const key = map[event];
     if (key) this.say(key);

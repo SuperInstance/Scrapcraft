@@ -335,6 +335,13 @@ export const ACHIEVEMENT_LIST = [
     desc: 'Take a hit that drops you below 15 HP and survive. Earl says the scrapyard builds character. This is what he means.',
     check: (s) => (s.narrowEscapes ?? 0) >= 1,
   },
+  {
+    id: 'salvage_pro',
+    icon: '🏆',
+    name: 'Salvage Pro',
+    desc: 'Complete 3 Salvage Run challenges. You think in goals, work in steps, and finish what you start. Engineering mindset.',
+    check: (s) => (s.challengesCompleted ?? 0) >= 3,
+  },
 ];
 
 export class Achievements {
@@ -370,6 +377,7 @@ export class Achievements {
       airdropLoots: 0,
       luckyFinds: 0,
       narrowEscapes: 0,
+      challengesCompleted: 0,
     };
   }
 
@@ -444,6 +452,9 @@ export class Achievements {
         break;
       case 'narrow_escape':
         s.narrowEscapes = (s.narrowEscapes ?? 0) + 1;
+        break;
+      case 'challenge_complete':
+        s.challengesCompleted = (s.challengesCompleted ?? 0) + 1;
         break;
     }
     this._check();
