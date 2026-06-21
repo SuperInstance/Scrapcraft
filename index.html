@@ -149,6 +149,40 @@
     }
     #lap-timer.show { opacity:1; }
 
+    /* ── Bot sensor dashboard (bottom-left, above XP bar) ── */
+    #bot-sensor-hud {
+      position:absolute; bottom:66px; left:16px;
+      background:rgba(0,18,10,0.90); border:1px solid #0a3016;
+      border-radius:5px; padding:7px 10px; width:172px;
+      font-size:10px; font-family:'Courier New',monospace;
+      pointer-events:none;
+      opacity:0; transition:opacity 0.3s ease;
+    }
+    #bot-sensor-hud.active { opacity:1; }
+    .bsh-title {
+      color:#00cc66; letter-spacing:2px; font-size:9px;
+      margin-bottom:5px; padding-bottom:4px; border-bottom:1px solid #0a2814;
+    }
+    .bsh-row { display:flex; align-items:center; gap:4px; margin:3px 0; }
+    .bsh-key  { color:#2a6040; min-width:62px; font-size:9px; letter-spacing:0.4px; flex-shrink:0; }
+    .bsh-val  { color:#00ff88; font-weight:bold; min-width:30px; font-size:10px; text-align:right; }
+    .bsh-bar-wrap  { flex:1; height:4px; background:#0a1a10; border-radius:2px; overflow:hidden; }
+    .bsh-bar-fill  { height:100%; background:#00cc66; border-radius:2px; transition:width 0.1s; }
+    .bsh-bar-fill.warn  { background:#f0b429; }
+    .bsh-bar-fill.alert { background:#ff4444; }
+    .bsh-motors { margin-top:5px; padding-top:4px; border-top:1px solid #0a2814; }
+    .bsh-motor-row { display:flex; align-items:center; gap:4px; margin:2px 0; }
+    .bsh-motor-key { color:#1e4a30; min-width:34px; font-size:9px; flex-shrink:0; }
+    .bsh-motor-bar-wrap {
+      flex:1; height:4px; background:#0a1a10; border-radius:2px;
+      position:relative; overflow:hidden;
+    }
+    .bsh-motor-bar {
+      height:100%; position:absolute; top:0; border-radius:2px;
+      transition:left 0.08s ease, width 0.08s ease;
+    }
+    .bsh-motor-val { color:#007744; min-width:26px; font-size:9px; text-align:right; }
+
     /* ── Weather HUD (top-left corner icon) ── */
     #weather-hud {
       position:absolute; top:16px; left:16px;
@@ -755,6 +789,24 @@
 
     <!-- Weather icon (top-left) -->
     <div id="weather-hud" title="Clear skies">☀️</div>
+
+    <!-- Bot sensor dashboard (shows when a brain program is running) -->
+    <div id="bot-sensor-hud">
+      <div class="bsh-title">🤖 BOT SENSORS</div>
+      <div id="bsh-rows"></div>
+      <div class="bsh-motors">
+        <div class="bsh-motor-row">
+          <span class="bsh-motor-key">DRIVE</span>
+          <div class="bsh-motor-bar-wrap"><div class="bsh-motor-bar" id="bsh-drive-bar"></div></div>
+          <span class="bsh-motor-val" id="bsh-drive-val">0.0</span>
+        </div>
+        <div class="bsh-motor-row">
+          <span class="bsh-motor-key">TURN</span>
+          <div class="bsh-motor-bar-wrap"><div class="bsh-motor-bar" id="bsh-turn-bar"></div></div>
+          <span class="bsh-motor-val" id="bsh-turn-val">0.0</span>
+        </div>
+      </div>
+    </div>
 
     <div id="zone-label">The Yard Gate · Morning</div>
     <div id="zone-toast"></div>
