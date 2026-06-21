@@ -491,6 +491,33 @@ export class Game {
     this.saveSystem.markDirty();
   }
 
+  _tickHazards(dt) {
+    const p  = this.player.pos;
+    const bx = Math.round(p.x), bz = Math.round(p.z);
+    // Check the block the player is standing on (y=1) and the block at feet level
+    for (const by of [1, 0]) {
+      const id  = this.world.getBlock(bx, by, bz);
+      const def = id ? (BLOCK_DEF[id] ?? null) : null;
+      if (!def?.hazard) continue;
+      if (def.hazard === 'acid') {
+        this._acidTimer = (this._acidTimer ?? 0) + dt;
+        if (this._acidTimer > 0.5) {
+          this._acidTimer = 0;
+          const dmg = Math.round((def.hazardDps ?? 4) * 0.5);
+          this.player.takeDamage(dmg);
+          if (!this._acidWarnActive) {
+            this._acidWarnActive = true;
+            this.ui.notify('☠ Acid! Move away fast — use repair kits to heal.');
+            this.foreman.onEvent('acid_hazard', {});
+          }
+        }
+        return;
+      }
+    }
+    this._acidTimer = 0;
+    this._acidWarnActive = false;
+  }
+
   _cameraShake(intensity, duration) {
     this._shakeIntensity = intensity;
     this._shakeDuration  = duration;
@@ -636,6 +663,10 @@ export class Game {
     }
 
     this.player.tick(dt, this.world);
+
+    // Hazard block damage (acid puddle, etc.)
+    this._tickHazards(dt);
+
     this.dayNight.tick(dt);
 
     // Weather

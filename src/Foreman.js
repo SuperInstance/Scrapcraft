@@ -177,6 +177,11 @@ const QUIPS = {
     "Supply drop contents secured. Earl approves of this level of initiative.",
     "Mystery crate. Real gear inside. That's the scrapyard lottery and you just won.",
   ],
+  acid_hazard: [
+    "Get out of the acid. Now. That's sulfuric acid leaking from old batteries. Eats through rubber, metal, and boot soles.",
+    "MOVE. That green stuff is H₂SO₄ — battery acid. It corrodes metal in seconds. You are not made of metal. Mostly.",
+    "Acid puddle. Industrial grade. The real ones glow less but smell worse. Get to dry ground.",
+  ],
   waypoint_drop: [
     "Flag's down. Bot knows where to go. Real autonomous vehicles use the same trick — GPS coordinate, compass bearing, distance sensor. You just built basic autopilot.",
     "Waypoint set. Load the Waypoint Navigator brain and watch it steer. Bearing plus distance. That's how delivery drones navigate.",
@@ -394,6 +399,7 @@ export class Foreman {
       'airdrop_looted':     'airdrop_looted',
       'lucky_find':         'lucky_find',
       'waypoint_drop':      'waypoint_drop',
+      'acid_hazard':        'acid_hazard',
     };
     const key = map[event];
     if (key) this.say(key);

@@ -21,6 +21,7 @@ export const B = {
   FLOODLIGHT: 18,
   CRYSTAL_ORE: 19,
   SCRAP_CANNON: 20,
+  ACID_PUDDLE: 21,
 };
 
 // hex color, emissive tint, roughness, whether it's solid/interactive/drops loot
@@ -74,6 +75,10 @@ export const BLOCK_DEF = {
                      interactive: true, station: 'scrap_cannon',
                      emissive: 0x331100, emissiveIntensity: 0.2,
                      drop: 'scrap_cannon', dropChance: 1.0 },
+  [B.ACID_PUDDLE]: { name: 'Acid Puddle',   color: 0x3a6e0a, rough: 0.1, solid: false, hardness: 0.1,
+                     emissive: 0x44ff00, emissiveIntensity: 0.6,
+                     hazard: 'acid', hazardDps: 4,
+                     drop: 'rubber_chunk', dropChance: 0.3 },
 };
 
 // Items the player can place as blocks (item ID → block ID)
