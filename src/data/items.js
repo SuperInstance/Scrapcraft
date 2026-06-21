@@ -413,6 +413,13 @@ export const ITEMS = {
     category: 'device',
     stackSize: 1,
   },
+  ore_scanner: {
+    name: 'Ore Scanner',
+    icon: '🔭',
+    desc: "A handheld magnetometer that detects crystal ore within 24 blocks. Hold it in your active slot — an on-screen compass arrow points you toward the nearest vein. Real geophysicists use the same principle (magnetic anomaly detection) to find ore deposits from aircraft.",
+    category: 'device',
+    stackSize: 1,
+  },
 };
 
 export function getItem(id) {

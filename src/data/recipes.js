@@ -477,6 +477,16 @@ export const RECIPES = [
     tier: 2,
     foremanQuip: "Hold G with it selected and it flies. Blasts a 2-block radius. Do NOT throw it at my shed. Or the oil drums. Or me.",
   },
+  {
+    id: 'r_ore_scanner',
+    output: 'ore_scanner',
+    qty: 1,
+    ingredients: { ir_module: 2, circuit_board: 1, copper_wire: 2 },
+    station: 'workbench',
+    tier: 2,
+    unlockAfter: 'r_ir_module',
+    foremanQuip: "Magnetometer. Detects ferromagnetic anomalies. Real geophysicists fly them over mountains to find ore from the air. You'll carry yours. Less glamorous. Same physics.",
+  },
 ];
 
 export function getRecipe(id) {

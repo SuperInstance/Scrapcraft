@@ -137,6 +137,12 @@ const CODEX = [
     text: `Sulfuric acid (H₂SO₄) is the electrolyte inside lead-acid batteries — the same ones used in cars. When old batteries crack or corrode, the acid leaks out. It has a pH below 1, which means it's extremely reactive.\n\nAcid works by donating H⁺ ions (protons) to whatever it touches. Metal atoms get oxidized — they lose electrons to the acid and dissolve. That's why acid burns through iron scrap and rubber alike. Real e-waste workers handle acid with thick rubber gloves and face shields.\n\nIn Scrapcraft, acid puddles drain your HP at 4/sec. A repair kit patches the damage. In real life, you'd need a base (like baking soda — sodium bicarbonate, NaHCO₃) to neutralize it: acid + base → salt + water + CO₂ gas.`,
   },
   {
+    id: 'ore_scanner',
+    title: 'How Does Magnetic Ore Detection Work?',
+    icon: '🔭',
+    text: `Minerals like magnetite (Fe₃O₄) and pyrrhotite are ferromagnetic — their crystal structure means unpaired electrons all spin in the same direction, creating a measurable magnetic field.\n\nGeophysicists use aeromagnetic surveys: they fly a magnetometer (a precise magnetic field sensor) over terrain and record variations from Earth's baseline field. Ore deposits show up as "anomalies" — spikes or dips in the magnetic reading.\n\nThe INA219 current sensor measures voltage across a shunt resistor. A Hall-effect sensor (like the SS49E) measures magnetic field strength directly, outputting a voltage proportional to field strength.\n\nThe Ore Scanner in Scrapcraft uses a 24-block scan radius and points an arrow toward the nearest Crystal Ore. The real math: bearing = atan2(ΔX, ΔZ) then subtract your heading to get relative direction. That's the same calculation as GPS waypoint navigation.`,
+  },
+  {
     id: 'lightning_storm',
     title: 'Why Is Lightning Dangerous in a Scrapyard?',
     icon: '⛈',
