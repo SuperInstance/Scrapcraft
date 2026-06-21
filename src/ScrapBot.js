@@ -307,6 +307,19 @@ export class ScrapBot {
     this._legL.rotation.x = swing;
     this._legR.rotation.x = -swing;
 
+    // Exhaust trail — smoke particles behind bot when driving fast
+    if (Math.abs(r.drivePower) > 0.45) {
+      this._exhaustTimer = (this._exhaustTimer ?? 0) + dt;
+      if (this._exhaustTimer > 0.12) {
+        this._exhaustTimer = 0;
+        const backX = r.x - Math.sin(r.heading) * 0.35;
+        const backZ = r.z - Math.cos(r.heading) * 0.35;
+        this._game?.particles?.burst(backX, 0.9, backZ, 'smoke', 2);
+      }
+    } else {
+      this._exhaustTimer = 0;
+    }
+
     for (const ev of this._runtime.drainEvents()) {
       this._handleEffect(ev);
     }

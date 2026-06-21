@@ -283,6 +283,21 @@ export class Game {
       giveLoot(def.drop);
     }
 
+    // Lucky Find — 3% chance of bonus rare item from junk blocks
+    const LUCKY_BLOCKS = new Set([B.SCRAP_PILE, B.OIL_DRUM, B.JUNK_CAR]);
+    const LUCKY_LOOT   = ['battery_pack', 'ir_module', 'circuit_board', 'ldr_module', 'spring', 'gear_small', 'crystal_fragment'];
+    if (LUCKY_BLOCKS.has(id) && Math.random() < 0.03) {
+      const lucky = LUCKY_LOOT[Math.floor(Math.random() * LUCKY_LOOT.length)];
+      this.player.addItem(lucky, 1);
+      const lDef = getItem(lucky);
+      this.ui.notify(`🍀 Lucky Find! ${lDef?.icon ?? ''} ${lDef?.name ?? lucky} hidden in the junk!`);
+      this.particles.burst(x, y + 1, z, 'confetti', 14);
+      this.audio.pickup();
+      this.foreman.onEvent('lucky_find', {});
+      this.achievements.track('lucky_find', {});
+      this.xpSystem.gain(5);
+    }
+
     // Supply drop bonus loot
     const crateKey = `${x},${y},${z}`;
     if (this._airdropCrates?.has(crateKey)) {

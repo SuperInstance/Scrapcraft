@@ -478,6 +478,20 @@
     #codex-content h3 { color:#f0b429; font-size:15px; margin-bottom:14px; }
     .codex-text p { color:#b0b0b0; font-size:12px; line-height:1.75; margin-bottom:12px; }
 
+    /* Stats / Field Report tab */
+    #tab-stats { display:none; padding:8px 0; overflow-y:auto; max-height:460px; }
+    #stats-panel { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:4px; }
+    .stat-card {
+      background:#0e0e0e; border:1px solid #222; border-radius:6px;
+      padding:10px 14px;
+    }
+    .stat-card h4 { color:#f0b429; font-size:10px; letter-spacing:1px; margin:0 0 8px; }
+    .stat-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+    .stat-label { color:#666; font-size:11px; }
+    .stat-val { color:#e0e0e0; font-size:12px; font-weight:bold; }
+    .stat-bar-wrap { height:4px; background:#181818; border-radius:2px; margin-top:2px; }
+    .stat-bar-fill { height:4px; border-radius:2px; background:#f0b429; transition:width 0.3s; }
+
     /* ── Tooltip ── */
     #tooltip {
       position:fixed; background:rgba(0,0,0,0.94); border:1px solid #333;
@@ -943,6 +957,7 @@
         <button class="tab-btn active" data-tab="crafting">CRAFTING</button>
         <button class="tab-btn" data-tab="achievements">ACHIEVEMENTS</button>
         <button class="tab-btn" data-tab="codex">ENGINEER'S CODEX</button>
+        <button class="tab-btn" data-tab="stats">FIELD REPORT</button>
       </div>
 
       <!-- Crafting -->
@@ -963,6 +978,11 @@
       <!-- Achievements -->
       <div class="tab-panel" id="tab-achievements">
         <div id="ach-list"></div>
+      </div>
+
+      <!-- Field Report (Stats) -->
+      <div class="tab-panel" id="tab-stats">
+        <div id="stats-panel"></div>
       </div>
 
       <!-- Codex -->

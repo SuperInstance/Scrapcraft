@@ -177,6 +177,11 @@ const QUIPS = {
     "Supply drop contents secured. Earl approves of this level of initiative.",
     "Mystery crate. Real gear inside. That's the scrapyard lottery and you just won.",
   ],
+  lucky_find: [
+    "Lucky find. I put that there on purpose. (I did not put that there on purpose.)",
+    "Something useful buried in the junk. The yard rewards patience. Also stubbornness.",
+    "Ha. Found something. The scrapyard provides. Occasionally.",
+  ],
 };
 
 // Quests Earl assigns in sequence
@@ -382,6 +387,7 @@ export class Foreman {
       'grenade_big_hit':    'grenade_big_hit',
       'airdrop_incoming':   'airdrop_incoming',
       'airdrop_looted':     'airdrop_looted',
+      'lucky_find':         'lucky_find',
     };
     const key = map[event];
     if (key) this.say(key);
