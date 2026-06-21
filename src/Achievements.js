@@ -307,6 +307,13 @@ export const ACHIEVEMENT_LIST = [
     desc: 'Your bot detected crystal ore using its magnetic sensor. The Deep Yard holds its secrets — but not from your bot.',
     check: (s) => (s.oreDetections ?? 0) >= 1,
   },
+  {
+    id: 'grenadier',
+    icon: '💣',
+    name: 'Collateral Damage',
+    desc: 'Destroy 3+ blocks with a single Scrap Grenade. Earl was in the shed. He heard it. He chose not to look.',
+    check: (s) => (s.grenadeMaxBlocks ?? 0) >= 3,
+  },
 ];
 
 export class Achievements {
@@ -338,6 +345,7 @@ export class Achievements {
       cannonsFired: 0,
       waypointReached: 0,
       oreDetections: 0,
+      grenadeMaxBlocks: 0,
     };
   }
 
@@ -400,6 +408,9 @@ export class Achievements {
         break;
       case 'ore_detect':
         s.oreDetections = (s.oreDetections ?? 0) + 1;
+        break;
+      case 'grenade_splash':
+        s.grenadeMaxBlocks = Math.max(s.grenadeMaxBlocks ?? 0, data.count ?? 0);
         break;
     }
     this._check();

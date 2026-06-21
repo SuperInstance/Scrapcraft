@@ -157,6 +157,16 @@ const QUIPS = {
     "Signal spike! Your bot found ore. The LED went green, which is the universal language for 'dig here, genius.'",
     "Ore detected. I put those crystals back there myself. Don't tell anyone they light up.",
   ],
+  grenade_fire: [
+    "Scrap Grenade. I see you found the fun one. Keep it away from my workbench.",
+    "That's a grenade going off in my yard. I'm trying to be calm about this.",
+    "Select G, throw it, run. That's the full manual. You're welcome.",
+  ],
+  grenade_big_hit: [
+    "Three blocks gone. Simultaneously. Earl is impressed and furious in equal measure.",
+    "That's what I call efficiency. Terrible, dangerous efficiency. Well done.",
+    "I heard that from the other side of the yard. Also, I'm missing a wall. Just noticed.",
+  ],
 };
 
 // Quests Earl assigns in sequence
@@ -358,6 +368,8 @@ export class Foreman {
       'cannon_fire':        'cannon_fire',
       'waypoint_reach':     'waypoint_reached',
       'ore_detect':         'ore_detect',
+      'grenade_fire':       'grenade_fire',
+      'grenade_big_hit':    'grenade_big_hit',
     };
     const key = map[event];
     if (key) this.say(key);
