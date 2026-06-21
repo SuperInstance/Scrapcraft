@@ -186,6 +186,43 @@ export const EXAMPLE_SQUARE = new TileProgram({
   ],
 });
 
+/**
+ * Crystal ore hunter — drives through The Deep Yard scanning for ore signals.
+ * LED colour codes the signal strength: red=searching, blue=warm, green=jackpot.
+ * Uses the ore_nearby hall-effect sensor (Spark Brain required).
+ */
+export const EXAMPLE_ORE_HUNTER = new TileProgram({
+  name: 'Ore Hunter',
+  brain: 'spark',
+  nodes: [
+    T.forever([
+      T.ifElse(
+        T.cond('ore_nearby', 'gt', 0.65),  // close hit — stop and signal
+        [
+          T.action('stop'),
+          T.action('led', { state: 'green' }),
+          T.action('beep', { pitch: 'high' }),
+          T.wait(0.3),
+          T.action('beep', { pitch: 'high' }),
+          T.wait(0.5),
+        ],
+        [
+          T.ifElse(
+            T.cond('ore_nearby', 'gt', 0.3),  // warm — creep toward signal
+            [T.action('led', { state: 'blue' }), T.action('drive', { dir: 'forward', speed: 0.3 })],
+            [T.action('led', { state: 'red' }),  T.action('drive', { dir: 'forward', speed: 0.55 })],
+          ),
+          // Wall avoidance while scanning
+          T.if(T.cond('distance_ahead', 'lt', 0.2), [
+            T.action('drive', { dir: 'backward', speed: 0.4 }), T.wait(0.3),
+            T.action('turn', { dir: 'right', speed: 0.6 }),     T.wait(0.35),
+          ]),
+        ],
+      ),
+    ]),
+  ],
+});
+
 // Navigate toward the player's dropped waypoint flag (Y key)
 export const EXAMPLE_WAYPOINT_NAV = new TileProgram({
   name: 'Waypoint Navigator',

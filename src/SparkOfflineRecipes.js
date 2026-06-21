@@ -246,6 +246,32 @@ export const OFFLINE_RECIPES = [
     ]}),
   },
   {
+    keywords: ['ore', 'crystal', 'mine', 'scan', 'magnetic', 'detector', 'hunter', 'deep yard'],
+    reply:    "Crystal ore hunter! It uses a magnetic sensor to sniff out ore in the Deep Yard. LED goes green when it's right on top of some. Dig it up after!",
+    program:  new TileProgram({ name: 'Ore Hunter', brain: 'spark', nodes: [
+      T.forever([
+        T.ifElse(T.cond('ore_nearby', 'gt', 0.65),
+          [
+            T.action('stop'),
+            T.action('led', { state: 'green' }),
+            T.action('beep', { pitch: 'high' }), T.wait(0.3),
+            T.action('beep', { pitch: 'high' }), T.wait(0.5),
+          ],
+          [
+            T.ifElse(T.cond('ore_nearby', 'gt', 0.3),
+              [T.action('led', { state: 'blue' }),  T.action('drive', { dir: 'forward', speed: 0.3 })],
+              [T.action('led', { state: 'red' }),   T.action('drive', { dir: 'forward', speed: 0.55 })],
+            ),
+            T.if(T.cond('distance_ahead', 'lt', 0.2), [
+              T.action('drive', { dir: 'backward', speed: 0.4 }), T.wait(0.3),
+              T.action('turn', { dir: 'right', speed: 0.6 }), T.wait(0.35),
+            ]),
+          ],
+        ),
+      ]),
+    ]}),
+  },
+  {
     keywords: ['storm', 'rain', 'weather', 'shelter', 'hide', 'cloud'],
     reply:    "Storm shelter protocol! It heads for cover when rain hits and stops. Smarter than most humans.",
     program:  new TileProgram({ name: 'Storm Shelter', brain: 'spark', nodes: [

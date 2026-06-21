@@ -184,6 +184,49 @@ export class GameWorldAdapter {
     return Math.sin(Math.atan2(dx, dz) - heading);
   }
 
+  /**
+   * Magnetic ore proximity scanner: returns 0 (no ore in range) → 1 (ore right here).
+   * Scans a 10-block radius; each check is a direct array lookup, so it's cheap.
+   */
+  oreNearby(x, z) {
+    const RANGE = 10;
+    const range2 = RANGE * RANGE;
+    let minDist2 = range2 + 1;
+    const wx = Math.round(x), wz = Math.round(z);
+    for (let dz = -RANGE; dz <= RANGE; dz++) {
+      for (let dx = -RANGE; dx <= RANGE; dx++) {
+        const d2 = dx * dx + dz * dz;
+        if (d2 >= minDist2) continue;
+        for (let y = 0; y < (this.world.height ?? 10); y++) {
+          if (this.world.getBlock?.(wx + dx, y, wz + dz) === B.CRYSTAL_ORE) {
+            minDist2 = d2;
+            break;
+          }
+        }
+      }
+    }
+    if (minDist2 >= range2) return 0;
+    return Math.max(0, 1 - Math.sqrt(minDist2) / RANGE);
+  }
+
+  /**
+   * Floor material type under the bot: 0 = bare dirt/void, 0.33 = concrete,
+   * 0.66 = metal/scrap, 1.0 = track/crystal — mirrors real IR reflectance sensor
+   * that distinguishes surface materials by reflective index.
+   */
+  floorType(x, z) {
+    const wx = Math.floor(x), wz = Math.floor(z);
+    for (let y = 2; y >= 0; y--) {
+      const id = this.world.getBlock?.(wx, y, wz);
+      if (!id) continue;
+      if (id === B.TRACK || id === B.CRYSTAL_ORE) return 1.0;
+      if (id === B.RUST_METAL || id === B.CLEAN_METAL || id === B.WALL_METAL || id === B.SCRAP_PILE) return 0.66;
+      if (id === B.CONCRETE || id === B.GRAVEL) return 0.33;
+      return 0.1; // dirt / wood / misc
+    }
+    return 0;
+  }
+
   /** Vision Brain stub: "sees target" if facing the player within a cone. */
   seesTarget(x, z, heading) {
     const p = this.player?.pos;
