@@ -134,6 +134,13 @@ export class Game {
       lapsEl:    document.getElementById('lap-timer'),
     };
 
+    // Ghost lap replay — records best lap as [x,z,yaw,ms] frames, plays back translucent bot
+    this._ghostFrames     = [];
+    this._bestGhostFrames = [];
+    this._ghostPbTime     = 0;
+    this._ghostRecTimer   = 0;
+    this._ghostBotMesh    = null;
+
     this._bindInput();
 
     // Wire health callback: any damage/heal updates HUD + flashes vignette on damage
@@ -885,7 +892,8 @@ export class Game {
     this.scrapBot.tick(dt, this.world);
     if (this.scrapBot2) this.scrapBot2.tick(dt, this.world);
 
-    this._tickLapTimer();
+    this._tickLapTimer(dt);
+    this._tickGhostPlayback(dt);
     this._tickBotTrackSparks(dt);
 
     // Speech bubble projection
@@ -1342,7 +1350,7 @@ export class Game {
   }
 
   // TRACK circuit lap timer — gate: x 30..46, z 13..15, y 0
-  _tickLapTimer() {
+  _tickLapTimer(dt) {
     const ls = this._lapState;
     if (!ls.lapsEl) return;
 
@@ -1352,6 +1360,20 @@ export class Game {
     if (!bot?.isActive) {
       if (ls.inGate) { ls.inGate = false; }
       return;
+    }
+
+    // Record ghost frames at 10 Hz during active lap
+    if (ls.lapStart > 0) {
+      this._ghostRecTimer += dt;
+      if (this._ghostRecTimer >= 0.1) {
+        this._ghostRecTimer = 0;
+        this._ghostFrames.push([
+          +bot._pos.x.toFixed(2),
+          +bot._pos.z.toFixed(2),
+          +(bot._mesh?.rotation.y ?? 0).toFixed(3),
+          (performance.now() - ls.lapStart) | 0,
+        ]);
+      }
     }
 
     const bx = bot._pos.x, bz = bot._pos.z;
@@ -1375,12 +1397,64 @@ export class Game {
         this.particles.burst(38, 1.5, 14, 'confetti', improved ? 30 : 14);
         this.achievements.track('lap_complete', {});
         this.xpSystem.gain(20);
-        if (improved) setTimeout(() => this.foreman.onEvent('bot_lap_record', {}), 500);
+        if (improved) {
+          this._bestGhostFrames = this._ghostFrames.slice();
+          this.saveSystem.markDirty();
+          setTimeout(() => this.foreman.onEvent('bot_lap_record', {}), 500);
+        }
         setTimeout(() => ls.lapsEl?.classList.remove('show'), 5000);
       }
+      // New lap starting — reset recording and ghost playback
+      this._ghostFrames   = [];
+      this._ghostRecTimer = 0;
+      this._ghostPbTime   = 0;
       ls.lapStart = now;
+      if (this._bestGhostFrames?.length) {
+        setTimeout(() => this.foreman.onEvent('ghost_lap_start', {}), 400);
+      }
     }
     ls.inGate = inGate;
+  }
+
+  _getGhostMesh() {
+    if (!this._ghostBotMesh) {
+      const geo = new THREE.BoxGeometry(0.55, 0.85, 0.7);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x00ffcc, emissive: 0x00aa88, emissiveIntensity: 0.5,
+        transparent: true, opacity: 0.35, depthWrite: false,
+      });
+      this._ghostBotMesh = new THREE.Mesh(geo, mat);
+      this._ghostBotMesh.visible = false;
+      this.renderer.scene.add(this._ghostBotMesh);
+    }
+    return this._ghostBotMesh;
+  }
+
+  _tickGhostPlayback(dt) {
+    const ghost = this._getGhostMesh();
+    const frames = this._bestGhostFrames;
+    const ls = this._lapState;
+    const ghostEl = document.getElementById('ghost-indicator');
+
+    if (!frames?.length || !ls.lapStart) {
+      ghost.visible = false;
+      ghostEl?.classList.remove('show');
+      return;
+    }
+
+    this._ghostPbTime += dt * 1000;
+
+    // Linear scan — max ~300 frames, negligible cost
+    let frame = frames[0];
+    for (let i = 1; i < frames.length; i++) {
+      if (frames[i][3] > this._ghostPbTime) break;
+      frame = frames[i];
+    }
+
+    ghost.position.set(frame[0], 1.42, frame[1]);
+    ghost.rotation.y = frame[2];
+    ghost.visible = true;
+    ghostEl?.classList.add('show');
   }
 
   _updateSpeechBubble(bot, el) {

@@ -92,6 +92,11 @@ const QUIPS = {
     "Eight track strips from two rubber chunks. That's called efficiency. I taught you that. Indirectly.",
     "Now you can build your own race course. First rule: don't let the bot win unsupervised.",
   ],
+  ghost_lap_start: [
+    "Ghost lap active. That translucent thing is your previous best. Beat it or cry about it.",
+    "You're racing a ghost of yourself. Philosophy aside — optimize your turning radius.",
+    "Watch where the ghost slows down. That's your bottleneck. Engineering 101: find the constraint.",
+  ],
   bot_lap_record: [
     "New lap record. I would clap but my hands are full of grease and dignity.",
     "It lapped the circuit. In my day we used stopwatches and yelled. This is better.",
@@ -391,6 +396,7 @@ export class Foreman {
       'craft_track_strip':   'craft_track',
       'craft_scrap_magnet':  'craft_scrap_magnet',
       'craft_ir_module':     'craft_ir_module',
+      'ghost_lap_start':     'ghost_lap_start',
       'bot_lap_record':      'bot_lap_record',
       'near_track':          'near_track',
       'near_workbench':     'near_workbench',
