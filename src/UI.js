@@ -170,6 +170,7 @@ export class UI {
     this._invGrid         = document.getElementById('inv-grid');
     this._recipeList      = document.getElementById('recipe-list');
     this._craftBtn        = document.getElementById('craft-btn');
+    this._craftBtnX5      = document.getElementById('craft-btn-x5');
     this._foremanBubble   = document.getElementById('foreman-bubble');
     this._foremanText     = document.getElementById('foreman-text');
     this._questBox        = document.getElementById('quest-box');
@@ -385,6 +386,7 @@ export class UI {
 
   _bindOverlayEvents() {
     this._craftBtn.addEventListener('click', () => this._doCraft());
+    this._craftBtnX5.addEventListener('click', () => this._doCraftBatch(5));
     document.addEventListener('mousemove', e => this._moveTooltip(e));
 
     // Tab switching
@@ -420,6 +422,7 @@ export class UI {
     this._overlay.classList.remove('open');
     this._selectedRecipe = null;
     this._craftBtn.style.display = 'none';
+    this._craftBtnX5.style.display = 'none';
     document.getElementById('game-canvas').requestPointerLock();
   }
 
@@ -480,6 +483,7 @@ export class UI {
       card.addEventListener('click', () => {
         this._selectedRecipe = r;
         this._craftBtn.style.display = r.canCraft ? 'block' : 'none';
+        this._craftBtnX5.style.display = r.canCraft ? 'block' : 'none';
         document.querySelectorAll('.recipe-card').forEach(c => c.style.outline = 'none');
         card.style.outline = '2px solid #f0b429';
       });
@@ -496,11 +500,37 @@ export class UI {
       this._renderRecipes();
       this._selectedRecipe = null;
       this._craftBtn.style.display = 'none';
+      this._craftBtnX5.style.display = 'none';
       this.updateHotbar(this.game.player);
     } else {
       this.notify(`Can't craft: ${result.reason}`);
       this.game.audio.error();
     }
+  }
+
+  _doCraftBatch(n) {
+    if (!this._selectedRecipe) return;
+    const id = this._selectedRecipe.id;
+    let crafted = 0, full = false;
+    for (let i = 0; i < n; i++) {
+      const result = this.game.craftingSystem.craft(id);
+      if (!result.ok) break;
+      crafted++;
+      if (result.dropped > 0) { full = true; break; }
+    }
+    if (crafted === 0) {
+      this.notify(`Can't craft: not enough materials`);
+      this.game.audio.error();
+      return;
+    }
+    if (full) this.notify('Inventory full — some items were lost!');
+    this.notify(`⚒ Crafted ×${crafted}${crafted < n ? ' (materials exhausted)' : ''}!`);
+    this._renderInventory();
+    this._renderRecipes();
+    this._selectedRecipe = null;
+    this._craftBtn.style.display = 'none';
+    this._craftBtnX5.style.display = 'none';
+    this.updateHotbar(this.game.player);
   }
 
   // ── Achievement tab ───────────────────────────────────────────────────
