@@ -380,6 +380,14 @@ export const ITEMS = {
     stackSize: 1,
   },
 
+  waypoint_flag: {
+    name: 'Waypoint Flag',
+    icon: '🚩',
+    desc: "Plant this flag to give your bot a GPS target. Uses the same concept as real autonomous vehicles: drop a coordinate, the bot steers toward it using bearing + distance sensors. Press G to plant; bot needs Waypoint Navigator brain.",
+    category: 'utility',
+    stackSize: 4,
+  },
+
   // ── Special tools ──
   scrap_magnet: {
     name: 'Scrap Magnet',
