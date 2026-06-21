@@ -547,6 +547,16 @@
     }
     #craft-btn:hover { background:#ffd060; }
     #craft-btn:active { transform:scale(0.98); }
+    #craft-btn-x5 {
+      margin-top:5px; width:100%; padding:7px;
+      background:rgba(240,180,41,0.12); color:#f0b429;
+      border:1px solid rgba(240,180,41,0.35); border-radius:6px;
+      font-family:inherit; font-size:12px; font-weight:bold;
+      cursor:pointer; letter-spacing:1px; display:none;
+      transition:background 0.1s;
+    }
+    #craft-btn-x5:hover { background:rgba(240,180,41,0.22); }
+    #craft-btn-x5:active { transform:scale(0.98); }
 
     /* Achievements tab */
     #tab-achievements { display:none; }
@@ -1114,6 +1124,7 @@
             <h3>AVAILABLE RECIPES</h3>
             <div id="recipe-list"></div>
             <button id="craft-btn">⚒ CRAFT</button>
+            <button id="craft-btn-x5">⚒ CRAFT ×5</button>
           </div>
         </div>
       </div>
