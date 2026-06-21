@@ -178,6 +178,27 @@
     #lap-timer.show { opacity:1; }
 
     /* ── Bot sensor dashboard (bottom-left, above XP bar) ── */
+    /* ── Bot serial monitor (above sensor HUD) ── */
+    #bot-serial-log {
+      position:absolute; bottom:286px; left:16px;
+      background:rgba(0,10,5,0.90); border:1px solid #0a3016;
+      border-radius:5px; padding:6px 8px; width:172px;
+      font-family:'Courier New',monospace; font-size:8.5px;
+      pointer-events:none; opacity:0; transition:opacity 0.3s ease;
+      max-height:90px; overflow:hidden;
+    }
+    #bot-serial-log.active { opacity:1; }
+    #bsl-title {
+      color:#005522; letter-spacing:1.5px; font-size:7.5px; margin-bottom:4px;
+    }
+    .bsl-line {
+      color:#00aa55; line-height:1.5; white-space:nowrap;
+      overflow:hidden; text-overflow:ellipsis;
+      animation:bsl-fade 0.3s ease;
+    }
+    .bsl-line.new { color:#00ff88; }
+    @keyframes bsl-fade { from { opacity:0; } to { opacity:1; } }
+
     #bot-sensor-hud {
       position:absolute; bottom:66px; left:16px;
       background:rgba(0,18,10,0.90); border:1px solid #0a3016;
@@ -883,6 +904,12 @@
       <div id="ch-label">Loading challenge…</div>
       <div id="ch-bar-wrap"><div id="ch-bar-fill"></div></div>
       <div id="ch-counter">0 / ?</div>
+    </div>
+
+    <!-- Bot serial monitor (last 5 speak() calls, Arduino-style) -->
+    <div id="bot-serial-log">
+      <div id="bsl-title">📟 BOT SERIAL</div>
+      <div id="bsl-lines"></div>
     </div>
 
     <!-- Bot sensor dashboard (shows when a brain program is running) -->
