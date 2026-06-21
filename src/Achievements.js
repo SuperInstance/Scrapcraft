@@ -342,6 +342,13 @@ export const ACHIEVEMENT_LIST = [
     desc: 'Complete 3 Salvage Run challenges. You think in goals, work in steps, and finish what you start. Engineering mindset.',
     check: (s) => (s.challengesCompleted ?? 0) >= 3,
   },
+  {
+    id: 'signal_hunter',
+    icon: '📡',
+    name: 'Signal Acquired',
+    desc: 'Find 3 buried signal caches with the signal radio. RF direction-finding in a scrapyard. Same principle as search-and-rescue beacons.',
+    check: (s) => (s.buriedCachesFound ?? 0) >= 3,
+  },
 ];
 
 export class Achievements {
@@ -378,6 +385,7 @@ export class Achievements {
       luckyFinds: 0,
       narrowEscapes: 0,
       challengesCompleted: 0,
+      buriedCachesFound:  0,
     };
   }
 
@@ -455,6 +463,9 @@ export class Achievements {
         break;
       case 'challenge_complete':
         s.challengesCompleted = (s.challengesCompleted ?? 0) + 1;
+        break;
+      case 'buried_cache':
+        s.buriedCachesFound = (s.buriedCachesFound ?? 0) + 1;
         break;
     }
     this._check();

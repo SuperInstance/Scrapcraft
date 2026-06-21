@@ -420,6 +420,13 @@ export const ITEMS = {
     category: 'device',
     stackSize: 1,
   },
+  signal_radio: {
+    name: 'Signal Radio',
+    icon: '📡',
+    desc: "Picks up the 433 MHz EM pulse emitted by buried scrap caches. Hold in active slot — signal bars and a compass arrow guide you to the cache. Dig down when signal is full strength.",
+    category: 'device',
+    stackSize: 1,
+  },
 };
 
 export function getItem(id) {

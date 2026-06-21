@@ -137,6 +137,12 @@ const CODEX = [
     text: `Sulfuric acid (H₂SO₄) is the electrolyte inside lead-acid batteries — the same ones used in cars. When old batteries crack or corrode, the acid leaks out. It has a pH below 1, which means it's extremely reactive.\n\nAcid works by donating H⁺ ions (protons) to whatever it touches. Metal atoms get oxidized — they lose electrons to the acid and dissolve. That's why acid burns through iron scrap and rubber alike. Real e-waste workers handle acid with thick rubber gloves and face shields.\n\nIn Scrapcraft, acid puddles drain your HP at 4/sec. A repair kit patches the damage. In real life, you'd need a base (like baking soda — sodium bicarbonate, NaHCO₃) to neutralize it: acid + base → salt + water + CO₂ gas.`,
   },
   {
+    id: 'signal_radio',
+    title: 'How Do Radio Signal Finders Work?',
+    icon: '📡',
+    text: `Radio direction finding (RDF) is the technique of locating the source of a radio signal. Emergency locator transmitters (ELTs) on aircraft and EPIRBs on ships broadcast a distress beacon on 406 MHz — satellites pick this up and relay the position to rescue services.\n\nThe 433 MHz ISM band is used for short-range wireless devices (garage openers, weather stations, keyfobs). It's unregulated in most countries, which is why it's popular for hobbyist projects.\n\nTo find a signal source, RDF receivers use a rotating directional antenna (like a Yagi or loop antenna). Signal strength peaks when the antenna is aimed directly at the transmitter, and nulls when pointed sideways. Software-defined radios (SDR) can do this digitally.\n\nThe Signal Radio in Scrapcraft simulates RSSI (received signal strength indicator) — a 0-100% value that increases as you approach the source. The 5-bar display is the same UI pattern your phone uses for cell signal, which is also RSSI under the hood.`,
+  },
+  {
     id: 'ore_scanner',
     title: 'How Does Magnetic Ore Detection Work?',
     icon: '🔭',

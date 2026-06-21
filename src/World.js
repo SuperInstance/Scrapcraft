@@ -91,6 +91,27 @@ export class World {
 
     // ── Band 3: The Deep Yard ────────────────────────────────────────────
     this._band3(rng, W);
+
+    // ── Buried signal caches — discovered with signal_radio ──────────────
+    // Six across the world, one per sub-area, each buried 1-2 blocks deep.
+    // Stored as "x,z" keys; removed from the Set when looted.
+    this.signalCaches = new Set();
+    const cacheSeeds = [
+      [20 + Math.floor(rng() * 80),  10 + Math.floor(rng() * 16)],  // band 0
+      [10 + Math.floor(rng() * 100), 32 + Math.floor(rng() * 26)],  // band 1 a
+      [10 + Math.floor(rng() * 100), 40 + Math.floor(rng() * 20)],  // band 1 b
+      [10 + Math.floor(rng() * 100), 64 + Math.floor(rng() * 26)],  // band 2 a
+      [10 + Math.floor(rng() * 100), 72 + Math.floor(rng() * 20)],  // band 2 b
+      [10 + Math.floor(rng() * 100), 96 + Math.floor(rng() * 28)],  // band 3
+    ];
+    for (const [cx, cz] of cacheSeeds) {
+      const bx = Math.min(125, Math.max(2, cx));
+      const bz = Math.min(125, Math.max(2, cz));
+      this.setBlock(bx, 0, bz, B.BURIED_CACHE);
+      if (this.getBlock(bx, 1, bz) === B.AIR) this.setBlock(bx, 1, bz, B.DIRT);
+      if (this.getBlock(bx, 2, bz) === B.AIR) this.setBlock(bx, 2, bz, B.CONCRETE);
+      this.signalCaches.add(`${bx},${bz}`);
+    }
   }
 
   // ── Band generators ──────────────────────────────────────────────────

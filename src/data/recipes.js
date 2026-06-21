@@ -487,6 +487,16 @@ export const RECIPES = [
     unlockAfter: 'r_ir_module',
     foremanQuip: "Magnetometer. Detects ferromagnetic anomalies. Real geophysicists fly them over mountains to find ore from the air. You'll carry yours. Less glamorous. Same physics.",
   },
+  {
+    id: 'r_signal_radio',
+    output: 'signal_radio',
+    qty: 1,
+    ingredients: { pir_module: 1, copper_wire: 3, antenna: 1 },
+    station: 'workbench',
+    tier: 2,
+    unlockAfter: 'r_pir_module',
+    foremanQuip: "433 MHz pulse detector. Buried caches emit a low-power RF beacon — emergency locator tech, same as an EPIRB on a life raft. Triangulate from the signal strength. Should've buried those caches deeper.",
+  },
 ];
 
 export function getRecipe(id) {
