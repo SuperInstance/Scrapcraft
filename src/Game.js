@@ -104,9 +104,10 @@ export class Game {
     this._fuelBoostTimer  = 0;   // seconds remaining on fuel_can speed boost
     this._headlampOn      = false;
 
-    // Waypoint system — player drops a flag at their position (Y key)
+    // Waypoint system — player drops a flag at their position (Y key or waypoint_flag item G)
     this._waypoint = null;  // { x, z } or null
     this._waypointMarkerTimer = 0;
+    this._waypointFlagMesh = null;  // THREE.Group, created lazily
 
     // Supply drop system — random airdrop every 90-180s
     this._airdropTimer    = 90 + Math.random() * 90;
@@ -480,15 +481,49 @@ export class Game {
     this._shakeTimer     = 0;
   }
 
-  _dropWaypoint() {
+  _dropWaypoint(consumeItem = false) {
     const p = this.player.pos;
     this._waypoint = { x: p.x, z: p.z };
     this.particles.burst(p.x, p.y, p.z, 'pickup', 12);
-    this.ui.notify('🚩 Waypoint dropped! Your bot will navigate here.');
-    // Update any live bot brain adapters with the new waypoint
+    this.ui.notify('🚩 Waypoint set! Load the Waypoint Navigator brain to send your bot here.');
     for (const bot of [this.scrapBot, this.scrapBot2]) {
       if (bot?._adapter) bot._adapter.waypoint = this._waypoint;
     }
+    if (consumeItem) {
+      this.player.removeItem('waypoint_flag', 1);
+      this.ui.updateHotbar(this.player);
+      this.xpSystem.gain(3);
+    }
+    this._placeWaypointFlag(p.x, p.z);
+    this.foreman?.onEvent('waypoint_drop', {});
+    this.saveSystem.markDirty();
+  }
+
+  _placeWaypointFlag(x, z) {
+    if (!this._waypointFlagMesh) {
+      const group = new THREE.Group();
+      // Pole
+      const poleMat = new THREE.MeshLambertMaterial({ color: 0x999999 });
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 3, 6), poleMat);
+      pole.position.y = 1.5;
+      group.add(pole);
+      // Flag panel
+      const flagMat = new THREE.MeshLambertMaterial({ color: 0xff44cc, emissive: 0x881066, emissiveIntensity: 0.5, side: THREE.DoubleSide });
+      const flag = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.35, 0.04), flagMat);
+      flag.position.set(0.35, 2.85, 0);
+      group.add(flag);
+      this.renderer.scene.add(group);
+      this._waypointFlagMesh = group;
+      this._waypointFlagBase = 0; // animated y offset base
+    }
+    // Find surface y: scan down from height 5 to find topmost solid block
+    let surfY = 1;
+    for (let sy = 5; sy >= 0; sy--) {
+      if (this.world.getBlock(Math.round(x), sy, Math.round(z)) !== 0) { surfY = sy + 1; break; }
+    }
+    this._waypointFlagBaseY = surfY;
+    this._waypointFlagMesh.position.set(x, surfY, z);
+    this._waypointFlagMesh.visible = true;
   }
 
   _spawnAirdrop() {
@@ -613,12 +648,17 @@ export class Game {
       this._headlampOn = false;
       this.renderer.setHeadlamp(false);
     }
-    // Waypoint sparkle — pulse every 3s so the player can visually find it
+    // Waypoint flag animation + sparkle pulse
     if (this._waypoint) {
       this._waypointMarkerTimer = (this._waypointMarkerTimer ?? 0) + dt;
       if (this._waypointMarkerTimer >= 3) {
         this._waypointMarkerTimer = 0;
         this.particles.burst(this._waypoint.x, 1.5, this._waypoint.z, 'pickup', 5);
+      }
+      if (this._waypointFlagMesh) {
+        const t = performance.now() * 0.001;
+        this._waypointFlagMesh.position.y = (this._waypointFlagBaseY ?? 0) + Math.sin(t * 1.8) * 0.1;
+        this._waypointFlagMesh.rotation.y = t * 0.5;
       }
     }
     // Supply drop countdown (flare_pack halves interval)
@@ -1046,6 +1086,9 @@ export class Game {
           this.ui.notify('No active bot to charge.');
         }
         break;
+      case 'waypoint_flag':
+        this._dropWaypoint(true);
+        return;
       case 'scrap_grenade':
         this._throwGrenade();
         return; // _throwGrenade handles removeItem + updateHotbar

@@ -461,6 +461,15 @@ export const RECIPES = [
     foremanQuip: "Don't ask where the supply drops come from. Carry the flare pack. Double the frequency. That's all you need to know.",
   },
   {
+    id: 'r_waypoint_flag',
+    output: 'waypoint_flag',
+    qty: 2,
+    ingredients: { iron_scrap: 2, copper_wire: 1, rubber_chunk: 1 },
+    station: 'workbench',
+    tier: 1,
+    foremanQuip: "GPS in a stick. Press G to plant it, your bot drives straight to it. Real robots do the same — waypoint + compass + distance sensor. You just built the field version.",
+  },
+  {
     id: 'r_scrap_grenade',
     output: 'scrap_grenade',
     qty: 3,

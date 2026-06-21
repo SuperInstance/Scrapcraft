@@ -177,6 +177,11 @@ const QUIPS = {
     "Supply drop contents secured. Earl approves of this level of initiative.",
     "Mystery crate. Real gear inside. That's the scrapyard lottery and you just won.",
   ],
+  waypoint_drop: [
+    "Flag's down. Bot knows where to go. Real autonomous vehicles use the same trick — GPS coordinate, compass bearing, distance sensor. You just built basic autopilot.",
+    "Waypoint set. Load the Waypoint Navigator brain and watch it steer. Bearing plus distance. That's how delivery drones navigate.",
+    "There's your flag. Your bot will drive straight to it. Same math NASA uses for rover navigation. Just... fewer craters here.",
+  ],
   lucky_find: [
     "Lucky find. I put that there on purpose. (I did not put that there on purpose.)",
     "Something useful buried in the junk. The yard rewards patience. Also stubbornness.",
@@ -388,6 +393,7 @@ export class Foreman {
       'airdrop_incoming':   'airdrop_incoming',
       'airdrop_looted':     'airdrop_looted',
       'lucky_find':         'lucky_find',
+      'waypoint_drop':      'waypoint_drop',
     };
     const key = map[event];
     if (key) this.say(key);
