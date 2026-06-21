@@ -223,6 +223,52 @@ export const EXAMPLE_ORE_HUNTER = new TileProgram({
   ],
 });
 
+// Battery-aware patrol: slows to 30% speed when battery drops below 25%
+// Teaches: conditional branching, sensor thresholds, power management
+export const EXAMPLE_BATTERY_SAVER = new TileProgram({
+  name: 'Battery Saver Patrol',
+  brain: 'tin',
+  nodes: [
+    T.forever([
+      // High battery: full-speed patrol loop
+      T.if(
+        T.cond('battery', 'gt', 0.25),
+        [
+          T.action('drive', { dir: 'forward', speed: 0.8 }),
+          T.wait(1.5),
+          T.if(
+            T.cond('distance_ahead', 'lt', 0.15),
+            [
+              T.action('drive', { dir: 'backward', speed: 0.5 }),
+              T.wait(0.3),
+              T.action('turn', { dir: 'right', speed: 0.7 }),
+              T.wait(0.5),
+            ],
+          ),
+        ],
+      ),
+      // Low battery: slow to 30% and beep a warning
+      T.if(
+        T.cond('battery', 'lte', 0.25),
+        [
+          T.action('beep', { pitch: 'low' }),
+          T.action('drive', { dir: 'forward', speed: 0.3 }),
+          T.wait(1.0),
+          T.if(
+            T.cond('distance_ahead', 'lt', 0.15),
+            [T.action('turn', { dir: 'right', speed: 0.4 }), T.wait(0.5)],
+          ),
+        ],
+      ),
+      // Dead battery: stop and beep SOS
+      T.if(
+        T.cond('battery', 'lte', 0.05),
+        [T.action('stop'), T.action('beep', { pitch: 'low' }), T.wait(0.5)],
+      ),
+    ]),
+  ],
+});
+
 // Navigate toward the player's dropped waypoint flag (Y key)
 export const EXAMPLE_WAYPOINT_NAV = new TileProgram({
   name: 'Waypoint Navigator',

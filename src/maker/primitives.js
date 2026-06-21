@@ -367,6 +367,26 @@ export const SENSORS = {
     },
   },
 
+  // Battery level: 0.0 (dead) to 1.0 (full). Used for power-aware programming.
+  battery: {
+    id: 'battery',
+    category: 'sense',
+    kind: 'analog',
+    label: 'battery level',
+    blurb: 'remaining battery charge (1.0 = full, 0.0 = dead). Read by the BMS chip.',
+    read: (robot, world) => world.batteryLevel?.() ?? 1,
+    hw: {
+      platform: ['arduino', 'esp32', 'jetson'],
+      peripheral: 'INA219 current/voltage sensor',
+      pin: 'SDA/SCL (I²C)',
+      setup: { arduino: 'ina219.begin();', micropython: 'ina = INA219(i2c)' },
+    },
+    firmware: {
+      arduino: () => 'ina219.getBusVoltage_V() / MAX_VOLTAGE',
+      micropython: () => 'ina.voltage() / MAX_VOLTAGE',
+    },
+  },
+
   // Vision Brain (Jetson) — abstracted computer vision. "Just works" in-game;
   // maps to a real on-device inference call on actual hardware.
   sees_target: {

@@ -136,6 +136,24 @@ const CODEX = [
     icon: '☠',
     text: `Sulfuric acid (H₂SO₄) is the electrolyte inside lead-acid batteries — the same ones used in cars. When old batteries crack or corrode, the acid leaks out. It has a pH below 1, which means it's extremely reactive.\n\nAcid works by donating H⁺ ions (protons) to whatever it touches. Metal atoms get oxidized — they lose electrons to the acid and dissolve. That's why acid burns through iron scrap and rubber alike. Real e-waste workers handle acid with thick rubber gloves and face shields.\n\nIn Scrapcraft, acid puddles drain your HP at 4/sec. A repair kit patches the damage. In real life, you'd need a base (like baking soda — sodium bicarbonate, NaHCO₃) to neutralize it: acid + base → salt + water + CO₂ gas.`,
   },
+  {
+    id: 'lightning_storm',
+    title: 'Why Is Lightning Dangerous in a Scrapyard?',
+    icon: '⛈',
+    text: `Lightning is a massive electrical discharge — up to 300 million volts and 30,000 amperes — caused by charge separation between storm clouds and the ground. The discharge follows the path of least resistance to ground, which is often the tallest conducting object nearby.\n\nA scrapyard is a lightning hazard nightmare: it's full of metal objects, often sitting on conductive ground. If you're the tallest thing standing in an open metal yard during a storm, you can become part of that path.\n\nThe 30,000 Kelvin temperature is real — five times hotter than the sun's surface. The heated air expands supersonically, which is what you hear as thunder. Light travels faster, so you see it first.\n\nBest protection: get under a solid roof (which redirects the strike around you). Faraday cage principle — conducting shells protect the interior from electric fields.`,
+  },
+  {
+    id: 'rubber_insulation',
+    title: 'Why Does Rubber Protect Against Electricity?',
+    icon: '🥾',
+    text: `Rubber is an electrical insulator — electrons don't flow through it easily because all its electrons are tightly bound in covalent bonds (they're not free to move). This makes rubber the opposite of a conductor like copper.\n\nElectricity needs a continuous path to flow. Rubber boots break that path between your feet and the ground, so current can't easily flow through you. This is why electrical workers wear rubber-soled boots and rubber gloves.\n\nVulcanized rubber (the kind used in boots and gloves) has crosslinked polymer chains that make it even more resistant. It can withstand thousands of volts across a thin layer — Class 00 rubber gloves are rated for 500V; Class 4 gloves handle up to 36,000V.\n\nIn Scrapcraft, rubber boots give acid immunity too — because the same non-reactive polymer chains that block electrons also resist chemical attack from weak acids.`,
+  },
+  {
+    id: 'fall_physics',
+    title: 'How Does Fall Damage Work? (Real Physics)',
+    icon: '💥',
+    text: `When you fall, gravity accelerates you at 9.8 m/s² (32 ft/s²). After 1 second you're moving at 9.8 m/s; after 2 seconds, 19.6 m/s. This is kinetic energy building up: KE = ½mv². Speed matters a lot — double the fall height, and speed only increases by √2, but KE doubles.\n\nThe danger isn't the fall — it's the stop. When you hit the ground, your body has to decelerate from high speed to zero in a very short time. Force = mass × acceleration, and that deceleration spike is what causes injury.\n\nFall damage in Scrapcraft activates only above 12 m/s impact velocity (roughly 7.4 meters of free fall). Below that the spring boots and leg shock absorbers handle it. Above it, damage scales as (speed − 12) × 4. Real parkour athletes bend their knees on landing to increase the stopping distance and reduce peak force — same physics.`,
+  },
 ];
 
 export class UI {
