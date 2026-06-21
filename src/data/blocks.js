@@ -23,6 +23,8 @@ export const B = {
   SCRAP_CANNON: 20,
   ACID_PUDDLE: 21,
   BURIED_CACHE: 22,
+  HOT_SLAG: 23,
+  SOLAR_PANEL: 24,
 };
 
 // hex color, emissive tint, roughness, whether it's solid/interactive/drops loot
@@ -82,6 +84,13 @@ export const BLOCK_DEF = {
                      drop: 'rubber_chunk', dropChance: 0.3 },
   [B.BURIED_CACHE]:{ name: 'Buried Cache',  color: 0x1a4455, rough: 0.7, solid: true, hardness: 0.7,
                      emissive: 0x005577, emissiveIntensity: 0.5 },
+  [B.HOT_SLAG]:   { name: 'Hot Slag',    color: 0xcc3300, rough: 0.9, solid: false, hardness: 0.1,
+                    emissive: 0xff6600, emissiveIntensity: 0.8,
+                    hazard: 'fire', hazardDps: 5,
+                    drop: 'iron_scrap', dropChance: 0.6 },
+  [B.SOLAR_PANEL]:{ name: 'Solar Panel',   color: 0x2244aa, rough: 0.3, solid: true, hardness: 0.8,
+                     emissive: 0x4488ff, emissiveIntensity: 0.4,
+                     drop: 'solar_panel', dropChance: 1.0 },
 };
 
 // Items the player can place as blocks (item ID → block ID)
@@ -91,6 +100,7 @@ export const ITEM_TO_BLOCK = {
   track_strip:  B.TRACK,
   floodlight:   B.FLOODLIGHT,
   scrap_cannon: B.SCRAP_CANNON,
+  solar_panel: B.SOLAR_PANEL,
 };
 
 export function isInteractive(id) {

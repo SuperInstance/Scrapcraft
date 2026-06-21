@@ -2,8 +2,8 @@
  * XPSystem — tracks experience points, levels, and skill unlocks.
  *
  * Level formula: level = floor(sqrt(xp / 10))
- *   Level 1:  10 XP   Level 3:  90 XP   Level 5:  250 XP
- *   Level 8: 640 XP   Level 12: 1440 XP
+ *   Level 1:  10 XP   Level 2:  40 XP   Level 3:  90 XP   Level 4:  160 XP
+ *   Level 5: 250 XP   Level 8: 640 XP   Level 12: 1440 XP
  *
  * Skill nodes gate narrative milestones (and the second-bot at Level 5).
  */
@@ -17,11 +17,25 @@ export const XP_SKILLS = [
     earlQuip: "You hit Level 1. The Maker Lab is open for business. Press [T]. Don't break anything that wasn't already broken.",
   },
   {
+    id: 'scrapper',
+    level: 2,
+    icon: '🗜️',
+    name: 'Scrapper',
+    earlQuip: "Level 2. Mining's getting faster — practice makes profit. I've seen seagulls strip a car faster than you, but you're catching up.",
+  },
+  {
     id: 'programmer',
     level: 3,
     icon: '💡',
     name: 'Programmer',
     earlQuip: "Level 3. Spark — the AI build buddy — can now write tile programs for you. Open the Tile Editor, hit the Spark button, and tell it what you want the bot to do.",
+  },
+  {
+    id: 'bot_whisperer',
+    level: 4,
+    icon: '🤖',
+    name: 'Bot Whisperer',
+    earlQuip: "Level 4. Your ScrapBot listens better than my last apprentice. Keep talking to it — it doesn't bite. The bot, I mean. Apprentice might.",
   },
   {
     id: 'engineer',

@@ -54,6 +54,10 @@ export class ScrapBot {
     this._ui = null;
     this._glowTimer = 0;
     this._glowLight = null;
+    this._lowBattWarn = false;
+    this._exhaustTimer = 0;
+    this._waypointReachedFired = false;
+    this._lastWaypoint = null;
 
     // Maker Lab brain
     this._runtime   = null;

@@ -69,7 +69,6 @@ export class Player {
   }
 
   addItem(id, qty = 1) {
-    const { ITEMS } = require?.('./data/items.js') ?? { ITEMS: {} };
     const maxStack = 64;
     let rem = qty;
     for (let i = 0; i < this.inventory.length && rem > 0; i++) {
@@ -167,7 +166,7 @@ export class Player {
       newPos.z = this.pos.z; this.vel.z = 0;
     }
     if (this.vel.y < 0) {
-      const gy = Math.floor(newPos.y);
+      const gy = Math.max(0, Math.floor(newPos.y)); // clamp to prevent falling through ground at high velocity
       if (['x','z'].some(ax => [-R,R].some(d => {
         const p = { x: newPos.x, z: newPos.z };
         p[ax] += d;

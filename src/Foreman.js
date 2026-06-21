@@ -217,6 +217,26 @@ const QUIPS = {
     "Something useful buried in the junk. The yard rewards patience. Also stubbornness.",
     "Ha. Found something. The scrapyard provides. Occasionally.",
   ],
+  craft_magnet_gloves: [
+    "Magnet gloves. Electromagnets in your pockets. You can pick up dropped items from across the room. Earl is jealous and will never admit it.",
+    "Those gloves have a coil in each finger. Low-voltage, high-amperage field. Don't wear them near my filing cabinet.",
+  ],
+  craft_comm_relay: [
+    "You built a comm relay. To me. That's... touching. In a slightly invasive way. I'm here. Use it.",
+    "A radio relay. Right to Earl's frequency. I'm simultaneously flattered and suspicious. Good engineering either way.",
+  ],
+  place_solar_panel: [
+    "Solar panel, placed. Clean energy. I'm contractually obligated to be grumpy about it, but secretly, I approve.",
+    "Solar power in a scrapyard. The irony is not lost on me. Neither is the free electricity.",
+  ],
+  steam_boiler_fire: [
+    "That's the steam boiler going. I can hear it from here. It sounds angry. That means it's working.",
+    "Steam pressure building. Hope you used the right gauge. I didn't teach you gauge theory for nothing.",
+  ],
+  radar_active: [
+    "Radar dish is scanning. Your minimap just got a whole lot more useful. I can see you watching it from here.",
+    "Radar ping! Ore veins lit up on the map. Good. I hate when people wander around aimlessly.",
+  ],
 };
 
 // Quests Earl assigns in sequence
@@ -228,8 +248,8 @@ export const QUESTS = [
     steps: [
       { label: 'Collect 5 Iron Scrap', check: (p) => p.countItem('iron_scrap') >= 5 },
     ],
-    reward: { item: 'copper_wire', qty: 3 },
-    rewardText: "Here's some copper wire. Try not to tangle it.",
+    rewards: [{ item: 'copper_wire', qty: 3 }, { item: 'iron_scrap', qty: 2 }],
+    rewardText: "Here's some copper wire and iron scrap. Try not to tangle either.",
   },
   {
     id: 'q2',
@@ -238,8 +258,8 @@ export const QUESTS = [
     steps: [
       { label: 'Craft a Wrench', check: (p) => p.crafted.has('wrench') },
     ],
-    reward: { item: 'fuel_can', qty: 2 },
-    rewardText: "Fuel cans. Handle with respect. Or don't. Your funeral.",
+    rewards: [{ item: 'battery_pack', qty: 1 }, { item: 'rubber_chunk', qty: 3 }],
+    rewardText: "A battery pack and some rubber chunks. Handle with respect. Or don't. Your funeral.",
   },
   {
     id: 'q3',
@@ -248,8 +268,8 @@ export const QUESTS = [
     steps: [
       { label: 'Craft a Generator', check: (p) => p.crafted.has('generator') },
     ],
-    reward: { item: 'circuit_board', qty: 3 },
-    rewardText: "Three circuit boards. Don't ask where I got them. You don't want to know.",
+    rewards: [{ item: 'circuit_board', qty: 2 }],
+    rewardText: "Two circuit boards. Don't ask where I got them. You don't want to know.",
   },
   {
     id: 'q4',
@@ -259,8 +279,8 @@ export const QUESTS = [
       { label: 'Craft a Robot Arm', check: (p) => p.crafted.has('robot_arm') },
       { label: 'Craft a ScrapBot', check: (p) => p.crafted.has('robot_helper') },
     ],
-    reward: { item: 'battery_pack', qty: 4 },
-    rewardText: "Battery packs. You've earned them, kid. Don't make me say it again.",
+    rewards: [{ item: 'robot_arm', qty: 1 }],
+    rewardText: "A robot arm. You've earned it, kid. Don't make me say it again.",
   },
   {
     id: 'q5',
@@ -269,8 +289,8 @@ export const QUESTS = [
     steps: [
       { label: 'Craft a Flying Machine', check: (p) => p.crafted.has('flying_machine') },
     ],
-    reward: null,
-    rewardText: "That's it. You've won the yard. I'm retiring. (I'm not retiring. But seriously — nicely done.)",
+    rewards: [{ item: 'fuel_can', qty: 1 }, { item: 'gear_small', qty: 2 }],
+    rewardText: "Fuel can and a couple of gears. That's it. You've won the yard. I'm retiring. (I'm not retiring. But seriously — nicely done.)",
   },
 
   // ── Maker Lab quest chain ────────────────────────────────────────────────
@@ -281,8 +301,8 @@ export const QUESTS = [
     steps: [
       { label: 'Craft the Tin Brain', check: (p) => p.crafted.has('tin_brain') },
     ],
-    reward: { item: 'copper_wire', qty: 5 },
-    rewardText: "Copper wire for your new brain. I hope it's smarter than it looks.",
+    rewards: [{ item: 'copper_wire', qty: 5 }, { item: 'circuit_board', qty: 2 }, { item: 'generator', qty: 1 }],
+    rewardText: "Copper wire, circuit boards, and a generator for your new brain. I hope it's smarter than it looks.",
   },
   {
     id: 'q7',
@@ -291,7 +311,7 @@ export const QUESTS = [
     steps: [
       { label: 'Run a tile program', check: (_, g) => (g?.achievements?.stats?.programsRun ?? 0) >= 1 },
     ],
-    reward: { item: 'circuit_board', qty: 2 },
+    rewards: [{ item: 'circuit_board', qty: 2 }],
     rewardText: "It moved. I'll admit, I didn't think it would work. Circuit boards, for your trouble.",
   },
   {
@@ -301,7 +321,7 @@ export const QUESTS = [
     steps: [
       { label: 'Export a Wokwi diagram', check: (_, g) => (g?.achievements?.stats?.wokwiExported ?? 0) >= 1 },
     ],
-    reward: { item: 'battery_pack', qty: 2 },
+    rewards: [{ item: 'battery_pack', qty: 2 }],
     rewardText: "There you go. Game robot, real robot, same program. Earl is mildly impressed.",
   },
   {
@@ -311,7 +331,7 @@ export const QUESTS = [
     steps: [
       { label: 'Complete a bot lap on the track', check: (_, g) => (g?.achievements?.stats?.lapsCompleted ?? 0) >= 1 },
     ],
-    reward: { item: 'ir_module', qty: 4 },
+    rewards: [{ item: 'ir_module', qty: 4 }],
     rewardText: "IR sensor modules. Four of them. Your bot earned those. Put 'em in a real robot someday.",
   },
   {
@@ -322,7 +342,7 @@ export const QUESTS = [
       { label: 'Craft a Floodlight', check: (p) => p.crafted.has('floodlight') },
       { label: 'Place it in the world', check: (_, g) => (g?.achievements?.stats?.floodlightsPlaced ?? 0) >= 1 },
     ],
-    reward: { item: 'scrap_magnet', qty: 1 },
+    rewards: [{ item: 'scrap_magnet', qty: 1 }],
     rewardText: "A Scrap Magnet. Now scrap comes to you. That's peak scrapyard engineering. You're done growing.",
   },
   {
@@ -333,7 +353,7 @@ export const QUESTS = [
       { label: 'Reach the Deep Yard (z ≥ 96)', check: (_, g) => (g?.player?.pos?.z ?? 0) >= 96 },
       { label: 'Mine 3 Crystal Ore', check: (_, g) => (g?.achievements?.stats?.crystalMined ?? 0) >= 3 },
     ],
-    reward: { item: 'night_goggles', qty: 1 },
+    rewards: [{ item: 'night_goggles', qty: 1 }],
     rewardText: "Night goggles. The Deep Yard at night is... something else. These'll help.",
   },
   {
@@ -344,7 +364,7 @@ export const QUESTS = [
       { label: 'Craft a Headlamp', check: (p) => p.crafted.has('headlamp') },
       { label: 'Toggle it on (G key)', check: (_, g) => (g?.achievements?.stats?.headlampUsed ?? 0) >= 1 },
     ],
-    reward: { item: 'crystal_fragment', qty: 5 },
+    rewards: [{ item: 'crystal_fragment', qty: 5 }],
     rewardText: "Crystal fragments. They're pretty. Don't ask me why the yard has them. I stopped asking years ago.",
   },
   {
@@ -355,7 +375,7 @@ export const QUESTS = [
       { label: 'Drop a Waypoint Flag (Y key)', check: (_, g) => g?._waypoint != null },
       { label: 'Run the Waypoint Navigator program', check: (_, g) => (g?.achievements?.stats?.waypointReached ?? 0) >= 1 },
     ],
-    reward: { item: 'vision_brain', qty: 1 },
+    rewards: [{ item: 'vision_brain', qty: 1 }],
     rewardText: "Vision Brain. The big one. A Jetson Nano in the game, computer vision in your hands. You've officially graduated from my scrapyard. I'm not crying. My eye itches.",
   },
   {
@@ -365,8 +385,41 @@ export const QUESTS = [
     steps: [
       { label: 'Bot detects crystal ore (ore signal > 65%)', check: (_, g) => (g?.achievements?.stats?.oreDetections ?? 0) >= 1 },
     ],
-    reward: { item: 'crystal_fragment', qty: 8 },
+    rewards: [{ item: 'crystal_fragment', qty: 8 }],
     rewardText: "Eight crystal fragments. Your bot earned those by sniffing out ore like a bloodhound made of scrap metal. I couldn't be prouder. I'm also never saying that again.",
+  },
+
+  // ── Content expansion quests ──
+  {
+    id: 'q15',
+    title: 'Power the Sun',
+    intro: "We're burning too much fuel, kid. Build a Solar Panel — glass shards, copper wire, circuit boards at the workbench. Place it somewhere the sun hits. Clean energy, no fumes. I hate it. But I love it.",
+    steps: [
+      { label: 'Craft a Solar Panel', check: (p) => p.crafted.has('solar_panel') },
+      { label: 'Place a Solar Panel in the world', check: (_, g) => (g?.achievements?.stats?.solarPlaced ?? 0) >= 1 },
+    ],
+    reward: { item: 'crystal_fragment', qty: 3 },
+    rewardText: "Crystal fragments. They glow like progress. Also they're pretty. Don't tell anyone I said that.",
+  },
+  {
+    id: 'q16',
+    title: 'Deep Bore',
+    intro: "The Deep Yard's metal walls are thick, and your arm's getting tired. I can see it from here. Build a Pneumatic Drill at the forge — iron scrap, gears, rubber, springs. Compressed air at 90 PSI. It'll go through metal like wet cardboard.",
+    steps: [
+      { label: 'Craft a Pneumatic Drill', check: (p) => p.crafted.has('pneumatic_drill') },
+    ],
+    reward: { item: 'iron_scrap', qty: 10 },
+    rewardText: "Ten iron scrap. Go deeper. Faster. Stop complaining about your arm.",
+  },
+  {
+    id: 'q17',
+    title: 'Full Coverage',
+    intro: "I need to know what's buried in my yard without walking there. Build a Radar Dish — circuit boards, copper wire, the antenna you already made. Your minimap will show every ore vein nearby. That's synthetic aperture radar, kid. In a scrapyard. Build it.",
+    steps: [
+      { label: 'Craft a Radar Dish', check: (p) => p.crafted.has('radar_dish') },
+    ],
+    reward: { item: 'signal_amp', qty: 1 },
+    rewardText: "Signal amplifier. Makes your bot's scanner even better. I had that lying around. Don't ask why.",
   },
 ];
 
@@ -425,6 +478,11 @@ export class Foreman {
       'airdrop_incoming':   'airdrop_incoming',
       'airdrop_looted':     'airdrop_looted',
       'lucky_find':         'lucky_find',
+      'craft_magnet_gloves':'craft_magnet_gloves',
+      'craft_comm_relay':   'craft_comm_relay',
+      'place_solar_panel':  'place_solar_panel',
+      'steam_boiler_fire':  'steam_boiler_fire',
+      'radar_active':       'radar_active',
       'waypoint_drop':      'waypoint_drop',
       'acid_hazard':        'acid_hazard',
       'bot_battery_dead':   'bot_battery_dead',
@@ -485,7 +543,12 @@ export class Foreman {
     this.onEvent('quest_complete', {});
     this.game.onQuestComplete?.();
 
-    if (q.reward) {
+    if (q.rewards) {
+      for (const r of q.rewards) {
+        p.addItem(r.item, r.qty);
+        this.game.ui.notify(`Quest reward: ${r.qty}× ${r.item.replace(/_/g,' ')}`);
+      }
+    } else if (q.reward) {
       p.addItem(q.reward.item, q.reward.qty);
       this.game.ui.notify(`Quest reward: ${q.reward.qty}× ${q.reward.item.replace(/_/g,' ')}`);
     }
