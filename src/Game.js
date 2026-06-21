@@ -13,6 +13,7 @@ import { ScrapBot } from './ScrapBot.js';
 import { BLOCK_DEF, B, ITEM_TO_BLOCK } from './data/blocks.js';
 import { getItem } from './data/items.js';
 import { EXAMPLE_WALL_AVOIDER, EXAMPLE_LINE_FOLLOWER } from './maker/TileProgram.js';
+import { getSensor } from './maker/primitives.js';
 import { TileEditor } from './TileEditor.js';
 import { SaveSystem } from './SaveSystem.js';
 import { XPSystem } from './XPSystem.js';
@@ -644,6 +645,9 @@ export class Game {
     // Update floodlight positions
     this.renderer.updateFloodlights(this.world._placedBlocks, this.player.pos, B.FLOODLIGHT);
 
+    // Bot sensor dashboard
+    this._updateBotSensorHUD();
+
     // Minimap — refresh every 0.5 s
     this._minimapTimer += dt;
     if (this._minimapTimer >= 0.5) { this._minimapTimer = 0; this._updateMinimap(); }
@@ -737,6 +741,81 @@ export class Game {
         ctx.fillStyle = '#9933ff';
         ctx.fillRect(cx_ - 1, cz_ - 1, 3, 3);
       }
+    }
+  }
+
+  _updateBotSensorHUD() {
+    const hudEl = document.getElementById('bot-sensor-hud');
+    if (!hudEl) return;
+
+    const bot = (this.scrapBot?._brainMode ? this.scrapBot : null)
+             ?? (this.scrapBot2?._brainMode ? this.scrapBot2 : null);
+
+    if (!bot || !bot._robot || !bot._adapter) {
+      hudEl.classList.remove('active');
+      return;
+    }
+    hudEl.classList.add('active');
+
+    const robot   = bot._robot;
+    const adapter = bot._adapter;
+
+    const SHOW = [
+      { id: 'distance_ahead', label: 'DIST AHEAD', digital: false },
+      { id: 'bumped',         label: 'BUMPED',      digital: true  },
+      { id: 'waypoint_dist',  label: 'WP DIST',     digital: false },
+      { id: 'brightness',     label: 'LIGHT',        digital: false },
+      { id: 'player_near',    label: 'PLAYER NEAR',  digital: true  },
+    ];
+
+    const rowsEl = document.getElementById('bsh-rows');
+    if (rowsEl && !this._bshBuilt) {
+      this._bshBuilt = true;
+      rowsEl.innerHTML = SHOW.map(s => `
+        <div class="bsh-row">
+          <span class="bsh-key">${s.label}</span>
+          <div class="bsh-bar-wrap"><div class="bsh-bar-fill" id="bsh-bar-${s.id}"></div></div>
+          <span class="bsh-val" id="bsh-val-${s.id}">—</span>
+        </div>`).join('');
+    }
+
+    for (const s of SHOW) {
+      const def = getSensor(s.id);
+      if (!def) continue;
+      const raw = def.read(robot, adapter);
+      const num = typeof raw === 'boolean' ? (raw ? 1 : 0) : (Number(raw) || 0);
+
+      const valEl = document.getElementById(`bsh-val-${s.id}`);
+      const barEl = document.getElementById(`bsh-bar-${s.id}`);
+      if (valEl) valEl.textContent = s.digital ? (raw ? 'YES' : 'no') : num.toFixed(2);
+      if (barEl) {
+        barEl.style.width = Math.round(num * 100) + '%';
+        const isAlert = (s.id === 'bumped' && raw) || (s.id === 'distance_ahead' && num < 0.18);
+        const isWarn  = !isAlert && s.id === 'brightness' && num > 0.75;
+        barEl.classList.toggle('alert', isAlert);
+        barEl.classList.toggle('warn',  isWarn);
+      }
+    }
+
+    // Motor bars (center-origin ±50%)
+    const driveVal = document.getElementById('bsh-drive-val');
+    const driveBar = document.getElementById('bsh-drive-bar');
+    const turnVal  = document.getElementById('bsh-turn-val');
+    const turnBar  = document.getElementById('bsh-turn-bar');
+
+    if (driveBar && driveVal) {
+      const dp = robot.drivePower;
+      driveVal.textContent = dp.toFixed(1);
+      driveBar.style.left       = (dp >= 0 ? 50 : 50 + dp * 50) + '%';
+      driveBar.style.width      = Math.abs(dp) * 50 + '%';
+      driveBar.style.background = dp >= 0 ? '#00cc66' : '#ff6644';
+    }
+    if (turnBar && turnVal) {
+      const tp = robot.turnPower;
+      turnVal.textContent = tp.toFixed(1);
+      turnBar.style.left       = (tp >= 0 ? 50 : 50 + tp * 50) + '%';
+      turnBar.style.width      = Math.abs(tp) * 50 + '%';
+      turnBar.style.background = '#f0b429';
     }
   }
 

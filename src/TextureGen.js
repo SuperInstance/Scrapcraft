@@ -270,6 +270,78 @@ const GEN = {
     ctx.lineTo(7, 13); ctx.lineTo(11, 7); ctx.lineTo(8, 7);
     ctx.closePath(); ctx.fill();
   }),
+
+  [19]: () => tex(ctx => {  // CRYSTAL_ORE
+    // Deep-space purple base
+    ctx.fillStyle = '#1a0530'; ctx.fillRect(0, 0, S, S);
+    const r = rng(19);
+    const cols = ['#cc88ff', '#9933ff', '#ff66ff', '#bb44ee', '#dd99ff'];
+
+    // Large angular crystal shards — cross + vertical spikes
+    for (let i = 0; i < 7; i++) {
+      const cx = Math.floor(r() * (S - 2)) + 1;
+      const cy = Math.floor(r() * (S - 3)) + 1;
+      const col = cols[Math.floor(r() * cols.length)];
+      ctx.fillStyle = col;
+      ctx.fillRect(cx, cy, 1, 3);      // vertical
+      ctx.fillRect(cx - 1, cy + 1, 3, 1); // horizontal
+    }
+
+    // Bright specular highlights (white pixel corners of facets)
+    for (let i = 0; i < 14; i++) {
+      const x = Math.floor(r() * S);
+      const y = Math.floor(r() * S);
+      ctx.fillStyle = r() > 0.6 ? '#ffffff' : cols[Math.floor(r() * cols.length)];
+      ctx.fillRect(x, y, 1, 1);
+    }
+
+    // Dark crevasses between crystals
+    for (let i = 0; i < 10; i++) {
+      ctx.fillStyle = 'rgba(0,0,0,0.75)';
+      ctx.fillRect(Math.floor(r() * S), Math.floor(r() * S), r() > 0.5 ? 2 : 1, 1);
+    }
+
+    noise(ctx, () => [80, 10, 120], 191, 0.2);
+  }),
+
+  [20]: () => tex(ctx => {  // SCRAP_CANNON
+    // Dark gunmetal base with brown tint
+    ctx.fillStyle = '#1c1008'; ctx.fillRect(0, 0, S, S);
+    const r = rng(20);
+
+    // Coiled spring bands — alternating light/dark horizontal strips
+    for (let y = 0; y < S; y += 3) {
+      ctx.fillStyle = y % 6 === 0 ? '#6a5030' : '#3a2412';
+      ctx.fillRect(2, y, S - 4, 1);
+    }
+
+    // Barrel ring (square inset, dark hollow)
+    ctx.fillStyle = '#0c0804';
+    ctx.fillRect(5, 5, 6, 6);
+    ctx.strokeStyle = '#7a5530'; ctx.lineWidth = 1;
+    ctx.strokeRect(5, 5, 6, 6);
+
+    // Barrel mouth orange glow
+    const grd = ctx.createRadialGradient(8, 8, 0, 8, 8, 5);
+    grd.addColorStop(0, 'rgba(220,80,0,0.55)');
+    grd.addColorStop(1, 'rgba(220,80,0,0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(3, 3, 10, 10);
+
+    // Rust accent patches
+    for (let i = 0; i < 12; i++) {
+      ctx.fillStyle = r() > 0.5 ? 'rgba(140,60,0,0.5)' : 'rgba(90,40,0,0.4)';
+      ctx.fillRect(Math.floor(r() * S), Math.floor(r() * S), Math.floor(r() * 2) + 1, 1);
+    }
+
+    // Rivets
+    ctx.fillStyle = '#9a7850';
+    for (const [rx, ry] of [[1,1],[S-3,1],[1,S-3],[S-3,S-3]]) {
+      ctx.fillRect(rx, ry, 2, 2);
+      ctx.fillStyle = '#ddc090'; ctx.fillRect(rx, ry, 1, 1);
+      ctx.fillStyle = '#9a7850';
+    }
+  }),
 };
 
 /** Build a Map<blockId, THREE.Texture> for all defined block types */

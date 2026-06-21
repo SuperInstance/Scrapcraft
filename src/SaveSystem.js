@@ -10,7 +10,7 @@
 
 import { TileProgram } from './maker/TileProgram.js';
 
-const SAVE_KEY     = 'scrapcraft_save_v4';
+const SAVE_KEY     = 'scrapcraft_save_v5';
 const AUTOSAVE_INT = 60;  // seconds between autosaves
 
 export class SaveSystem {
@@ -51,7 +51,7 @@ export class SaveSystem {
     if (!raw) return false;
     try {
       const data = JSON.parse(raw);
-      if (data.version !== 4) {
+      if (data.version !== 5) {
         console.warn('[SaveSystem] Version mismatch — starting fresh.');
         return false;
       }
@@ -79,7 +79,7 @@ export class SaveSystem {
     const s = g.achievements.stats;
 
     return {
-      version:   4,
+      version:   5,
       lastSaved: new Date().toISOString(),
 
       player: {
@@ -88,6 +88,8 @@ export class SaveSystem {
         inventory:  p.inventory,           // array of {id,qty}|null (already plain JSON)
         crafted:    [...p.crafted],         // Set → array
         hotbarIndex: p.hotbarIndex ?? 0,
+        waypoint:   g._waypoint ?? null,
+        headlampOn: g._headlampOn ?? false,
       },
 
       achievements: {
@@ -110,6 +112,10 @@ export class SaveSystem {
           brainsShared:       s.brainsShared         ?? 0,
           sparkPrograms:      s.sparkPrograms        ?? 0,
           uniqueSensorsUsed:  s.uniqueSensorsUsed    ?? 0,
+          crystalMined:       s.crystalMined         ?? 0,
+          headlampUsed:       s.headlampUsed         ?? 0,
+          cannonsFired:       s.cannonsFired         ?? 0,
+          waypointReached:    s.waypointReached      ?? 0,
         },
       },
 
@@ -141,6 +147,17 @@ export class SaveSystem {
       g.player.inventory   = pd.inventory ?? new Array(36).fill(null);
       g.player.crafted     = new Set(pd.crafted ?? []);
       g.player.hotbarIndex = pd.hotbarIndex ?? 0;
+
+      // Restore headlamp + waypoint state
+      if (pd.waypoint) {
+        g._waypoint = pd.waypoint;
+        // Sync to any bot adapters (bots aren't active yet at load time; Game.js
+        // reads g._waypoint when bots start, so this is enough)
+      }
+      if (pd.headlampOn) {
+        g._headlampOn = true;
+        g.renderer?.setHeadlamp(true);
+      }
     }
 
     // Achievements
@@ -166,6 +183,10 @@ export class SaveSystem {
         brainsShared:      s.brainsShared      ?? 0,
         sparkPrograms:     s.sparkPrograms     ?? 0,
         uniqueSensorsUsed: s.uniqueSensorsUsed ?? 0,
+        crystalMined:      s.crystalMined      ?? 0,
+        headlampUsed:      s.headlampUsed      ?? 0,
+        cannonsFired:      s.cannonsFired      ?? 0,
+        waypointReached:   s.waypointReached   ?? 0,
       });
     }
 
