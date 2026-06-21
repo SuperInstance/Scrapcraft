@@ -189,7 +189,7 @@ export class GameWorldAdapter {
    * Scans a 10-block radius; each check is a direct array lookup, so it's cheap.
    */
   oreNearby(x, z) {
-    const RANGE = 10;
+    const RANGE = this.player?.hasTool?.('signal_amp') ? 16 : 10;
     const range2 = RANGE * RANGE;
     let minDist2 = range2 + 1;
     const wx = Math.round(x), wz = Math.round(z);
