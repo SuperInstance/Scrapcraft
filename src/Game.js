@@ -20,6 +20,7 @@ import { XPSystem } from './XPSystem.js';
 import { WeatherSystem } from './WeatherSystem.js';
 import { ProjectileSystem } from './ProjectileSystem.js';
 import { Challenge } from './Challenge.js';
+import { OnboardingWizard } from './onboarding/OnboardingWizard.js';
 
 export class Game {
   constructor(canvas) {
@@ -165,6 +166,13 @@ export class Game {
     this._oreDetectCooldown = 0;
     this._nearTrackSeen    = false;
     this._nightBonusShown  = false;
+
+    // ── Onboarding wizard (first-run only) ──
+    this.onboarding = new OnboardingWizard(this);
+    if (!this.onboarding.isComplete()) {
+      setTimeout(() => this.onboarding.show(), 500);
+    }
+    this.onboarding.loadConfig();
 
     this._bindInput();
 

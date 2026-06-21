@@ -11,6 +11,8 @@ You call the player "kid" or "rookie" or "genius" (sarcastically). You love your
 Never break character. Never mention AI.`;
 
 // Offline quip banks keyed by trigger context
+import { getEarlResponse } from './spark/EarlGateway.js';
+
 const QUIPS = {
   greeting: [
     "So you finally showed up. The junk's been piling up waiting for someone with thumbs.",
@@ -498,6 +500,18 @@ export class Foreman {
 
   /** Called when player presses F */
   async playerTalks(message) {
+    // Try AI gateway first (reads onboarding config + env var)
+    const earlReply = await getEarlResponse('The player wants to chat: ' + message, message, QUIPS.greeting);
+    if (earlReply) {
+      this._ui?.showForeman(earlReply);
+      if (this.apiKey) {
+        this._history.push({ role: 'user', content: message });
+        this._history.push({ role: 'assistant', content: earlReply });
+      }
+      return;
+    }
+
+    // Fallback with legacy Anthropic key
     if (this.apiKey) {
       const reply = await this._claudeReply(message);
       this._ui?.showForeman(reply);
