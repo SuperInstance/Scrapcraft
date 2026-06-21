@@ -371,6 +371,9 @@ export class Game {
       this.particles.burst(x, y + 1, z, 'confetti', 20);
     }
 
+    // Buried signal cache — special loot when the BURIED_CACHE block is mined
+    if (id === B.BURIED_CACHE) this._lootBuriedCache(x, z);
+
     this.achievements.track('mine', { isNight });
     this.challenge.onMine(id);
     if (id === B.CRYSTAL_ORE) {
@@ -574,6 +577,85 @@ export class Game {
     arrow.textContent = '↑';
     dist.textContent = `${dist_m} blocks`;
     dist.style.color = dist_m < 8 ? '#44ff44' : dist_m < 16 ? '#ffcc44' : '#aaddff';
+  }
+
+  _tickSignalRadio() {
+    const hud = document.getElementById('signal-radio-hud');
+    if (!hud) return;
+    const active = this.player.activeItem?.id === 'signal_radio';
+    hud.classList.toggle('active', active);
+    if (!active) return;
+
+    const caches = this.world.signalCaches;
+    if (!caches?.size) {
+      document.getElementById('sr-bars').innerHTML = '<span style="font-size:9px;color:#555">ALL FOUND</span>';
+      document.getElementById('sr-dist').textContent = '';
+      document.getElementById('sr-arrow').textContent = '✓';
+      return;
+    }
+
+    const p  = this.player.pos;
+    const px = Math.round(p.x), pz = Math.round(p.z);
+    let bestDist2 = Infinity, bestX = null, bestZ = null;
+    for (const key of caches) {
+      const [cx, cz] = key.split(',').map(Number);
+      const d2 = (cx - px) ** 2 + (cz - pz) ** 2;
+      if (d2 < bestDist2) { bestDist2 = d2; bestX = cx; bestZ = cz; }
+    }
+
+    const dist = Math.sqrt(bestDist2);
+    const MAX_RANGE = 72;
+    const strength = Math.max(0, 1 - dist / MAX_RANGE);
+    const litBars  = Math.round(strength * 5);
+
+    const barsEl = document.getElementById('sr-bars');
+    const distEl = document.getElementById('sr-dist');
+    const arrowEl = document.getElementById('sr-arrow');
+    if (!barsEl || !distEl || !arrowEl) return;
+
+    barsEl.innerHTML = Array.from({ length: 5 }, (_, i) =>
+      `<span class="sr-bar${i < litBars ? ' lit' : ''}"></span>`
+    ).join('');
+
+    if (dist > MAX_RANGE) {
+      distEl.textContent = 'OUT OF RANGE';
+      arrowEl.textContent = '?';
+      arrowEl.style.color = '#555';
+      return;
+    }
+
+    distEl.textContent = `${Math.round(dist)}m`;
+    distEl.style.color = dist < 6 ? '#00ff88' : dist < 20 ? '#ffcc44' : '#aaddff';
+
+    const bearing = Math.atan2(bestX - px, bestZ - pz) - this.player.yaw;
+    arrowEl.style.transform = `rotate(${(bearing * 180 / Math.PI).toFixed(1)}deg)`;
+    arrowEl.textContent = '↑';
+    arrowEl.style.color = distEl.style.color;
+  }
+
+  _lootBuriedCache(x, z) {
+    const key = `${x},${z}`;
+    if (!this.world.signalCaches?.has(key)) return;
+    this.world.signalCaches.delete(key);
+
+    const LOOT = [
+      { item: 'crystal_fragment', qty: 2 },
+      { item: 'circuit_board',    qty: 3 },
+      { item: 'ir_module',        qty: 2 },
+      { item: 'battery_pack',     qty: 2 },
+    ];
+    for (const { item, qty } of LOOT) {
+      this.player.addItem(item, qty);
+      const def = getItem(item);
+      this.ui.notify(`📡 Cache: +${qty}× ${def?.icon ?? ''} ${def?.name ?? item}`);
+    }
+    this.particles.burst(x, 1.5, z, 'confetti', 25);
+    this.particles.burst(x, 1.5, z, 'circuit', 12);
+    this.audio.mine(B.CRATE);
+    this.xpSystem.gain(40);
+    this.foreman.onEvent('buried_cache_found', {});
+    this.achievements.track('buried_cache', {});
+    this.saveSystem.markDirty();
   }
 
   _tickStormDamage(dt) {
@@ -953,6 +1035,8 @@ export class Game {
 
     // Ore Scanner HUD — active when ore_scanner is in the active hotbar slot
     this._tickOreScanner();
+    // Signal Radio HUD — active when signal_radio is in the active hotbar slot
+    this._tickSignalRadio();
 
     // Band entry detection → toast + sky/fog color shift
     const bandIdx = this.world.getBandIndex(Math.floor(this.player.pos.z));

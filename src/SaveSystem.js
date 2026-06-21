@@ -123,6 +123,7 @@ export class SaveSystem {
           luckyFinds:         s.luckyFinds           ?? 0,
           narrowEscapes:      s.narrowEscapes        ?? 0,
           challengesCompleted: s.challengesCompleted ?? 0,
+          buriedCachesFound:   s.buriedCachesFound   ?? 0,
         },
       },
 
@@ -139,6 +140,7 @@ export class SaveSystem {
         seed:         g.world.seed ?? 1337,
         minedBlocks:  g.world._minedBlocks  ?? [],
         placedBlocks: g.world._placedBlocks ?? [],
+        signalCaches: [...(g.world.signalCaches ?? [])],
       },
 
       ghostLap: g._bestGhostFrames?.length ? g._bestGhostFrames : null,
@@ -214,6 +216,7 @@ export class SaveSystem {
         luckyFinds:        s.luckyFinds        ?? 0,
         narrowEscapes:     s.narrowEscapes     ?? 0,
         challengesCompleted: s.challengesCompleted ?? 0,
+        buriedCachesFound:   s.buriedCachesFound   ?? 0,
       });
     }
 
@@ -250,6 +253,9 @@ export class SaveSystem {
     if (wd?.placedBlocks?.length) {
       wd.placedBlocks.forEach(({ x, y, z, id }) => g.world.setBlock(x, y, z, id));
       g.world._placedBlocks = [...wd.placedBlocks];
+    }
+    if (wd?.signalCaches) {
+      g.world.signalCaches = new Set(wd.signalCaches);
     }
 
     // Ghost lap replay

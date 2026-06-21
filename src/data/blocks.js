@@ -22,6 +22,7 @@ export const B = {
   CRYSTAL_ORE: 19,
   SCRAP_CANNON: 20,
   ACID_PUDDLE: 21,
+  BURIED_CACHE: 22,
 };
 
 // hex color, emissive tint, roughness, whether it's solid/interactive/drops loot
@@ -79,6 +80,8 @@ export const BLOCK_DEF = {
                      emissive: 0x44ff00, emissiveIntensity: 0.6,
                      hazard: 'acid', hazardDps: 4,
                      drop: 'rubber_chunk', dropChance: 0.3 },
+  [B.BURIED_CACHE]:{ name: 'Buried Cache',  color: 0x1a4455, rough: 0.7, solid: true, hardness: 0.7,
+                     emissive: 0x005577, emissiveIntensity: 0.5 },
 };
 
 // Items the player can place as blocks (item ID → block ID)

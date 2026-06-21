@@ -286,6 +286,29 @@
       font-size:11px; color:#99bbff; pointer-events:none; user-select:none;
     }
     #ore-scanner-hud.active { display:flex; }
+
+    /* ── Signal Radio HUD (center, above ore scanner) ── */
+    #signal-radio-hud {
+      position:absolute; bottom:136px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.8); border:1px solid rgba(0,200,160,0.5);
+      border-radius:8px; padding:5px 14px;
+      display:none; align-items:center; gap:10px;
+      font-size:11px; color:#00ccaa; pointer-events:none; user-select:none;
+    }
+    #signal-radio-hud.active { display:flex; }
+    #sr-arrow { font-size:22px; transition:transform 0.2s ease; display:inline-block; }
+    #sr-bars  { display:flex; gap:3px; align-items:flex-end; height:18px; }
+    .sr-bar   {
+      width:5px; background:#1a3330; border-radius:1px;
+      transition:background 0.15s;
+    }
+    .sr-bar:nth-child(1) { height:6px; }
+    .sr-bar:nth-child(2) { height:9px; }
+    .sr-bar:nth-child(3) { height:12px; }
+    .sr-bar:nth-child(4) { height:15px; }
+    .sr-bar:nth-child(5) { height:18px; }
+    .sr-bar.lit { background:#00ccaa; box-shadow:0 0 4px #00ffcc; }
+    #sr-label { font-size:9px; color:#008866; letter-spacing:1px; line-height:1.4; }
     #ors-arrow {
       font-size:22px; transition:transform 0.25s ease;
       display:inline-block;
@@ -1019,6 +1042,13 @@
     <div id="ore-scanner-hud">
       <span id="ors-arrow">↑</span>
       <div id="ors-label">Crystal Ore<br><span id="ors-dist">-- blocks</span></div>
+    </div>
+
+    <!-- Signal Radio HUD (shown when signal_radio is active hotbar item) -->
+    <div id="signal-radio-hud">
+      <span id="sr-arrow">↑</span>
+      <div id="sr-bars"></div>
+      <div id="sr-label">📡 SIGNAL RADIO<br><span id="sr-dist">-- m</span></div>
     </div>
 
     <!-- Hotbar -->

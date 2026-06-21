@@ -92,6 +92,11 @@ const QUIPS = {
     "Eight track strips from two rubber chunks. That's called efficiency. I taught you that. Indirectly.",
     "Now you can build your own race course. First rule: don't let the bot win unsupervised.",
   ],
+  buried_cache_found: [
+    "You found one. I buried those before the yard got this crowded. It was a different time.",
+    "Emergency supply cache. Built these during the grid outage of '09. You're welcome, by the way.",
+    "Signal cache unlocked. That's military surplus RF tech. Don't ask where I got it. Just loot it.",
+  ],
   ghost_lap_start: [
     "Ghost lap active. That translucent thing is your previous best. Beat it or cry about it.",
     "You're racing a ghost of yourself. Philosophy aside — optimize your turning radius.",
@@ -396,6 +401,7 @@ export class Foreman {
       'craft_track_strip':   'craft_track',
       'craft_scrap_magnet':  'craft_scrap_magnet',
       'craft_ir_module':     'craft_ir_module',
+      'buried_cache_found':  'buried_cache_found',
       'ghost_lap_start':     'ghost_lap_start',
       'bot_lap_record':      'bot_lap_record',
       'near_track':          'near_track',
