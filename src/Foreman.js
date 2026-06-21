@@ -177,6 +177,11 @@ const QUIPS = {
     "Supply drop contents secured. Earl approves of this level of initiative.",
     "Mystery crate. Real gear inside. That's the scrapyard lottery and you just won.",
   ],
+  storm_exposed: [
+    "GET INSIDE. Lightning is 30,000 Kelvin. That's five times hotter than the sun's surface. Metal scrapyard. You are the tallest thing. MOVE.",
+    "Lightning looks for the path of least resistance to ground. Standing in an open scrapyard makes you that path. Find a roof.",
+    "I've worked this yard 22 years. I do not stand outside in a lightning storm. Neither should you. Metal roof. Now.",
+  ],
   bot_battery_dead: [
     "Your bot ran out of power. This is how electric vehicles work — lithium-ion pack, charge it or park it. Use a charging pad.",
     "Battery dead. Real robots have battery management systems (BMS) that shut down cleanly at 0% to protect the cells. Your bot does the same.",
@@ -406,6 +411,7 @@ export class Foreman {
       'waypoint_drop':      'waypoint_drop',
       'acid_hazard':        'acid_hazard',
       'bot_battery_dead':   'bot_battery_dead',
+      'storm_exposed':      'storm_exposed',
     };
     const key = map[event];
     if (key) this.say(key);

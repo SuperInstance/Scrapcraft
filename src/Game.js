@@ -491,6 +491,36 @@ export class Game {
     this.saveSystem.markDirty();
   }
 
+  _tickStormDamage(dt) {
+    if (this.weather.state !== 'storm' || this.weather.intensityValue < 0.5) {
+      this._stormDmgTimer = 0;
+      this._stormWarnShown = false;
+      return;
+    }
+    const p  = this.player.pos;
+    const bx = Math.round(p.x), bz = Math.round(p.z);
+    // Sheltered = any solid block in the 3 tiles directly overhead
+    const sheltered = [2, 3, 4].some(dy => {
+      const id = this.world.getBlock(bx, Math.round(p.y) + dy, bz);
+      return id !== 0 && (BLOCK_DEF[id]?.solid ?? false);
+    });
+    if (sheltered) {
+      this._stormDmgTimer = 0;
+      this._stormWarnShown = false;
+      return;
+    }
+    this._stormDmgTimer = (this._stormDmgTimer ?? 0) + dt;
+    if (!this._stormWarnShown) {
+      this._stormWarnShown = true;
+      this.ui.notify('⛈ Lightning strikes! Seek shelter under a roof!');
+      this.foreman.onEvent('storm_exposed', {});
+    }
+    if (this._stormDmgTimer > 2.5) {
+      this._stormDmgTimer = 0;
+      this.player.takeDamage(5);
+    }
+  }
+
   _tickHazards(dt) {
     const p  = this.player.pos;
     const bx = Math.round(p.x), bz = Math.round(p.z);
@@ -669,6 +699,9 @@ export class Game {
 
     // Hazard block damage (acid puddle, etc.)
     this._tickHazards(dt);
+
+    // Storm lightning damage — sheltered if solid block overhead within 3 tiles
+    this._tickStormDamage(dt);
 
     this.dayNight.tick(dt);
 

@@ -219,6 +219,17 @@
       filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));
       pointer-events:none;
     }
+    #storm-shelter-warn {
+      position:absolute; top:44px; left:12px;
+      font-size:9px; font-weight:bold; letter-spacing:0.06em;
+      color:#ffdd00; text-shadow:0 0 6px #ffaa00, 0 1px 3px #000;
+      display:none; pointer-events:none;
+      animation:shelter-pulse 0.8s ease-in-out infinite alternate;
+    }
+    @keyframes shelter-pulse {
+      from { opacity:1; }
+      to   { opacity:0.35; }
+    }
 
     /* ── Item flash (center-bottom, above hotbar) ── */
     #item-flash {
@@ -833,6 +844,7 @@
 
     <!-- Weather icon (top-left) -->
     <div id="weather-hud" title="Clear skies">☀️</div>
+    <div id="storm-shelter-warn">⚡ SEEK SHELTER</div>
 
     <!-- Bot sensor dashboard (shows when a brain program is running) -->
     <div id="bot-sensor-hud">
