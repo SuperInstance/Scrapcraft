@@ -125,6 +125,12 @@ const CODEX = [
     text: `An IR reflectance sensor (like the TCRT5000) shines infrared light downward and measures how much bounces back with a phototransistor. Different materials have different IR reflectivity: bare metal reflects 70-80% of IR; concrete reflects 30-40%; dirt and rubber absorb most of it.\n\nThis creates a cheap, fast floor-type detector. The 'floor_type' sensor in Scrapcraft returns values from 0 (void/dirt) to 1.0 (track/crystal) — mirroring the actual analog voltage range you'd read from a real TCRT5000 on a robot. It's used in sumo robots to detect the ring edge, and in industrial robots to detect surface transitions.`,
   },
   {
+    id: 'bot_battery',
+    title: 'How Do Robot Batteries Work?',
+    icon: '🔋',
+    text: `Real robots use lithium-ion (Li-ion) or lithium polymer (LiPo) batteries — the same chemistry in your phone. Li-ion cells store energy in lithium intercalation compounds: charging pushes Li⁺ ions into graphite layers; discharging releases them back.\n\nBattery capacity is measured in mAh (milliamp-hours). A 2000 mAh battery at 5V stores 10 Wh. A small motor drawing 250 mA would run it flat in 8 hours. But motors spike current during startup and sharp turns, which drains faster.\n\nReal autonomous robots use a Battery Management System (BMS) — a tiny circuit that monitors cell voltage, temperature, and current draw. It triggers a graceful shutdown at ~3.0V per cell to prevent permanent cell damage. Your ScrapBot does the same thing when battery hits 0%.`,
+  },
+  {
     id: 'acid_puddle',
     title: 'What Is Battery Acid?',
     icon: '☠',

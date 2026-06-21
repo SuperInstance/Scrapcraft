@@ -60,6 +60,9 @@ export class ScrapBot {
     this._brainMode = false;
     this._game      = null;
 
+    // Battery system
+    this.battery    = 100;  // 0–100%
+
     // Eye material refs for LED / neopixel colour changes
     this._eyeMat  = null;
     this._bodyMat = null;  // for neopixel body glow tint
@@ -221,6 +224,12 @@ export class ScrapBot {
     this.speak('[BRAIN CLEARED] Back to following you around. Lucky you.');
   }
 
+  /** Restore battery by pct (0-100). */
+  chargeBattery(pct) {
+    this.battery = Math.min(100, this.battery + pct);
+    this.speak(`[CHARGING] Battery now at ${Math.round(this.battery)}%. ${this.battery >= 80 ? 'Ready to run.' : 'More charge needed.'}`);
+  }
+
   tick(dt, world) {
     if (!this._active || !this._mesh) return;
 
@@ -294,6 +303,18 @@ export class ScrapBot {
   }
 
   _tickBrain(dt) {
+    // Battery drain: 0.4%/s idle, +0.9%/s while driving
+    const r0 = this._runtime?.robot;
+    const driving = r0 && Math.abs(r0.drivePower) > 0.08;
+    this.battery = Math.max(0, this.battery - dt * (driving ? 1.3 : 0.4));
+    if (this.battery <= 0) {
+      this.speak('[BATTERY DEAD] Shutting down. Plug in a charging pad.');
+      this._game?.ui?.notify('🔋 Bot battery depleted — use charging pad to recharge!');
+      this._game?.foreman?.onEvent('bot_battery_dead', {});
+      this.clearBrain();
+      return;
+    }
+
     this._runtime.tick(dt);
 
     const r = this._runtime.robot;
