@@ -10,7 +10,7 @@
 
 import { TileProgram } from './maker/TileProgram.js';
 
-const SAVE_KEY     = 'scrapcraft_save_v5';
+const SAVE_KEY     = 'scrapcraft_save_v6';
 const AUTOSAVE_INT = 60;  // seconds between autosaves
 
 export class SaveSystem {
@@ -51,7 +51,7 @@ export class SaveSystem {
     if (!raw) return false;
     try {
       const data = JSON.parse(raw);
-      if (data.version !== 5) {
+      if (data.version !== 6) {
         console.warn('[SaveSystem] Version mismatch — starting fresh.');
         return false;
       }
@@ -79,7 +79,7 @@ export class SaveSystem {
     const s = g.achievements.stats;
 
     return {
-      version:   5,
+      version:   6,
       lastSaved: new Date().toISOString(),
 
       player: {
@@ -116,6 +116,9 @@ export class SaveSystem {
           headlampUsed:       s.headlampUsed         ?? 0,
           cannonsFired:       s.cannonsFired         ?? 0,
           waypointReached:    s.waypointReached      ?? 0,
+          oreDetections:      s.oreDetections        ?? 0,
+          grenadeMaxBlocks:   s.grenadeMaxBlocks     ?? 0,
+          airdropLoots:       s.airdropLoots         ?? 0,
         },
       },
 
@@ -187,6 +190,9 @@ export class SaveSystem {
         headlampUsed:      s.headlampUsed      ?? 0,
         cannonsFired:      s.cannonsFired      ?? 0,
         waypointReached:   s.waypointReached   ?? 0,
+        oreDetections:     s.oreDetections     ?? 0,
+        grenadeMaxBlocks:  s.grenadeMaxBlocks  ?? 0,
+        airdropLoots:      s.airdropLoots      ?? 0,
       });
     }
 
