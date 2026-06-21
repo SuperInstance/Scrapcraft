@@ -304,6 +304,31 @@ export class UI {
     if (warn) warn.style.display = (state === 'storm' && intensity >= 0.5) ? 'block' : 'none';
   }
 
+  // ── Challenge HUD ────────────────────────────────────────────────────
+
+  updateChallenge(challenge, progress, completed) {
+    const hud     = document.getElementById('challenge-hud');
+    const label   = document.getElementById('ch-label');
+    const fill    = document.getElementById('ch-bar-fill');
+    const counter = document.getElementById('ch-counter');
+    if (!hud || !label || !fill || !counter) return;
+    const pct = Math.min(1, progress / challenge.need);
+    const col = completed ? '#44ff44' : '#44cc44';
+    hud.classList.toggle('complete', completed);
+    label.textContent   = `${challenge.icon ?? ''} ${challenge.label}`;
+    fill.style.width      = `${pct * 100}%`;
+    fill.style.background = col;
+    counter.style.color   = col;
+    if (completed) {
+      counter.textContent = '✓ COMPLETE!';
+    } else {
+      const shown = challenge.type === 'bot_run'
+        ? `${Math.floor(progress)}s / ${challenge.need}s`
+        : `${Math.floor(progress)} / ${challenge.need}`;
+      counter.textContent = shown;
+    }
+  }
+
   // ── Zone / Time HUD ──────────────────────────────────────────────────
 
   setZone(zone, timeLabel) {

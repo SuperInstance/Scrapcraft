@@ -231,6 +231,21 @@
       to   { opacity:0.35; }
     }
 
+    /* ── Challenge HUD (top-right) ── */
+    #challenge-hud {
+      position:absolute; top:16px; right:16px;
+      background:rgba(0,0,0,0.72); border:1px solid #446644;
+      border-radius:7px; padding:7px 10px; min-width:170px; max-width:200px;
+      font-size:10px; color:#aaa; pointer-events:none;
+      transition: border-color 0.4s ease;
+    }
+    #challenge-hud.complete { border-color:#44ff44; }
+    #ch-title { color:#f0b429; font-weight:bold; letter-spacing:0.5px; margin-bottom:3px; font-size:9px; }
+    #ch-label { color:#ddd; line-height:1.35; margin-bottom:5px; }
+    #ch-bar-wrap { background:rgba(255,255,255,0.08); border-radius:3px; height:5px; overflow:hidden; }
+    #ch-bar-fill { height:100%; width:0%; background:#44cc44; border-radius:3px; transition:width 0.3s ease, background 0.3s; }
+    #ch-counter { text-align:right; color:#44cc44; margin-top:3px; font-size:9px; }
+
     /* ── Item flash (center-bottom, above hotbar) ── */
     #item-flash {
       position:absolute; bottom:98px; left:50%; transform:translateX(-50%) translateY(6px);
@@ -845,6 +860,14 @@
     <!-- Weather icon (top-left) -->
     <div id="weather-hud" title="Clear skies">☀️</div>
     <div id="storm-shelter-warn">⚡ SEEK SHELTER</div>
+
+    <!-- Salvage Run challenge tracker (top-right) -->
+    <div id="challenge-hud">
+      <div id="ch-title">📋 SALVAGE RUN</div>
+      <div id="ch-label">Loading challenge…</div>
+      <div id="ch-bar-wrap"><div id="ch-bar-fill"></div></div>
+      <div id="ch-counter">0 / ?</div>
+    </div>
 
     <!-- Bot sensor dashboard (shows when a brain program is running) -->
     <div id="bot-sensor-hud">

@@ -19,6 +19,7 @@ import { SaveSystem } from './SaveSystem.js';
 import { XPSystem } from './XPSystem.js';
 import { WeatherSystem } from './WeatherSystem.js';
 import { ProjectileSystem } from './ProjectileSystem.js';
+import { Challenge } from './Challenge.js';
 
 export class Game {
   constructor(canvas) {
@@ -85,6 +86,7 @@ export class Game {
 
     this.tileEditor = new TileEditor(this);
     this.saveSystem = new SaveSystem(this);
+    this.challenge  = new Challenge(this);
 
     this.world.on('change', () => this.renderer.rebuildMeshes(this.world));
 
@@ -279,6 +281,7 @@ export class Game {
         this.achievements.track('mine', { isNight, item: drop });
         this.xpSystem.gain(2);
         this.foreman.onEvent(`mine_${drop}`, {});
+        this.challenge.onCollect(drop);
       }
     };
     if (def.drop    && Math.random() < def.dropChance)    {
@@ -337,6 +340,7 @@ export class Game {
     }
 
     this.achievements.track('mine', { isNight });
+    this.challenge.onMine(id);
     if (id === B.CRYSTAL_ORE) {
       this.achievements.track('crystal_mine', {});
       this.xpSystem.gain(5);  // bonus XP for rare ore
@@ -653,6 +657,7 @@ export class Game {
   onCraft(recipeId, output, qty) {
     const isNew = !this.achievements.stats.crafted.has(output);
     this.achievements.track('craft', { id: output });
+    this.challenge.onCraft();
     this.xpSystem.gain(isNew ? 10 : 3);
     this.saveSystem.markDirty();
     this.audio.craft();
@@ -783,6 +788,7 @@ export class Game {
 
     this.audio.tick(dt, this.player, this.world);
     this.saveSystem.tick(dt);
+    this.challenge.tick(dt);
 
     const locked = !!document.pointerLockElement;
 

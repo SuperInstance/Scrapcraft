@@ -122,6 +122,7 @@ export class SaveSystem {
           airdropLoots:       s.airdropLoots         ?? 0,
           luckyFinds:         s.luckyFinds           ?? 0,
           narrowEscapes:      s.narrowEscapes        ?? 0,
+          challengesCompleted: s.challengesCompleted ?? 0,
         },
       },
 
@@ -202,6 +203,7 @@ export class SaveSystem {
         airdropLoots:      s.airdropLoots      ?? 0,
         luckyFinds:        s.luckyFinds        ?? 0,
         narrowEscapes:     s.narrowEscapes     ?? 0,
+        challengesCompleted: s.challengesCompleted ?? 0,
       });
     }
 
