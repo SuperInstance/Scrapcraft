@@ -300,6 +300,8 @@ export class UI {
     el.textContent = icons[state] ?? '☀️';
     el.style.opacity = state === 'clear' ? '0.5' : '1';
     el.title = `${state.charAt(0).toUpperCase() + state.slice(1)} (${(intensity * 100).toFixed(0)}%)`;
+    const warn = document.getElementById('storm-shelter-warn');
+    if (warn) warn.style.display = (state === 'storm' && intensity >= 0.5) ? 'block' : 'none';
   }
 
   // ── Zone / Time HUD ──────────────────────────────────────────────────
