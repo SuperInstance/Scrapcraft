@@ -174,6 +174,9 @@ export class Game {
       if (e.code === 'KeyI' && this.ui.isOpen) {
         this._sortInventory();
       }
+      if (e.code === 'KeyN' && !this.tileEditor.isOpen) {
+        this.ui.toggleFieldNotes();
+      }
       if (e.code === 'KeyH' && !this.ui.isOpen && !this.tileEditor.isOpen) this._toggleHelp();
       if (e.code === 'KeyR' && document.pointerLockElement) {
         this.player.pos.set(8, 2, 5);
@@ -298,20 +301,28 @@ export class Game {
       giveLoot(def.drop);
     }
 
-    // Lucky Find — 3% chance of bonus rare item from junk blocks
+    // Lucky Find — 3% base chance (8% at night) of bonus rare item from junk blocks
     const LUCKY_BLOCKS = new Set([B.SCRAP_PILE, B.OIL_DRUM, B.JUNK_CAR]);
     const LUCKY_LOOT   = ['battery_pack', 'ir_module', 'circuit_board', 'ldr_module', 'spring', 'gear_small', 'crystal_fragment'];
-    if (LUCKY_BLOCKS.has(id) && Math.random() < 0.03) {
+    const luckyChance  = isNight ? 0.08 : 0.03;
+    if (LUCKY_BLOCKS.has(id) && Math.random() < luckyChance) {
       const lucky = LUCKY_LOOT[Math.floor(Math.random() * LUCKY_LOOT.length)];
       this.player.addItem(lucky, 1);
       const lDef = getItem(lucky);
-      this.ui.notify(`🍀 Lucky Find! ${lDef?.icon ?? ''} ${lDef?.name ?? lucky} hidden in the junk!`);
+      const prefix = isNight ? '🌙 Night Find!' : '🍀 Lucky Find!';
+      this.ui.notify(`${prefix} ${lDef?.icon ?? ''} ${lDef?.name ?? lucky} hidden in the junk!`);
       this.particles.burst(x, y + 1, z, 'confetti', 14);
       this.audio.pickup();
       this.foreman.onEvent('lucky_find', {});
       this.achievements.track('lucky_find', {});
       this.xpSystem.gain(5);
     }
+    // Night bonus HUD indicator (first mine of the night)
+    if (isNight && !this._nightBonusShown) {
+      this._nightBonusShown = true;
+      this.ui.notify('🌙 Night Bonus active — rare drop rate 8% from junk piles!');
+    }
+    if (!isNight) this._nightBonusShown = false;
 
     // Supply drop bonus loot
     const crateKey = `${x},${y},${z}`;

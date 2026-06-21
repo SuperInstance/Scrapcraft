@@ -710,6 +710,38 @@ export class UI {
     if (logEl) logEl.classList.remove('active');
   }
 
+  // ── Field Notes ───────────────────────────────────────────────────────
+
+  toggleFieldNotes() {
+    let panel = document.getElementById('field-notes-panel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'field-notes-panel';
+      panel.innerHTML = `
+        <div id="fn-title">📓 FIELD NOTES  <span id="fn-close" style="float:right;cursor:pointer;color:#888">✕</span></div>
+        <div style="font-size:9px;color:#555;margin-bottom:5px;">Engineering notebooks save careers. [N] to close.</div>
+        <textarea id="fn-text" spellcheck="false" placeholder="Write coordinates, observations, program ideas..."></textarea>`;
+      panel.style.cssText = `
+        position:fixed; top:80px; right:230px; width:220px;
+        background:rgba(10,12,8,0.95); border:1px solid #3a5a3a;
+        border-radius:7px; padding:10px; font-family:'Courier New',monospace;
+        font-size:10px; color:#aaa; z-index:300;`;
+      document.getElementById('hud').appendChild(panel);
+      const ta = panel.querySelector('#fn-text');
+      ta.style.cssText = `
+        width:100%; height:160px; background:#0a0e08; border:1px solid #2a3a2a;
+        border-radius:4px; color:#88cc88; font-family:inherit; font-size:10px;
+        padding:6px; resize:none; outline:none; line-height:1.5;`;
+      ta.value = localStorage.getItem('scrapcraft_notes') ?? '';
+      ta.addEventListener('input', () => localStorage.setItem('scrapcraft_notes', ta.value));
+      panel.querySelector('#fn-close').addEventListener('click', () => panel.remove());
+      setTimeout(() => ta.focus(), 50);
+      if (document.pointerLockElement) document.exitPointerLock();
+    } else {
+      panel.remove();
+    }
+  }
+
   setHealth(hp, maxHp = 100) {
     const fill = document.getElementById('hud-health-fill');
     const num  = document.getElementById('hud-health-num');
