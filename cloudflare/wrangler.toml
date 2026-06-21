@@ -1,0 +1,66 @@
+# ── Scrapcraft — Cloudflare Worker configuration ──────────────────────
+# Deploy: wrangler deploy
+# Dev:    wrangler dev
+
+name = "scrapcraft"
+main = "src/index.js"
+compatibility_date = "2025-04-01"
+
+# ── D1 Database ──────────────────────────────────────────────────────
+# Persistent cloud saves. Create: wrangler d1 create scrapcraft-db
+[[d1_databases]]
+binding = "SCRAPCRAFT_DB"
+database_name = "scrapcraft-db"
+database_id = ""
+
+# ── Vectorize ────────────────────────────────────────────────────────
+# Semantic search + bot memory bank. Create: wrangler vectorize create scrapcraft-embeddings --dimensions=512 --metric=cosine
+[[vectorize_indexes]]
+binding = "SCRAPCRAFT_VECTORIZE"
+index_name = "scrapcraft-embeddings"
+
+# ── R2 Bucket ────────────────────────────────────────────────────────
+# Texture/icon/brain storage. Create: wrangler r2 bucket create scrapcraft-assets
+[[r2_buckets]]
+binding = "SCRAPCRAFT_ASSETS"
+bucket_name = "scrapcraft-assets"
+
+# ── Workers AI ────────────────────────────────────────────────────────
+# LLM + image generation. Bound automatically when AI is enabled on the account.
+[ai]
+binding = "AI"
+
+# ── Durable Objects ──────────────────────────────────────────────────
+# Real-time multiplayer bot racing.
+[[durable_objects.bindings]]
+name = "BOT_RACE"
+class_name = "BotRace"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["BotRace"]
+
+# ── Queues ────────────────────────────────────────────────────────────
+# Async batch processing. Create: wrangler queues create scrapcraft-tasks
+[[queues.producers]]
+binding = "SCRAPCRAFT_TASKS"
+queue = "scrapcraft-tasks"
+
+[[queues.consumers]]
+queue = "scrapcraft-tasks"
+max_batch_size = 10
+max_batch_timeout = 5
+
+# ── Environment variables ────────────────────────────────────────────
+[vars]
+ENVIRONMENT = "production"
+GAME_VERSION = "1.0.0"
+
+# ── Secrets (set via wrangler secret put) ────────────────────────────
+# wrangler secret put OPENAI_KEY
+# wrangler secret put ANTHROPIC_KEY
+# wrangler secret put DEEPSEEK_KEY
+# wrangler secret put DEEPINFRA_KEY
+# wrangler secret put ZAI_KEY
+# wrangler secret put TOGETHER_KEY
+# wrangler secret put JINA_KEY

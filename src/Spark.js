@@ -11,6 +11,7 @@ import { TileProgram } from './maker/TileProgram.js';
 import { SENSORS, ACTUATORS } from './maker/primitives.js';
 import { compile } from './maker/TileCompiler.js';
 import { matchRecipe, DEFAULT_RECIPE } from './SparkOfflineRecipes.js';
+import { sparkGateway } from './spark/SparkGateway.js';
 
 const SPARK_SYSTEM = `You are SPARK, a tiny floating robot and the player's build buddy in
 the scrapyard game SCRAPCRAFT. The player is a clever middle-schooler (10-14).
@@ -100,6 +101,36 @@ export class Spark {
     this._history = [];
     this._key     = import.meta.env?.VITE_ANTHROPIC_API_KEY ?? '';
     this._retried = false;       // prevent infinite self-correction loops
+    this._provider = null;       // resolved from onboarding config
+  }
+
+  /**
+   * Resolve AI provider from onboarding config, env var, or fallback.
+   * Returns { type, apiKey?, url?, provider? } or null for offline.
+   */
+  _getProvider() {
+    if (this._provider) return this._provider;
+    try {
+      const config = JSON.parse(localStorage.getItem('scrapcraft_onboarding_config') || '{}');
+      if (config.cfWorkerUrl) {
+        // Route through Cloudflare gateway
+        this._provider = { type: 'gateway', url: config.cfWorkerUrl, provider: config.aiProvider };
+        return this._provider;
+      }
+      if (config.apiKey && config.aiProvider) {
+        // Direct API call (stored in memory only, not localStorage ideally)
+        this._provider = { type: 'direct', apiKey: config.apiKey, provider: config.aiProvider };
+        return this._provider;
+      }
+    } catch (e) { /* ignore corrupt config */ }
+
+    // Fall back to env var
+    const envKey = import.meta.env?.VITE_ANTHROPIC_API_KEY ?? '';
+    if (envKey) {
+      this._provider = { type: 'direct', apiKey: envKey, provider: 'anthropic' };
+      return this._provider;
+    }
+    return null; // offline mode
   }
 
   /** Main entry: ask Spark a question. Returns { kind: 'chat'|'program', text, program? } */
@@ -107,31 +138,87 @@ export class Spark {
     this._history.push({ role: 'user', content: userText });
     this._retried = false;
 
-    if (!this._key) return this._offline(userText);
-
-    try {
-      return await this._claudeReply();
-    } catch (err) {
-      console.warn('[Spark] API error, falling back offline:', err.message);
-      return this._offline(userText);
+    // Step 1: Try the multi-provider gateway first (reads onboarding config)
+    const gatewayResponse = await sparkGateway.ask(SPARK_SYSTEM, userText);
+    if (gatewayResponse) {
+      this._history.push({ role: 'assistant', content: gatewayResponse });
+      return { kind: 'chat', text: gatewayResponse };
     }
+
+    // Step 2: Fall back to direct multi-provider calls (with tool calling)
+    const provider = this._getProvider();
+    if (provider) {
+      try {
+        return await this._providerReply(provider);
+      } catch (err) {
+        console.warn('[Spark] API error, falling back offline:', err.message);
+        this._provider = null; // reset so next call re-checks
+      }
+    }
+
+    // Step 3: Offline recipe fallback
+    return this._offline(userText);
   }
 
   reset() { this._history = []; }
 
   // ── API path ──────────────────────────────────────────────────────────────
 
-  async _claudeReply() {
+  async _providerReply(provider) {
+    if (provider.type === 'gateway') {
+      // Route through Cloudflare gateway
+      return this._gatewayReply(provider);
+    }
+    // Direct API call — route to the correct provider endpoint
+    this._key = provider.apiKey;
+    const provId = provider.provider;
+    if (provId === 'anthropic') return this._anthropicReply(provider);
+    if (provId === 'openai') return this._openaiReply(provider);
+    if (provId === 'deepseek') return this._deepseekReply(provider);
+    if (provId === 'z.ai') return this._zaiReply(provider);
+    if (provId === 'deepinfra') return this._deepinfraReply(provider);
+    if (provId === 'workers_ai') return this._workersAiReply(provider);
+
+    // Unknown provider — fallback to offline
+    console.warn('[Spark] Unknown provider:', provId);
+    throw new Error('Unknown provider');
+  }
+
+  async _gatewayReply(provider) {
+    const resp = await fetch(provider.url + '/spark', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages:   this._history,
+        system:     SPARK_SYSTEM,
+        tools:      [EMIT_TILES_TOOL],
+        provider:   provider.provider,
+        max_tokens: 512,
+      }),
+    });
+
+    if (!resp.ok) throw new Error(`Gateway HTTP ${resp.status}`);
+    const data = await resp.json();
+
+    const toolUse = data.content?.find(b => b.type === 'tool_use');
+    if (toolUse) return this._handleToolUse(toolUse, data);
+
+    const text = data.text ?? data.content?.find(b => b.type === 'text')?.text ?? '...';
+    this._history.push({ role: 'assistant', content: data.content ?? [{ type: 'text', text }] });
+    return { kind: 'chat', text };
+  }
+
+  async _anthropicReply(provider) {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type':    'application/json',
-        'x-api-key':       this._key,
+        'x-api-key':       provider.apiKey,
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-calls': 'true',
       },
       body: JSON.stringify({
-        model:      'claude-sonnet-4-6',
+        model:      'claude-sonnet-4-20250514',
         max_tokens: 512,
         system:     SPARK_SYSTEM,
         tools:      [EMIT_TILES_TOOL],
@@ -139,15 +226,181 @@ export class Spark {
       }),
     });
 
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    if (!resp.ok) throw new Error(`Anthropic HTTP ${resp.status}`);
     const data = await resp.json();
 
-    const toolUse = data.content.find(b => b.type === 'tool_use');
+    const toolUse = data.content?.find(b => b.type === 'tool_use');
     if (toolUse) return this._handleToolUse(toolUse, data);
 
-    const text = data.content.find(b => b.type === 'text')?.text ?? '...';
+    const text = data.content?.find(b => b.type === 'text')?.text ?? '...';
     this._history.push({ role: 'assistant', content: data.content });
     return { kind: 'chat', text };
+  }
+
+  async _openaiReply(provider) {
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${provider.apiKey}`,
+      },
+      body: JSON.stringify({
+        model:      'gpt-4o-mini',
+        max_tokens: 512,
+        messages:   [{ role: 'system', content: SPARK_SYSTEM }, ...this._history],
+        tools:      [{ type: 'function', function: EMIT_TILES_TOOL }],
+      }),
+    });
+
+    if (!resp.ok) throw new Error(`OpenAI HTTP ${resp.status}`);
+    const data = await resp.json();
+    const msg = data.choices?.[0]?.message;
+
+    const toolCall = msg?.tool_calls?.[0];
+    if (toolCall && toolCall.function?.name === 'emit_tiles') {
+      const toolUse = {
+        id: toolCall.id,
+        type: 'tool_use',
+        name: 'emit_tiles',
+        input: JSON.parse(toolCall.function.arguments),
+      };
+      return this._handleToolUse(toolUse, {
+        content: [
+          { type: 'text', text: msg.content ?? '' },
+          toolUse,
+        ],
+      });
+    }
+
+    const text = msg?.content ?? '...';
+    this._history.push({ role: 'assistant', content: [{ type: 'text', text }] });
+    return { kind: 'chat', text };
+  }
+
+  async _deepseekReply(provider) {
+    const resp = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${provider.apiKey}`,
+      },
+      body: JSON.stringify({
+        model:      'deepseek-chat',
+        max_tokens: 512,
+        messages:   [{ role: 'system', content: SPARK_SYSTEM }, ...this._history],
+        tools:      [{ type: 'function', function: EMIT_TILES_TOOL }],
+      }),
+    });
+
+    if (!resp.ok) throw new Error(`DeepSeek HTTP ${resp.status}`);
+    const data = await resp.json();
+    const msg = data.choices?.[0]?.message;
+
+    const toolCall = msg?.tool_calls?.[0];
+    if (toolCall && toolCall.function?.name === 'emit_tiles') {
+      const toolUse = {
+        id: toolCall.id,
+        type: 'tool_use',
+        name: 'emit_tiles',
+        input: JSON.parse(toolCall.function.arguments),
+      };
+      return this._handleToolUse(toolUse, {
+        content: [
+          { type: 'text', text: msg.content ?? '' },
+          toolUse,
+        ],
+      });
+    }
+
+    const text = msg?.content ?? '...';
+    this._history.push({ role: 'assistant', content: [{ type: 'text', text }] });
+    return { kind: 'chat', text };
+  }
+
+  async _zaiReply(provider) {
+    // Z.AI uses OpenAI-compatible API
+    const resp = await fetch('https://api.z.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${provider.apiKey}`,
+      },
+      body: JSON.stringify({
+        model:      'z-ai-chat',
+        max_tokens: 512,
+        messages:   [{ role: 'system', content: SPARK_SYSTEM }, ...this._history],
+        tools:      [{ type: 'function', function: EMIT_TILES_TOOL }],
+      }),
+    });
+
+    if (!resp.ok) throw new Error(`Z.AI HTTP ${resp.status}`);
+    const data = await resp.json();
+    const msg = data.choices?.[0]?.message;
+
+    const toolCall = msg?.tool_calls?.[0];
+    if (toolCall && toolCall.function?.name === 'emit_tiles') {
+      const toolUse = {
+        id: toolCall.id,
+        type: 'tool_use',
+        name: 'emit_tiles',
+        input: JSON.parse(toolCall.function.arguments),
+      };
+      return this._handleToolUse(toolUse, {
+        content: [
+          { type: 'text', text: msg.content ?? '' },
+          toolUse,
+        ],
+      });
+    }
+
+    const text = msg?.content ?? '...';
+    this._history.push({ role: 'assistant', content: [{ type: 'text', text }] });
+    return { kind: 'chat', text };
+  }
+
+  async _deepinfraReply(provider) {
+    const resp = await fetch('https://api.deepinfra.com/v1/openai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${provider.apiKey}`,
+      },
+      body: JSON.stringify({
+        model:      'mistralai/Mixtral-8x22B',
+        max_tokens: 512,
+        messages:   [{ role: 'system', content: SPARK_SYSTEM }, ...this._history],
+        tools:      [{ type: 'function', function: EMIT_TILES_TOOL }],
+      }),
+    });
+
+    if (!resp.ok) throw new Error(`DeepInfra HTTP ${resp.status}`);
+    const data = await resp.json();
+    const msg = data.choices?.[0]?.message;
+
+    const toolCall = msg?.tool_calls?.[0];
+    if (toolCall && toolCall.function?.name === 'emit_tiles') {
+      const toolUse = {
+        id: toolCall.id,
+        type: 'tool_use',
+        name: 'emit_tiles',
+        input: JSON.parse(toolCall.function.arguments),
+      };
+      return this._handleToolUse(toolUse, {
+        content: [
+          { type: 'text', text: msg.content ?? '' },
+          toolUse,
+        ],
+      });
+    }
+
+    const text = msg?.content ?? '...';
+    this._history.push({ role: 'assistant', content: [{ type: 'text', text }] });
+    return { kind: 'chat', text };
+  }
+
+  async _workersAiReply(provider) {
+    // Workers AI requires CF account — always use gateway if configured
+    throw new Error('Workers AI requires Cloudflare gateway');
   }
 
   async _handleToolUse(toolUse, assistantMsg) {
