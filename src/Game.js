@@ -108,6 +108,10 @@ export class Game {
     this._waypoint = null;  // { x, z } or null
     this._waypointMarkerTimer = 0;
 
+    // Supply drop system — random airdrop every 90-180s
+    this._airdropTimer    = 90 + Math.random() * 90;
+    this._airdropCrates   = new Set();  // "x,y,z" keys for mined loot overrides
+
     // Lap timer — tracks bots crossing the TRACK circuit start/finish gate (z≈14, x=30-46)
     this._lapState = {
       inGate:    false,
@@ -279,6 +283,35 @@ export class Game {
       giveLoot(def.drop);
     }
 
+    // Supply drop bonus loot
+    const crateKey = `${x},${y},${z}`;
+    if (this._airdropCrates?.has(crateKey)) {
+      this._airdropCrates.delete(crateKey);
+      const LOOT = [
+        { item: 'circuit_board', w: 3 }, { item: 'battery_pack', w: 3 },
+        { item: 'crystal_fragment', w: 2 }, { item: 'ir_module', w: 2 },
+        { item: 'copper_wire', w: 4 }, { item: 'gear_small', w: 3 },
+        { item: 'scrap_grenade', w: 1 }, { item: 'fuel_can', w: 2 },
+      ];
+      const total = LOOT.reduce((s, l) => s + l.w, 0);
+      const pick = () => {
+        let r = Math.random() * total;
+        for (const l of LOOT) { r -= l.w; if (r <= 0) return l.item; }
+        return LOOT[0].item;
+      };
+      const drops = new Map();
+      for (let i = 0; i < 3; i++) { const it = pick(); drops.set(it, (drops.get(it) ?? 0) + 1); }
+      for (const [it, qty] of drops) {
+        this.player.addItem(it, qty);
+        const def = getItem(it);
+        this.ui.notify(`📦 Airdrop: +${qty}× ${def?.icon ?? ''} ${def?.name ?? it}`);
+      }
+      this.foreman.onEvent('airdrop_looted', {});
+      this.achievements.track('airdrop_loot', {});
+      this.xpSystem.gain(20);
+      this.particles.burst(x, y + 1, z, 'confetti', 20);
+    }
+
     this.achievements.track('mine', { isNight });
     if (id === B.CRYSTAL_ORE) {
       this.achievements.track('crystal_mine', {});
@@ -443,6 +476,45 @@ export class Game {
     }
   }
 
+  _spawnAirdrop() {
+    const p = this.player.pos;
+    // Pick a random open position 10-30 blocks away
+    const angle = Math.random() * Math.PI * 2;
+    const dist  = 10 + Math.random() * 20;
+    const tx = Math.max(1, Math.min(126, Math.round(p.x + Math.sin(angle) * dist)));
+    const tz = Math.max(1, Math.min(126, Math.round(p.z + Math.cos(angle) * dist)));
+    // Find ground level
+    let ty = 1;
+    for (let y = 2; y <= 4; y++) {
+      if (!this.world.getBlock(tx, y, tz)) { ty = y - 1; break; }
+    }
+    const crate_y = ty + 1;
+    if (this.world.getBlock(tx, crate_y, tz)) return; // already blocked
+
+    // Compass direction for toast
+    const dx = tx - p.x, dz = tz - p.z;
+    const deg = ((Math.atan2(dx, dz) * 180 / Math.PI) + 360) % 360;
+    const compass = ['N','NE','E','SE','S','SW','W','NW'][Math.round(deg / 45) % 8];
+
+    this.ui.notify(`📦 Supply drop incoming — ${compass} of you!`);
+    this.foreman.onEvent('airdrop_incoming', {});
+
+    // Smoke trail descending over 2 seconds, then place crate
+    const trail = (y, delay) => setTimeout(() => {
+      this.particles.burst(tx, y, tz, 'smoke', 6);
+    }, delay);
+    trail(7, 0); trail(5, 400); trail(3, 800); trail(2, 1200);
+
+    setTimeout(() => {
+      this.world.setBlock(tx, crate_y, tz, B.CRATE);
+      this.particles.burst(tx, crate_y + 0.5, tz, 'ember', 14);
+      this.audio.mine(B.CRATE);
+      this._airdropCrates.add(`${tx},${crate_y},${tz}`);
+      this.achievements.track('airdrop_find', {});
+      this.ui.notify(`📦 Supply drop landed! Find it at approx. (${tx}, ${tz})`);
+    }, 1500);
+  }
+
   /** Returns the highest brain tier the player has in their inventory. */
   _getBrainTier() {
     const inv = this.player.inventory;
@@ -534,6 +606,13 @@ export class Game {
         this.particles.burst(this._waypoint.x, 1.5, this._waypoint.z, 'pickup', 5);
       }
     }
+    // Supply drop countdown
+    this._airdropTimer -= dt;
+    if (this._airdropTimer <= 0) {
+      this._airdropTimer = 90 + Math.random() * 90;
+      this._spawnAirdrop();
+    }
+
     // Grapple hook: extends mining / targeting reach
     this.renderer.raycaster.far = this.player.hasTool('grapple_hook') ? 10 : 6;
     this.particles.tick(dt);

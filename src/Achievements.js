@@ -314,6 +314,13 @@ export const ACHIEVEMENT_LIST = [
     desc: 'Destroy 3+ blocks with a single Scrap Grenade. Earl was in the shed. He heard it. He chose not to look.',
     check: (s) => (s.grenadeMaxBlocks ?? 0) >= 3,
   },
+  {
+    id: 'supply_runner',
+    icon: '📦',
+    name: 'Package Secured',
+    desc: "Loot 3 supply drops before Earl notices they exist. (Earl noticed. He's pretending he didn't.)",
+    check: (s) => (s.airdropLoots ?? 0) >= 3,
+  },
 ];
 
 export class Achievements {
@@ -346,6 +353,7 @@ export class Achievements {
       waypointReached: 0,
       oreDetections: 0,
       grenadeMaxBlocks: 0,
+      airdropLoots: 0,
     };
   }
 
@@ -411,6 +419,9 @@ export class Achievements {
         break;
       case 'grenade_splash':
         s.grenadeMaxBlocks = Math.max(s.grenadeMaxBlocks ?? 0, data.count ?? 0);
+        break;
+      case 'airdrop_loot':
+        s.airdropLoots = (s.airdropLoots ?? 0) + 1;
         break;
     }
     this._check();

@@ -167,6 +167,16 @@ const QUIPS = {
     "That's what I call efficiency. Terrible, dangerous efficiency. Well done.",
     "I heard that from the other side of the yard. Also, I'm missing a wall. Just noticed.",
   ],
+  airdrop_incoming: [
+    "Supply drop inbound. From… somewhere. I didn't order anything. Not saying I didn't want to.",
+    "Something's falling from the sky. In the scrapyard. This is completely normal and I am fine.",
+    "Listen for the thud. Then find it. That's your whole job right now.",
+  ],
+  airdrop_looted: [
+    "You found it. Good. Whatever's in there, you earned it by walking all that way.",
+    "Supply drop contents secured. Earl approves of this level of initiative.",
+    "Mystery crate. Real gear inside. That's the scrapyard lottery and you just won.",
+  ],
 };
 
 // Quests Earl assigns in sequence
@@ -370,6 +380,8 @@ export class Foreman {
       'ore_detect':         'ore_detect',
       'grenade_fire':       'grenade_fire',
       'grenade_big_hit':    'grenade_big_hit',
+      'airdrop_incoming':   'airdrop_incoming',
+      'airdrop_looted':     'airdrop_looted',
     };
     const key = map[event];
     if (key) this.say(key);
