@@ -124,6 +124,12 @@ const CODEX = [
     icon: '🏁',
     text: `An IR reflectance sensor (like the TCRT5000) shines infrared light downward and measures how much bounces back with a phototransistor. Different materials have different IR reflectivity: bare metal reflects 70-80% of IR; concrete reflects 30-40%; dirt and rubber absorb most of it.\n\nThis creates a cheap, fast floor-type detector. The 'floor_type' sensor in Scrapcraft returns values from 0 (void/dirt) to 1.0 (track/crystal) — mirroring the actual analog voltage range you'd read from a real TCRT5000 on a robot. It's used in sumo robots to detect the ring edge, and in industrial robots to detect surface transitions.`,
   },
+  {
+    id: 'acid_puddle',
+    title: 'What Is Battery Acid?',
+    icon: '☠',
+    text: `Sulfuric acid (H₂SO₄) is the electrolyte inside lead-acid batteries — the same ones used in cars. When old batteries crack or corrode, the acid leaks out. It has a pH below 1, which means it's extremely reactive.\n\nAcid works by donating H⁺ ions (protons) to whatever it touches. Metal atoms get oxidized — they lose electrons to the acid and dissolve. That's why acid burns through iron scrap and rubber alike. Real e-waste workers handle acid with thick rubber gloves and face shields.\n\nIn Scrapcraft, acid puddles drain your HP at 4/sec. A repair kit patches the damage. In real life, you'd need a base (like baking soda — sodium bicarbonate, NaHCO₃) to neutralize it: acid + base → salt + water + CO₂ gas.`,
+  },
 ];
 
 export class UI {

@@ -232,6 +232,20 @@ export class World {
     this.setBlock(67, 1, 38, B.FORGE);
     this.setBlock(69, 1, 38, B.SMELTER);
     this.landmarks.band1_stations = { x: 67, y: 1, z: 38 };
+
+    // Acid puddle hazard pools — leaking from industrial tanks
+    for (let i = 0; i < 6; i++) {
+      const cx = 5 + Math.floor(rng() * (W - 10));
+      const cz = z0 + 4 + Math.floor(rng() * (z1 - z0 - 8));
+      for (let dz = -1; dz <= 1; dz++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          if (rng() < 0.35) continue;
+          if (this.getBlock(cx + dx, 1, cz + dz) === B.AIR) {
+            this.setBlock(cx + dx, 1, cz + dz, B.ACID_PUDDLE);
+          }
+        }
+      }
+    }
   }
 
   _band2(rng, W) {
@@ -277,6 +291,20 @@ export class World {
     this._scatter(rng, B.CRATE, 25, 2, W - 2, z0, z1);
     this._scatter(rng, B.POWER_BOX, 20, 2, W - 2, z0, z1);
     this._scatter(rng, B.SCRAP_PILE, 20, 2, W - 2, z0, z1);
+
+    // Acid runoff pools near industrial electronics buildings
+    for (let i = 0; i < 4; i++) {
+      const cx = 8 + Math.floor(rng() * (W - 16));
+      const cz = z0 + 8 + Math.floor(rng() * (z1 - z0 - 16));
+      for (let dz = -1; dz <= 1; dz++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          if (rng() < 0.4) continue;
+          if (this.getBlock(cx + dx, 1, cz + dz) === B.AIR) {
+            this.setBlock(cx + dx, 1, cz + dz, B.ACID_PUDDLE);
+          }
+        }
+      }
+    }
 
     // Main band 2 station cluster (center-ish)
     this.setBlock(60, 1, 76, B.WORKBENCH);
