@@ -388,6 +388,15 @@ export const ITEMS = {
     stackSize: 4,
   },
 
+  rubber_boots: {
+    name: 'Rubber Boots',
+    icon: '🥾',
+    desc: "Acid-resistant boots made from reclaimed rubber. Rubber is a non-conductive polymer — sulfuric acid can't donate H⁺ ions to it, so it won't corrode. Wear these to walk through acid puddles unharmed. Passive: hold in inventory.",
+    category: 'utility',
+    stackSize: 1,
+    tool: true,
+  },
+
   // ── Special tools ──
   scrap_magnet: {
     name: 'Scrap Magnet',
