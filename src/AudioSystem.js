@@ -287,12 +287,18 @@ export class AudioSystem {
       if (this._footTimer > 0.4) {
         this._footTimer = 0;
         const bx = Math.floor(player.pos.x), bz = Math.floor(player.pos.z);
-        const surface = world.getBlock(bx, 0, bz);
-        this.footstep(surface >= 3 ? 'metal' : surface === 2 ? 'concrete' : 'dirt');
+        const id = world.getBlock(bx, 0, bz);
+        // Use block IDs for surface detection (B constants: DIRT=1, GRAVEL=2, CONCRETE=3, RUST_METAL=4, etc.)
+        const isMetal = id >= 4 && id <= 22 && ![6, 19].includes(id); // metal blocks: scrap metal, wall metal, etc.
+        const isStone = id === 2 || id === 3; // gravel or concrete
+        this.footstep(isMetal ? 'metal' : isStone ? 'concrete' : 'dirt');
       }
     } else {
       this._footTimer = 0;
     }
+
+    // Gentle ambient hum (occasional)
+    this.ambientTick();
 
     // Periodic zone ambient stings (every ~15s)
     this._ambientZoneTimer = (this._ambientZoneTimer ?? 0) + dt;

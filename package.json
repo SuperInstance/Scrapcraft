@@ -1,12 +1,15 @@
 {
   "name": "scrapcraft",
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "description": "A voxel scrapyard game where middle schoolers build robots, program them with AI, and learn embedded engineering.",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node src/maker/__tests__/run-tests.mjs"
+    "test": "node src/maker/__tests__/run-tests.mjs",
+    "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
     "three": "^0.168.0"

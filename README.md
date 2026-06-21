@@ -61,11 +61,14 @@ npm test          # 36 framework-free tests, all green
 | `E` | Open / close inventory |
 | `T` | Open / close Tile Editor (Maker Lab) |
 | `B` | Toggle ScrapBot follow mode |
+| `Shift+B` | Give second bot a brain |
 | `F` | Summon Earl (Foreman) |
 | `G` | Use / consume active item |
 | `R` | Respawn to start |
 | `H` | Help overlay |
 | `M` | Toggle background music |
+| `I` | Sort inventory |
+| `N` | Close Codex overlay |
 | `F5` | Manual save |
 | `F9` | Load save |
 
@@ -76,6 +79,8 @@ npm test          # 36 framework-free tests, all green
 | `spring_boots` | Jump height ×2.5 |
 | `go_kart` | Movement speed ×3 |
 | `fuel_can` (consumed via G) | Speed ×1.8 for 8 seconds |
+| `headlamp` | Emissive block glow effect |
+| `grapple_hook` | Vertical pull toward aimed block |
 
 ---
 
@@ -113,6 +118,17 @@ The map is **128×128 blocks** (10 blocks tall) generated deterministically from
 | 16 | Lamp Post | Decorative |
 | 17 | **Track Strip** | Dark rubber strip — bot follows via `line_under` sensor |
 | 18 | **Floodlight** | Emissive light block — boosts `light` sensor brightness |
+| 19 | Acid Puddle | Hazard — hurts player on contact |
+| 20 | Buried Cache | Special loot block — signal radio locates it |
+| 21 | Crystal Formation | Rare — drops crystal_fragment |
+
+### Day/Night Cycle
+
+A full day/night cycle runs every **6 minutes**. Ambient light modulates smoothly. Night increases rare drop rates (8% vs 3%) and triggers a Night Bonus HUD indicator.
+
+### Weather System
+
+Dynamic weather cycles between **clear**, **rain**, and **storm** (with lightning flashes). Rain and storms trigger procedural audio effects.
 
 ---
 
@@ -134,6 +150,7 @@ The map is **128×128 blocks** (10 blocks tall) generated deterministically from
 | battery_dead | 🔋 | Circuit Cluster |
 | track_strip | ▬ | Craft: 2× rubber_chunk + 1× iron_scrap → 8× track_strip |
 | floodlight | 💡 | Craft: 2× glass_shard + 2× copper_wire + 3× iron_scrap |
+| crystal_fragment | 💠 | Crystal Formation |
 
 ### Crafting stations
 
@@ -146,7 +163,7 @@ Approach a station and press `E` to see available recipes. Stations gate recipe 
 | Forge | 2–3 | Metal-intensive items, Robot Arm, Generator |
 | Smelter | 3 | Go-Kart, ScrapBot, Flying Machine, advanced brains |
 
-### Recipe reference
+### Recipe reference (56 recipes, ~50 unique outputs)
 
 <details>
 <summary><strong>Tier 1 — Hand tools & consumables</strong></summary>
@@ -160,13 +177,13 @@ Approach a station and press `E` to see available recipes. Stations gate recipe 
 | Repair Kit ×1 | ⬛×2 🪢×1 🌀×1 | any | — |
 | Signal Flare ×3 | 🛢×1 🪢×2 | any | — |
 | Steel Cable ×4 | 🔩×3 🌀×2 ⬛×1 | forge | 🔨 |
-| Track Strip ×8 | ⬛×2 🔩×1 | workbench | — |
-| Floodlight ×1 | 💎×2 🪢×2 🔩×3 | workbench | — |
 | Tin Brain ×1 | 🟢×2 🪢×4 🔩×3 | workbench | ✂️ |
-| Ultrasonic Sensor ×1 | 🟢×1 🪢×2 | workbench | — |
-| Light Sensor ×2 | 🟢×1 🪢×1 | workbench | — |
-| Piezo Buzzer ×2 | ⚙️×1 🪢×1 | workbench | — |
+| Ultrasonic Module ×1 | 🟢×1 🪢×2 | workbench | — |
+| Light Sensor (LDR) ×2 | 🟢×1 🪢×1 | workbench | — |
+| Buzzer Module ×2 | ⚙️×1 🪢×1 | workbench | — |
 | Motor Driver ×1 | 🟢×1 🔩×2 | workbench | — |
+| Floodlight ×1 | 💎×2 🪢×2 🔩×3 | workbench | — |
+| Track Strip ×8 | ⬛×2 🔩×1 | workbench | — |
 
 </details>
 
@@ -185,10 +202,20 @@ Approach a station and press `E` to see available recipes. Stations gate recipe 
 | Charging Pad ×1 | 🟢×2 🔋×2 🪢×3 🔩×2 | workbench | ✂️ |
 | IR Line Sensor ×4 | 🟢×1 🪢×2 | workbench | — |
 | Signal Antenna ×1 | 🪢×4 🔩×2 💎×1 | workbench | — |
-| Spark Brain ×1 | tin_brain×1 🟢×3 🪢×6 🛢×1 | smelter | 🔥 |
-| PIR Motion Sensor ×1 | 🟢×1 ⬛×1 | workbench | — |
-| Servo Motor ×1 | ⚙️×2 🪢×2 | workbench | — |
+| PIR Motion Module ×1 | 🟢×1 ⬛×1 | workbench | — |
+| Servo Module ×1 | ⚙️×2 🪢×2 | workbench | — |
 | Pipe Cannon ×1 | 🔩×5 ⬛×1 🌀×2 | workbench | 🔧 |
+| Scrap Cannon ×1 | 🔩×6 ⚙️×2 🛢×1 🪢×2 | forge | 🔧 |
+| Speed Coil ×1 | 🪢×4 🔩×3 ⚙️×1 🔋×1 | forge | 🔧 |
+| Headlamp ×1 | 💎×1 🪢×2 🔩×1 | workbench | — |
+| Rubber Boots ×1 | ⬛×3 🌀×1 | any | — |
+| Ore Scanner ×1 | 🟢×2 🪢×3 🔩×2 💠×1 | workbench | ✂️ |
+| Signal Radio ×1 | 🟢×2 🪢×4 💎×1 🔩×2 💠×1 | workbench | ✂️ |
+| Spark Brain ×1 | tin_brain×1 🟢×3 🪢×6 🛢×1 | smelter | 🔥 |
+| Flare Pack ×3 | 🛢×2 🪢×3 | workbench | — |
+| Waypoint Flag ×4 | 🔩×2 🪵×2 | any | — |
+| Scrap Grenade ×1 | 🔩×3 🪢×1 🛢×1 | workbench | — |
+| Signal Amp ×1 | 🟢×2 🪢×3 🔩×2 | workbench | — |
 
 </details>
 
@@ -202,12 +229,15 @@ Approach a station and press `E` to see available recipes. Stations gate recipe 
 | Flying Machine ×1 | 🔩×12 generator×1 robot_arm×2 🟢×6 ⬛×4 🛢×4 💎×3 | smelter | 🔥 |
 | Vision Brain ×1 | spark_brain×1 🟢×5 💎×3 🛢×2 | smelter | 🔥 |
 | Scrap Magnet ×1 | 🔩×4 🪢×3 🔋×1 | forge | — |
+| Camera Module ×1 | 🟢×3 💎×2 🪢×2 | workbench | — |
 
 </details>
 
 ---
 
-## Consumables (G key)
+## Functional Items
+
+### Consumables (G key)
 
 Press `G` to use the item in your active hotbar slot.
 
@@ -218,6 +248,29 @@ Press `G` to use the item in your active hotbar slot.
 | `fuel_can` | 8-second speed ×1.8 boost |
 | `battery_pack` | +15 XP, energy flash |
 | `charging_pad` | ScrapBot circuit particle burst |
+| `flare_pack` | Halves supply drop countdown |
+| `scrap_grenade` | Deals AoE damage in blast radius |
+| `scrap_cannon` | Fires projectile with camera shake on impact |
+
+### Equipment (passive)
+
+| Item | Effect |
+|---|---|
+| `headlamp` | Blocks emit a faint glow around you in dark areas |
+| `spring_boots` | Jump height ×2.5 |
+| `rubber_boots` | Reduces acid puddle damage |
+| `night_goggles` | Improves visibility at night |
+| `go_kart` | Movement speed ×3 |
+| `grapple_hook` | Pulls player toward targeted block |
+| `speed_coil` | Permanent speed boost (×1.4 from backpack) |
+
+### Tools (advanced interactions)
+
+| Item | Effect |
+|---|---|
+| `ore_scanner` | Highlights nearby ore blocks on HUD |
+| `signal_radio` | Pings buried caches — shows distance/direction |
+| `waypoint_flag` | Drops a nav marker at current position |
 
 ---
 
@@ -229,19 +282,41 @@ Craft a **ScrapBot** (`robot_helper`) and it will follow you around the yard. Pr
 
 When following, the bot steers around obstacles using a 45° wall-avoidance algorithm — it tries right first, then left, then stops.
 
-### Lap timer
+### Lap Timer & Ghost Replay
 
-The bot detects when it crosses the **start gate** at x=29.5–46.5, z=13–15.5. After the first crossing, each subsequent crossing in ≥2 seconds counts as a lap. Time displays at bottom-right; a new best triggers confetti, Earl audio, and +20 XP.
+The bot detects when it crosses the **start gate** at x=29.5–46.5, z=13–15.5. After the first crossing, each subsequent crossing in ≥2 seconds counts as a lap. Time displays at bottom-right; a new best record triggers confetti, Earl audio, and +20 XP.
 
-### Dual-bot system
+A **ghost replay** of your best lap records the bot's position/yaw each frame. On subsequent attempts, a translucent ghost bot plays back alongside your current run, so you can race your own best time.
 
-The Tile Editor has a bot selector dropdown. You can have two bots (Bot 1 / Bot 2) running different programs simultaneously — useful for drag races.
+### Dual-bot system (Level 5)
+
+At Level 5 (Engineer skill), you can activate a **second bot**. Press `Shift+B` to give it a brain. The Tile Editor has a bot selector dropdown (Bot 1 / Bot 2) — both run simultaneously, perfect for drag races.
+
+### Sensors
+
+| Sensor ID | Type | Range | Hardware equivalent |
+|---|---|---|---|
+| `distance_ahead` | float | 0 (wall) – 1 (clear) | HC-SR04 ultrasonic |
+| `light` | float | 0 – 1 | LDR photoresistor |
+| `temperature` | float | 0 – 1 | NTC thermistor |
+| `line_under` | bool | true / false | TCRT5000 IR reflectance |
+| `motion_nearby` | bool | true / false | PIR sensor |
+
+### Actuators
+
+| Action | Parameters | Hardware equivalent |
+|---|---|---|
+| `drive` | dir: forward/back, speed: 0–1 | L298N motor driver |
+| `turn` | dir: left/right, speed: 0–1 | Differential drive |
+| `beep` | freq: Hz, duration: s | Piezo buzzer |
+| `led` | color: hex, brightness: 0–1 | RGB LED |
+| `grab` | state: open/close | SG90 servo |
 
 ---
 
 ## Maker Lab (Tile Editor)
 
-Press `T` to open the Tile Editor. This is Scrapcraft's embedded-programming layer.
+Press `T` to open the Tile Editor — Scrapcraft's visual programming layer for robot brains.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -271,28 +346,16 @@ Press `T` to open the Tile Editor. This is Scrapcraft's embedded-programming lay
 |---|---|
 | Wall Avoider | Drives forward, turns right on obstacle |
 | Line Follower | Drives forward on TRACK strip, turns right when off |
-| Light Runner | Chases brightest spot in the yard |
-| Honking Square | Drives a square, beeps at each corner |
-
-### Sensors
-
-| Sensor ID | Type | Range | Hardware equivalent |
-|---|---|---|---|
-| `distance_ahead` | float | 0 (wall) – 1 (clear) | HC-SR04 ultrasonic |
-| `light` | float | 0 – 1 | LDR photoresistor |
-| `temperature` | float | 0 – 1 | NTC thermistor |
-| `line_under` | bool | true / false | TCRT5000 IR reflectance |
-| `motion_nearby` | bool | true / false | PIR sensor |
-
-### Actuators
-
-| Action | Parameters | Hardware equivalent |
-|---|---|---|
-| `drive` | dir: forward/back, speed: 0–1 | L298N motor driver |
-| `turn` | dir: left/right, speed: 0–1 | Differential drive |
-| `beep` | freq: Hz, duration: s | Piezo buzzer |
-| `led` | color: hex, brightness: 0–1 | RGB LED |
-| `grab` | state: open/close | SG90 servo |
+| Light Chaser | Drives toward brightest spot |
+| Light Runner | Chases brightest spot (higher speed) |
+| Square Patrol | Drives a square pattern |
+| Spin Artist | Continuous spin |
+| Greeter Bot | Beeps when motion detected nearby |
+| Disco Bot | Blinks LEDs in rainbow sequence |
+| Symphony Bot | Plays a melody |
+| Grabber Bot | Opens/closes grabber arm |
+| Careful Creeper | Slow approach, stops early |
+| Speed Demon | Full speed ahead |
 
 ### Spark AI companion
 
@@ -302,9 +365,9 @@ Click the chat bubble at the bottom of the Tile Editor. Describe what you want i
 > *"stop if there's a wall within half a block"*
 > *"follow the track and beep when it loses the line"*
 
-Spark calls the Claude API (`claude-sonnet-4-6`) and emits a fully validated tile program. If you're offline (or the API key isn't set), Spark falls back to 18+ pre-written offline recipes matching common keywords.
+Spark calls the Claude API (`claude-sonnet-4-6`) and emits a fully validated tile program. If you're offline (or `VITE_ANTHROPIC_API_KEY` isn't set), Spark falls back to 18+ pre-written offline recipes matching common keywords.
 
-All AI-generated programs pass through `compile()` before execution — Spark cannot invent a sensor that doesn't exist.
+All AI-generated programs pass through `compile()` before execution — raw AI output never executes directly.
 
 ### Brain sharing
 
@@ -324,9 +387,11 @@ Exporting Wokwi unlocks the **Game → Reality** achievement.
 
 ---
 
-## Earl's Quests
+## Earl's Quests & Supply Drops
 
-Earl "The Foreman" is the crusty yard boss who assigns quests, reacts to your accomplishments, and has an opinion about everything.
+### Earl "The Foreman"
+
+Earl is the crusty yard boss who assigns quests, reacts to your accomplishments, and has an opinion about everything.
 
 | # | Quest | Objective | Reward |
 |---|---|---|---|
@@ -340,6 +405,16 @@ Earl "The Foreman" is the crusty yard boss who assigns quests, reacts to your ac
 | 8 | Firmware | Export any firmware | circuit_board ×3 |
 | 9 | Race Circuit | Complete a bot lap | ir_module ×4 |
 | 10 | Light It Up | Craft + place a floodlight | scrap_magnet ×1 |
+
+Earl has AI dialogue via Claude (when `VITE_ANTHROPIC_API_KEY` is set) with an offline personality bank fallback.
+
+### Supply Drops
+
+Random airdrops arrive every **90–180 seconds**. A compass direction notification tells you where. Loot includes rare items and extra resources. The `flare_pack` item halves the countdown.
+
+### Salvage Run Challenges
+
+Repeatable one-session challenges appear periodically (e.g. "Salvage 5 Iron Scrap"). Complete them for bonus XP and rewards.
 
 ---
 
@@ -357,14 +432,21 @@ Earn XP from mining, crafting, completing quests, and running programs.
 | Complete a bot lap (new best) | 20 |
 | Use item (G key) | 5–15 |
 | Spark generates a program | 10 |
+| Complete a Salvage Run | 25 |
 
-Skill nodes unlock at levels 1, 3, 5, 8, and 12. Check the XP bar at the top of the screen.
+### Skill Nodes
+
+| Level | Skill | Effect |
+|---|---|---|
+| 1 | **Tinkerer** | Opens the Maker Lab |
+| 3 | **Programmer** | Enables advanced tile programming |
+| 5 | **Engineer** | Unlocks second bot |
+| 8 | **Maker** | Master tier crafting |
+| 12 | **Inventor** | Ultimate crafting unlocks |
 
 ---
 
-## Achievements
-
-37 achievements total. Earl-flavored descriptions throughout.
+## Achievements (49 total)
 
 <details>
 <summary><strong>Crafting milestones</strong></summary>
@@ -393,14 +475,14 @@ Skill nodes unlock at levels 1, 3, 5, 8, and 12. Check the XP bar at the top of 
 | Achievement | Condition |
 |---|---|
 | 📦 Scrap Hoarder | Fill inventory ≥80% |
-| 🌙 Night Shift | Mine 5 blocks at night |
+| 🌙 Night Owl | Mine 5 blocks at night |
 | ⛏️ 100 Blocks Down | Mine 100 blocks total |
 | 📋 Junior Engineer | Craft 5 different things |
-| 🏆 Senior Engineer | Craft 10 different things |
+| 🏆 Need For Speed | Craft 10 different things |
 | 🏆 Master Builder | Craft 15 different things |
 | 👑 King of the Yard | Complete 5 quests |
-| ⚡ Speed Round | Craft 3 items in 60 seconds |
-| 🧱 Mine and Refine | Place your first block |
+| ⚡ Speed Crafter | Craft 3 items in 60 seconds |
+| 🧱 Placer | Place your first block |
 
 </details>
 
@@ -410,21 +492,40 @@ Skill nodes unlock at levels 1, 3, 5, 8, and 12. Check the XP bar at the top of 
 | Achievement | Condition |
 |---|---|
 | 🤖 Not Alone Anymore | Build a ScrapBot |
-| 🧠 Brains of the Operation | Craft a Tin Brain |
+| 🧠 First Brain | Craft a Tin Brain |
 | ⚡ Going Wireless | Craft a Spark Brain |
-| 👁️ The Eye Is Open | Craft a Vision Brain |
-| 🏅 Full Neural Stack | Craft all 3 brains |
-| 🥽 Owl Mode | Craft night goggles |
-| 🪝 Got You Covered | Craft the grapple hook |
-| 🤖 It's Alive! | Run first tile program |
+| 👁️ Eagle Eye | Craft a Vision Brain |
+| 🏅 All Three Brains | Craft all 3 brains |
+| 🥽 Night Sight | Craft night goggles |
+| 🪝 Hook Shot | Craft the grapple hook |
+| 🤖 Tile Runner | Run first tile program |
 | 🔌 Game → Reality | Export a Wokwi diagram |
-| 🏁 Circuit Designer | Place 16 track strips |
-| 🏆 Lap Record | Bot completes a lap |
-| 🏎️ Oval Office | Bot completes 3 laps |
-| 💡 Let There Be Light | Place first floodlight |
-| 🔗 Shareable Science | Share a tile program URL |
+| 🏁 Track Builder | Place 16 track strips |
+| 🏆 Bot Racer | Bot completes a lap |
+| 🏎️ Oval Racer | Bot completes 3 laps |
+| 💡 Illuminator | Place first floodlight |
+| 🔗 Shared Brain | Share a tile program URL |
 | ✨ AI Collaborator | Spark builds you a program |
-| 📡 Sensor Sweep | Use 4 different sensor types |
+| 📡 Sensor Explorer | Use 4 different sensor types |
+
+</details>
+
+<details>
+<summary><strong>Adventure & exploration</strong></summary>
+
+| Achievement | Condition |
+|---|---|
+| 💠 Crystal Hunter | Mine 3 crystal formations |
+| 💡 Headlamp On | Craft a headlamp |
+| 🔫 Scrap Gunner | Fire the scrap cannon |
+| 🚩 Waypoint Ace | Place 5 waypoint flags |
+| 🤖 Bot Scanner | Use the ore scanner |
+| 💣 Grenadier | Throw a scrap grenade |
+| 📦 Supply Runner | Loot 3 supply drops |
+| 🍀 Lucky Strike | Find hidden rare item in scrap |
+| 🏃 Narrow Escape | Survive with 1 HP |
+| ♻️ Salvage Pro | Complete 3 Salvage Run challenges |
+| 📻 Signal Hunter | Use the signal radio to find a buried cache |
 
 </details>
 
@@ -432,7 +533,7 @@ Skill nodes unlock at levels 1, 3, 5, 8, and 12. Check the XP bar at the top of 
 
 ## Save System
 
-Progress is saved to `localStorage` under the key `scrapcraft_save_v4`.
+Progress is saved to `localStorage` under the key `scrapcraft_save_v6`.
 
 | Trigger | Action |
 |---|---|
@@ -440,7 +541,47 @@ Progress is saved to `localStorage` under the key `scrapcraft_save_v4`.
 | `F5` | Manual save |
 | `F9` | Load most recent save |
 
-Saved state: inventory, hotbar index, player position, achievements, XP, quest progress, world diffs (mined and placed blocks), all stats.
+Saved state: player position, inventory, hotbar index, achievements, XP, quest progress, world diffs (mined and placed blocks), skills unlocked, stats bag (total mined, crafted, etc.).
+
+---
+
+## Engineering Codex (27 entries)
+
+Press `I` in the inventory to access the Engineering Codex — 27 real-science entries written at a middle-school level. Topics include:
+
+- How generators work (electromagnetic induction)
+- Circuit boards and silicon
+- Battery chemistry (rechargeable cells)
+- Copper wire and conductivity
+- Rubber insulation and vulcanization
+- Gear ratios and torque
+- Signal radio and radio waves
+- Ore scanner technology
+- Lightning storms and static electricity
+- Acid reactions and pH
+- Fall physics and terminal velocity
+- And more...
+
+---
+
+## HUD
+
+| Element | Description |
+|---|---|
+| Health bar | Top-left, depletes on damage (explosions, acid, falls) |
+| XP bar | Top-center, fills toward next level |
+| Level badge | Shows current level and skill node |
+| Weather indicator | Current weather state (clear/rain/storm) |
+| Day/Night indicator | Time of day with moon/sun icon |
+| Minimap | Top-right — 128×128 pixel fog-of-war exploration map |
+| Hotbar | Bottom — 9 slots with tooltips on hover |
+| Active item label | Above hotbar |
+| Bot sensor readout | Right side — live sensor values when bot is running |
+| Lap timer | Bottom-right — shows current lap time |
+| Challenge overlay | One-session Salvage Run objectives |
+| Notification area | Top-center — item pickups, events, tips |
+| Damage vignette | Red flash on hit |
+| Crosshair states | Spreads when moving, turns gold on interactive blocks, mining arc shown during hold-to-mine |
 
 ---
 
@@ -455,20 +596,23 @@ Scrapcraft/
 │   ├── Player.js               Movement, collision, inventory, hotbar
 │   ├── Renderer.js             Three.js scene, BufferGeometry instancing, PointLight pool
 │   ├── UI.js                   HUD, inventory overlay, Codex, notifications, achievement toasts
+│   ├── WeatherSystem.js        Dynamic weather (clear, rain, storm with lightning)
+│   ├── DayNight.js             Sky cycle and ambient light modulation
 │   ├── ScrapBot.js             Companion robot — follow AI, tile program execution bridge
-│   ├── Foreman.js              Earl NPC — quests, dialogue, event reactions
+│   ├── Foreman.js              Earl NPC — quests, dialogue, event reactions (Claude + fallback)
 │   ├── Spark.js                AI companion — Claude API + offline recipe fallback
 │   ├── TileEditor.js           Visual tile editor panel, Spark chat, firmware export UI
 │   ├── AudioSystem.js          Procedural Web Audio synthesis (no audio files)
 │   ├── ParticleSystem.js       800-particle pool — mine, craft, spark, confetti, track sparks
-│   ├── Achievements.js         37-achievement system with stats bag
+│   ├── Achievements.js         49-achievement system with stats bag
 │   ├── SaveSystem.js           localStorage persistence with autosave
-│   ├── XPSystem.js             XP gain, level milestones, skill nodes
-│   ├── DayNight.js             Sky cycle, ambient light modulation
+│   ├── XPSystem.js             XP gain, level milestones, 5 skill nodes
+│   ├── Challenge.js            Repeatable Salvage Run challenges
+│   ├── TextureGen.js           Procedural block texture generation
 │   ├── data/
 │   │   ├── blocks.js           Block IDs, definitions, drop tables, solidity flags
-│   │   ├── items.js            ~35 item definitions with icons, categories, stack sizes
-│   │   └── recipes.js          ~40 crafting recipes, tier gating, foreman quips
+│   │   ├── items.js            45+ item definitions with icons, categories, stack sizes
+│   │   └── recipes.js          56 crafting recipes, tier gating, foreman quips
 │   └── maker/                  ← The Maker Lab engine (Three.js-free, fully testable)
 │       ├── primitives.js       Single source of truth: sensors + actuators schema
 │       ├── TileProgram.js      Tile-tree data model, node constructors (T.*), examples
@@ -480,11 +624,14 @@ Scrapcraft/
 │       ├── SparkOfflineRecipes.js 18+ keyword-matched fallback programs
 │       └── __tests__/
 │           └── run-tests.mjs   36 framework-free tests
-└── docs/
-    ├── ARCHITECTURE.md         Deep-dive: data flow, module contracts, extension points
-    ├── MAKER_LAB.md            Tile engine reference for contributors
-    ├── ITEMS_AND_RECIPES.md    Full item + recipe catalog with drop sources
-    └── DEV_GUIDE_*.md          Per-system implementation guides
+├── scripts/
+│   └── deploy.sh               Build + timestamped release script
+├── docs/
+│   ├── ARCHITECTURE.md         Deep-dive: data flow, module contracts, extension points
+│   ├── MAKER_LAB.md            Tile engine reference for contributors
+│   ├── ITEMS_AND_RECIPES.md    Full item + recipe catalog with drop sources
+│   └── DEV_GUIDE_*.md          Per-system implementation guides
+└── releases/                   Timestamped production builds
 ```
 
 ### Key design decisions
@@ -536,14 +683,12 @@ The three-tier model: students start with **intent** ("follow the line"), gradua
 4. Wire the sensor to real world state in `GameWorldAdapter.js`.
 5. Add a test in `src/maker/__tests__/run-tests.mjs`. Run `npm test`.
 
-See `src/maker/README.md` for a step-by-step example.
-
 ### Adding an achievement
 
 1. Add an entry to `ACHIEVEMENT_LIST` in `src/Achievements.js`.
 2. Add the stat it checks to the `stats` bag (if new).
 3. Update `track()` to increment the stat on the right event.
-4. Update `_collect()` / `_apply()` in `SaveSystem.js` to persist the new stat.
+4. Update `load()`/`save()` in `SaveSystem.js` to persist the new stat.
 
 ### Environment variables
 
@@ -588,5 +733,5 @@ MIT — do whatever you want, but a star or a mention is appreciated.
 
 ---
 
-*Built with Three.js, caffeine, and a healthy disregard for OSHA regulations.*  
+*Built with Three.js, caffeine, and a healthy disregard for OSHA regulations.*
 *"The yard has officially claimed you." — Earl*

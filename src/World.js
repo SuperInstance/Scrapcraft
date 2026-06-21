@@ -465,9 +465,25 @@ export class World {
     this._scatter(rng, B.CRATE, 20, 2, W - 2, z0, z1);
     this._scatter(rng, B.POWER_BOX, 15, 2, W - 2, z0, z1);
 
+    // Hot slag pools — smelting runoff, burns on contact (fire/heat hazard, 5 DPS)
+    for (let i = 0; i < 8; i++) {
+      const sx = 3 + Math.floor(rng() * (W - 6));
+      const sz = z0 + 3 + Math.floor(rng() * (z1 - z0 - 6));
+      for (let dz = -1; dz <= 1; dz++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          if (rng() < 0.5) continue;
+          const by = 1 + Math.floor(rng() * 2);
+          if (this.getBlock(sx + dx, by, sz + dz) === B.AIR) {
+            this.setBlock(sx + dx, by, sz + dz, B.HOT_SLAG);
+          }
+        }
+      }
+    }
+
     // Crystal ore clusters — glowing veins in the deep yard (Band 3 only)
     const crystalSeeds = [
       [15, z0+8], [35, z0+14], [60, z0+6], [88, z0+16], [112, z0+11], [45, z0+22], [75, z0+28],
+      [8, z0+4], [50, z0+15], [95, z0+26], [118, z0+10], [28, z0+18], [70, z0+12], [105, z0+24],
     ];
     for (const [cx, cz] of crystalSeeds) {
       for (let dz = -2; dz <= 2; dz++) {

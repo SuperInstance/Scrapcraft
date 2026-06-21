@@ -356,6 +356,20 @@
     @keyframes notifIn  { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:none} }
     @keyframes notifOut { to{opacity:0;transform:translateX(-8px)} }
 
+    /* ── Tutorial hint overlay ── */
+    #tutorial-hint {
+      position:absolute; bottom:90px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.88); border:2px solid #f0b429;
+      border-radius:8px; padding:10px 18px;
+      font-size:14px; color:#f0f0f0; white-space:nowrap;
+      pointer-events:none; z-index:80;
+      opacity:0; transition:opacity 0.3s ease;
+      text-shadow:0 1px 4px rgba(0,0,0,0.6);
+      box-shadow:0 0 16px rgba(240,180,41,0.15);
+    }
+    #tutorial-hint.show { opacity:1; }
+    #tutorial-hint b { color:#f0b429; }
+
     /* ── Foreman panel ── */
     #foreman-panel { position:absolute; top:16px; right:16px; width:300px; pointer-events:auto; }
     #foreman-bubble {
@@ -981,6 +995,7 @@
     <div id="zone-label">The Yard Gate · Morning</div>
     <div id="zone-toast"></div>
     <div id="notifications"></div>
+    <div id="tutorial-hint"></div>
     <div id="block-label"></div>
 
     <!-- XP bar -->
@@ -1106,6 +1121,15 @@
         <div class="help-row"><span class="help-key">F5</span><span class="help-desc">Manual save</span></div>
         <div class="help-row"><span class="help-key">F9</span><span class="help-desc">Reload last save</span></div>
         <div class="help-row"><span class="help-key">H</span><span class="help-desc">This screen</span></div>
+      </div>
+      <div class="help-section">
+        <h3>💡 GAMEPLAY TIPS</h3>
+        <div class="help-row"><span class="help-desc" style="color:#aaa">Mine scrap piles for <b>iron_scrap</b> and <b>gears</b></span></div>
+        <div class="help-row"><span class="help-desc" style="color:#aaa">Craft a <b>wrench</b> → you'll need it for devices</span></div>
+        <div class="help-row"><span class="help-desc" style="color:#aaa">Open the workshop <b>[E]</b> to see recipes</span></div>
+        <div class="help-row"><span class="help-desc" style="color:#aaa">Talk to Earl <b>[F]</b> for hints</span></div>
+        <div class="help-row"><span class="help-desc" style="color:#aaa">🌙 Night increases rare loot chance!</span></div>
+        <div class="help-row"><span class="help-desc" style="color:#aaa"><b>Shift</b> to sprint</span></div>
       </div>
       <div id="help-close">[ H / ESC ] CLOSE</div>
     </div>

@@ -427,6 +427,52 @@ export const ITEMS = {
     category: 'device',
     stackSize: 1,
   },
+
+  // ── New content expansion ──
+  magnet_gloves: {
+    name: 'Magnet Gloves',
+    icon: '🧤',
+    desc: 'Electromagnet-lined gloves. Pulls dropped items from 2 blocks away. Earl wore them once and accidentally vacuumed up his coffee mug.',
+    category: 'wearable',
+    stackSize: 1,
+  },
+  solar_panel: {
+    name: 'Solar Panel',
+    icon: '☀️',
+    desc: 'A polycrystalline photovoltaic panel salvaged from a broken streetlight. Place it anywhere for free daytime power. The future is now.',
+    category: 'device',
+    stackSize: 4,
+    placeable: true,
+  },
+  steam_boiler: {
+    name: 'Steam Boiler',
+    icon: '♨️',
+    desc: 'Pressurized tank + heating coil = steam on demand. Hook it to your automations and watch things move. Side effects: hissing, drama.',
+    category: 'device',
+    stackSize: 1,
+  },
+  pneumatic_drill: {
+    name: 'Pneumatic Drill',
+    icon: '⛏️',
+    desc: 'Compressed air fury in a hand-held package. 3× mine speed on metal and stone. Your arm will forgive you eventually.',
+    category: 'tool',
+    stackSize: 1,
+    tool: true,
+  },
+  radar_dish: {
+    name: 'Radar Dish',
+    icon: '📡',
+    desc: 'Rotating dish antenna that pings the yard and maps all nearby ore onto your minimap. Because guessing is for amateurs.',
+    category: 'device',
+    stackSize: 1,
+  },
+  comm_relay: {
+    name: 'Comm Relay',
+    icon: '📻',
+    desc: "A two-way radio relay that patches you directly to Earl's pocket. He'll grumble. But he'll answer.",
+    category: 'device',
+    stackSize: 1,
+  },
 };
 
 export function getItem(id) {

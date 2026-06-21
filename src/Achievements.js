@@ -349,6 +349,57 @@ export const ACHIEVEMENT_LIST = [
     desc: 'Find 3 buried signal caches with the signal radio. RF direction-finding in a scrapyard. Same principle as search-and-rescue beacons.',
     check: (s) => (s.buriedCachesFound ?? 0) >= 3,
   },
+
+  // ── Content expansion achievements ──
+  {
+    id: 'magnetic_hands',
+    icon: '🧤',
+    name: 'Magnetic Personality II',
+    desc: 'Craft Magnet Gloves. Now you pull items from 2 blocks away. Earl wants a pair. He won\'t ask.',
+    check: (s) => s.crafted.has('magnet_gloves'),
+  },
+  {
+    id: 'sun_tamer',
+    icon: '☀️',
+    name: 'Solar-Powered',
+    desc: 'Place 3 Solar Panels in the world. Free energy from the sky. The yard has never been greener. Or cleaner.',
+    check: (s) => (s.solarPlaced ?? 0) >= 3,
+  },
+  {
+    id: 'steam_engineer',
+    icon: '♨️',
+    name: 'Steam-Punk\'d',
+    desc: 'Craft the Steam Boiler. Pressurized heat exchangers and PIDs are now in your scrapyard. Automation level: advanced.',
+    check: (s) => s.crafted.has('steam_boiler'),
+  },
+  {
+    id: 'drill_sergeant',
+    icon: '⛏️',
+    name: 'Drill Sergeant',
+    desc: 'Craft a Pneumatic Drill. 3× speed on metal. The Deep Yard just got a lot less deep.',
+    check: (s) => s.crafted.has('pneumatic_drill'),
+  },
+  {
+    id: 'full_coverage',
+    icon: '📡',
+    name: 'Full Coverage',
+    desc: 'Craft the Radar Dish. Every ore vein in your minimap range is now visible. No more guessing.',
+    check: (s) => s.crafted.has('radar_dish'),
+  },
+  {
+    id: 'earl_again',
+    icon: '📻',
+    name: 'Earl On Speed Dial',
+    desc: 'Craft the Comm Relay. You can now reach Earl from anywhere. He\'s trying to decide if that\'s a threat.',
+    check: (s) => s.crafted.has('comm_relay'),
+  },
+  {
+    id: 'new_age',
+    icon: '🏭',
+    name: 'Industrial Revolution',
+    desc: 'Craft all 6 new devices: Magnet Gloves, Solar Panel, Steam Boiler, Pneumatic Drill, Radar Dish, and Comm Relay. The yard will never be the same. Neither will Earl.',
+    check: (s) => s.crafted.has('magnet_gloves') && s.crafted.has('solar_panel') && s.crafted.has('steam_boiler') && s.crafted.has('pneumatic_drill') && s.crafted.has('radar_dish') && s.crafted.has('comm_relay'),
+  },
 ];
 
 export class Achievements {
@@ -385,6 +436,7 @@ export class Achievements {
       luckyFinds: 0,
       narrowEscapes: 0,
       challengesCompleted: 0,
+      solarPlaced: 0,
       buriedCachesFound:  0,
     };
   }
@@ -418,6 +470,7 @@ export class Achievements {
         s.blocksPlaced++;
         if (data.blockId === 'track_strip')  s.tracksPlaced     = (s.tracksPlaced ?? 0) + 1;
         if (data.blockId === 'floodlight')   s.floodlightsPlaced = (s.floodlightsPlaced ?? 0) + 1;
+        if (data.blockId === 'solar_panel')  s.solarPlaced     = (s.solarPlaced ?? 0) + 1;
         break;
       case 'wokwi_export':
         s.wokwiExported = (s.wokwiExported ?? 0) + 1;

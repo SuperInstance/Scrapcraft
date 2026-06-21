@@ -37,6 +37,24 @@ export class Game {
     this._lastBandIndex   = -1;
     this._idleTimer       = 0;
     this._ambientTimer    = 0;
+
+    // Tutorial state machine (shown on first load)
+    this._tutorialActive  = false;
+    this._tutorialStep    = -1; // -1 = not started, 0..3 = steps, 4 = done
+    this._tutorialNagged  = false;
+    this._tutorialWarned  = false;
+    this._tutorialHintEl  = document.getElementById('tutorial-hint');
+
+    // Auto-help — show help overlay after 15s of idle play
+    this._helpAutoTimer   = -1;
+    this._helpWasShown    = false;
+
+    // Band-entry notify flags (show once per band)
+    this._notifiedBand2   = false;
+    this._notifiedBand3   = false;
+
+    // First-time craft tracking
+    this._notifiedWrench  = false;
   }
 
   init() {
@@ -116,6 +134,8 @@ export class Game {
     // Item use (G key) state
     this._fuelBoostTimer  = 0;   // seconds remaining on fuel_can speed boost
     this._headlampOn      = false;
+    this._flyingMode     = false; // toggled by flying_machine
+    this._savedGravity   = 0;     // restored when landing
 
     // Waypoint system — player drops a flag at their position (Y key or waypoint_flag item G)
     this._waypoint = null;  // { x, z } or null
@@ -141,6 +161,11 @@ export class Game {
     this._ghostRecTimer   = 0;
     this._ghostBotMesh    = null;
 
+    // Uninitialized variable guards
+    this._oreDetectCooldown = 0;
+    this._nearTrackSeen    = false;
+    this._nightBonusShown  = false;
+
     this._bindInput();
 
     // Wire health callback: any damage/heal updates HUD + flashes vignette on damage
@@ -151,29 +176,86 @@ export class Game {
     };
     this.ui.setHealth(100, 100);
 
-    // Load saved state — if none, show first-time greeting
+    // Load saved state — if none, show first-time greeting + tutorial
     const loaded = this.saveSystem.load();
-    if (!loaded) setTimeout(() => this.foreman.greet(), 1200);
-    else         setTimeout(() => this.foreman.say('idle'), 1200);
+    if (!loaded) {
+      setTimeout(() => this.foreman.greet(), 1200);
+      this._startTutorial();
+    } else {
+      setTimeout(() => this.foreman.say('idle'), 1200);
+    }
 
     this.ui.updateHotbar(this.player);
   }
 
+  // ── Tutorial (first-time player onboarding) ────────────────────────
+
+  _startTutorial() {
+    this._tutorialActive = true;
+    this._tutorialStep   = 0;
+    this._showTutorialHint();
+  }
+
+  _showTutorialHint() {
+    const STEPS = [
+      '⬆️  Press <b>W A S D</b> to move around the yard',
+      '⛏️  Hold <b>left-click</b> on scrap piles to mine them',
+      '🔧  Press <b>E</b> to open the Workshop & inventory',
+      '🧠  Press <b>T</b> to open the Maker Bench (robot brain!)',
+    ];
+    const el = this._tutorialHintEl;
+    if (!el) return;
+    if (this._tutorialStep >= 0 && this._tutorialStep < STEPS.length) {
+      el.innerHTML = STEPS[this._tutorialStep];
+      el.classList.add('show');
+      // Also notify in the notification area
+      this.ui?.notify(STEPS[this._tutorialStep].replace(/<[^>]+>/g, ''));
+    } else if (this._tutorialStep >= STEPS.length) {
+      el.classList.remove('show');
+      this._tutorialActive = false;
+      this.ui?.notify('✅ Tutorial complete! Press <b>H</b> anytime for help.');
+    }
+  }
+
+  _advanceTutorial() {
+    if (!this._tutorialActive || this._tutorialStep < 0) return;
+    this._tutorialStep++;
+    if (this._tutorialStep >= 4) {
+      this._tutorialActive = false;
+      if (this._tutorialHintEl) this._tutorialHintEl.classList.remove('show');
+      this.ui?.notify('✅ Tutorial complete! Press H for help.');
+      return;
+    }
+    this._showTutorialHint();
+  }
+
   _bindInput() {
     document.addEventListener('keydown', e => {
+      // Any keypress resets the auto-help timer
+      this._helpAutoTimer = -1;
+
+      // ── Tutorial: detect WASD to advance step 0 ──
+      if (this._tutorialActive && this._tutorialStep === 0 && /^(Key[WASD])$/.test(e.code)) {
+        this._advanceTutorial();
+      }
+
       if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && document.pointerLockElement) {
         this.audio.sprint();
       }
       if (e.code === 'KeyG' && document.pointerLockElement && !this.ui.isOpen) {
         this._useActiveItem();
       }
+      // ── Tutorial: detect E to advance step 2 ──
       if (e.code === 'KeyE') {
+        if (this._tutorialActive && this._tutorialStep === 2) this._advanceTutorial();
         if (this.ui.isOpen) { this.ui.closeInventory(); return; }
         const p = this.player.pos;
         const nearby = this.world.getNearbyInteractives(p.x, p.y, p.z, 3);
         this.ui.openInventory(nearby[0]?.station ?? 'any');
       }
+      // ── Tutorial: detect T to advance step 3 ──
       if (e.code === 'KeyT') {
+        if (this._tutorialActive && this._tutorialStep === 3) this._advanceTutorial();
         if (this.tileEditor.isOpen) { this.tileEditor.close(); }
         else { this.tileEditor.open(this._getBrainTier()); }
         return;
@@ -373,6 +455,9 @@ export class Game {
 
     // Buried signal cache — special loot when the BURIED_CACHE block is mined
     if (id === B.BURIED_CACHE) this._lootBuriedCache(x, z);
+
+    // Tutorial: first mine advances step 1
+    if (this._tutorialActive && this._tutorialStep === 1) this._advanceTutorial();
 
     this.achievements.track('mine', { isNight });
     this.challenge.onMine(id);
@@ -691,6 +776,7 @@ export class Game {
   _tickHazards(dt) {
     const p  = this.player.pos;
     const bx = Math.round(p.x), bz = Math.round(p.z);
+    const band = this.world.getBandIndex(Math.floor(bz));
     // Check the block at player feet (y=1) for hazards
     const id  = this.world.getBlock(bx, 1, bz);
     const def = id ? (BLOCK_DEF[id] ?? null) : null;
@@ -704,7 +790,9 @@ export class Game {
       this._acidTimer = (this._acidTimer ?? 0) + dt;
       if (this._acidTimer > 0.5) {
         this._acidTimer = 0;
-        const dmg = Math.round((def.hazardDps ?? 4) * 0.5);
+        // Band-dependent DPS — Band 1 is milder acid, Band 2 is full strength
+        const bandDps = band === 1 ? 3 : (def.hazardDps ?? 4);
+        const dmg = Math.round(bandDps * 0.5);
         this.player.takeDamage(dmg);
         if (!this._acidWarnActive) {
           this._acidWarnActive = true;
@@ -712,9 +800,26 @@ export class Game {
           this.foreman.onEvent('acid_hazard', {});
         }
       }
+    } else if (def?.hazard === 'fire') {
+      // Hot slag — no immunity item (but Blowtorch makes you resistant)
+      const resistance = this.player.hasTool('blowtorch') ? 0.5 : 1;
+      this._fireTimer = (this._fireTimer ?? 0) + dt;
+      if (this._fireTimer > 0.5) {
+        this._fireTimer = 0;
+        let dmg = Math.round((def.hazardDps ?? 5) * 0.5 * resistance);
+        dmg = Math.max(1, dmg);
+        this.player.takeDamage(dmg);
+        if (!this._fireWarnActive) {
+          this._fireWarnActive = true;
+          this.ui.notify('🔥 Hot slag! Move away! Blowtorch halves the damage.');
+          this.particles.burst(p.x, p.y + 0.5, p.z, 'ember', 4);
+        }
+      }
     } else {
       this._acidTimer = 0;
       this._acidWarnActive = false;
+      this._fireTimer = 0;
+      this._fireWarnActive = false;
     }
   }
 
@@ -862,6 +967,11 @@ export class Game {
     if (output === 'robot_helper' && !this.scrapBot.isActive) {
       setTimeout(() => this.scrapBot.activate(this.player.pos), 1000);
     }
+    // First-time craft notifications
+    if (output === 'wrench' && !this._notifiedWrench) {
+      this._notifiedWrench = true;
+      setTimeout(() => this.ui.notify('🔧 Crafted! Press E to see what else you can make.'), 1800);
+    }
   }
 
   onQuestComplete() {
@@ -897,6 +1007,30 @@ export class Game {
 
     this.player.tick(dt, this.world);
 
+    // Flying machine — override gravity, boost speed, allow vertical movement
+    if (this._flyingMode) {
+      this.player.vel.y = 0;
+      this.player.fuelBoosted = true;
+      // Vertical flight: Space for up, Shift for down
+      if (this.player._keys && this.player._keys['Space']) {
+        this.player.pos.y += 6.0 * dt;
+      }
+      if (this.player._keys && (this.player._keys['ShiftLeft'] || this.player._keys['ShiftRight'])) {
+        this.player.pos.y -= 5.0 * dt;
+      }
+      // Keep player above the world floor and below the sky limit
+      if (this.player.pos.y < 1) this.player.pos.y = 1;
+      if (this.player.pos.y > 40) this.player.pos.y = 40;
+      // Trail particles while flying
+      this._flightTrailTimer = (this._flightTrailTimer ?? 0) + dt;
+      if (this._flightTrailTimer > 0.15) {
+        this._flightTrailTimer = 0;
+        this.particles.burst(
+          this.player.pos.x, this.player.pos.y + 0.3, this.player.pos.z, 'smoke', 1
+        );
+      }
+    }
+
     // Hazard block damage (acid puddle, etc.)
     this._tickHazards(dt);
 
@@ -915,13 +1049,21 @@ export class Game {
 
     // Player death (hp = 0) or fall off world
     const fell = this.player.pos.y < -5;
-    if (this.player.hp <= 0 || fell) {
+    if ((this.player.hp <= 0 || fell) && !this._flyingMode) {
       this.player.pos.set(8, 2, 5);
       this.player.vel?.set(0, 0, 0);
       this.player.hp = 40;  // respawn at 40 HP — don't start full
       this.ui.setHealth(40, this.player.maxHp);
       this.ui.notify(fell ? '🏁 Respawned at the yard gate. (−60 HP)' : '💀 You blacked out. Respawned at the gate. (−60 HP)');
+      // Force Earl's death quip — always visible even if he was just speaking
+      this.foreman.say('die', { force: true });
       this.foreman.onEvent('player_die', {});
+      // Disable flying mode on death
+      if (this._flyingMode) {
+        this._flyingMode = false;
+        this.renderer.camera.fov = 70;
+        this.renderer.camera.updateProjectionMatrix();
+      }
     }
 
     // Night goggles: boost ambient light at night
@@ -1044,6 +1186,15 @@ export class Game {
       if (this._lastBandIndex >= 0) {
         this.ui.showZoneToast(this.world.getBandName(Math.floor(this.player.pos.z)));
         this.foreman.onEvent(`enter_band_${bandIdx}`, {});
+        // Notify on first entry to special bands
+        if (bandIdx === 2 && !this._notifiedBand2) {
+          this._notifiedBand2 = true;
+          this.ui.notify('🏭 Circuit City — electronics-grade scrap!');
+        }
+        if (bandIdx === 3 && !this._notifiedBand3) {
+          this._notifiedBand3 = true;
+          this.ui.notify('☠️ The Deep Yard — extreme hazard zone!');
+        }
       }
       this._lastBandIndex = bandIdx;
       this._applyBandSky(bandIdx);
@@ -1081,6 +1232,16 @@ export class Game {
     if (locked) {
       this._idleTimer += dt;
       if (this._idleTimer > 55) { this._idleTimer = 0; this.foreman.say('idle'); }
+    }
+
+    // Auto-help: show help overlay after 15s of play without any key press
+    if (locked && !this._helpWasShown && !this.ui.isOpen && !this.tileEditor.isOpen && !this._tutorialActive) {
+      if (this._helpAutoTimer < 0) this._helpAutoTimer = 0;
+      this._helpAutoTimer += dt;
+      if (this._helpAutoTimer >= 15) {
+        this._helpWasShown = true;
+        this._toggleHelp(true);
+      }
     }
 
     // Forge embers
@@ -1293,7 +1454,9 @@ export class Game {
     if (oreDef) {
       const oreVal = oreDef.read(robot, adapter);
       if (oreVal > 0.6) {
-        this._oreDetectCooldown = (this._oreDetectCooldown ?? 0) - 1;
+        if (this._oreDetectCooldown > 0) {
+          this._oreDetectCooldown--;
+        }
         if (this._oreDetectCooldown <= 0) {
           this._oreDetectCooldown = 600; // ~10s at 60fps
           this.achievements?.track('ore_detect');
@@ -1410,11 +1573,45 @@ export class Game {
       case 'waypoint_flag':
         this._dropWaypoint(true);
         return;
+      case 'flying_machine':
+        if (!this.player.hasTool('flying_machine') && !this._flyingMode) {
+          this.ui.notify('You need a Flying Machine in your inventory to activate flight.');
+          break;
+        }
+        this._flyingMode = !this._flyingMode;
+        if (this._flyingMode) {
+          this.player.vel.y = 0;
+          this.ui.notify('✈️ Flying Machine engaged! Use WASD to fly. Press G to land.');
+          this.particles.burst(p.x, p.y + 0.5, p.z, 'confetti', 20);
+          this.foreman.onEvent('craft_flying_machine', {});
+          this.renderer.camera.fov = 85; // higher FOV for flight
+          this.renderer.camera.updateProjectionMatrix();
+        } else {
+          this.ui.notify('🛬 Flying Machine disengaged. Welcome back to earth.');
+          this.particles.burst(p.x, p.y + 0.5, p.z, 'smoke', 10);
+          this.renderer.camera.fov = 70; // restore normal FOV
+          this.renderer.camera.updateProjectionMatrix();
+        }
+        break;
       case 'scrap_grenade':
         this._throwGrenade();
         return; // _throwGrenade handles removeItem + updateHotbar
-      default:
-        this.ui.notify(`${item.id.replace(/_/g,' ')} has no use action (yet!)`);
+      default: {
+        const def = getItem(item.id);
+        const id = item.id.replace(/_/g, ' ');
+        if (def?.tool) {
+          this.ui.notify(`🔧 ${def.name} — ${def.desc}`);
+        } else if (def?.category === 'material' || def?.category === 'block') {
+          this.ui.notify(`📦 ${def.name} is a crafting material. Open Workshop [E] to see recipes.`);
+        } else if (def?.category === 'maker') {
+          this.ui.notify(`🧠 ${def.name} — used in the Maker Bench [T] for robot programs.`);
+        } else if (def) {
+          this.ui.notify(`${def.icon} ${def.name} — ${def.desc}`);
+        } else {
+          this.ui.notify(`${id} has no use action (yet!)`);
+        }
+        break;
+      }
     }
     this.ui.updateHotbar(this.player);
     this.saveSystem.markDirty();
