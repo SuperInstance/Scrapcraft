@@ -321,6 +321,13 @@ export const ACHIEVEMENT_LIST = [
     desc: "Loot 3 supply drops before Earl notices they exist. (Earl noticed. He's pretending he didn't.)",
     check: (s) => (s.airdropLoots ?? 0) >= 3,
   },
+  {
+    id: 'lucky_strike',
+    icon: '🍀',
+    name: 'Lucky Strike',
+    desc: 'Find a hidden rare item buried in scrap. The yard hides things. Sometimes good things.',
+    check: (s) => (s.luckyFinds ?? 0) >= 1,
+  },
 ];
 
 export class Achievements {
@@ -354,6 +361,7 @@ export class Achievements {
       oreDetections: 0,
       grenadeMaxBlocks: 0,
       airdropLoots: 0,
+      luckyFinds: 0,
     };
   }
 
@@ -422,6 +430,9 @@ export class Achievements {
         break;
       case 'airdrop_loot':
         s.airdropLoots = (s.airdropLoots ?? 0) + 1;
+        break;
+      case 'lucky_find':
+        s.luckyFinds = (s.luckyFinds ?? 0) + 1;
         break;
     }
     this._check();

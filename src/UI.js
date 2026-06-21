@@ -335,6 +335,7 @@ export class UI {
         if (this._activeTab === 'crafting') this._renderRecipes();
         if (this._activeTab === 'achievements') this._renderAchievements();
         if (this._activeTab === 'codex') this._renderCodexList();
+        if (this._activeTab === 'stats') this._renderStats();
       });
     });
   }
@@ -493,6 +494,54 @@ export class UI {
   }
 
   _renderCodexList() { /* already built statically */ }
+
+  _renderStats() {
+    const panel = document.getElementById('stats-panel');
+    if (!panel) return;
+    const s = this.game.achievements?.stats ?? {};
+    const x = this.game.xpSystem;
+
+    const bar = (val, max = 100) => {
+      const pct = Math.min(100, Math.round((val / max) * 100));
+      return `<div class="stat-bar-wrap"><div class="stat-bar-fill" style="width:${pct}%"></div></div>`;
+    };
+    const row = (label, val, barMax = 0) =>
+      `<div class="stat-row"><span class="stat-label">${label}</span><span class="stat-val">${val}</span></div>${barMax ? bar(val, barMax) : ''}`;
+
+    panel.innerHTML = `
+      <div class="stat-card">
+        <h4>FIELD ACTIVITY</h4>
+        ${row('Blocks mined', s.totalMined ?? 0, 200)}
+        ${row('Blocks placed', s.blocksPlaced ?? 0, 50)}
+        ${row('Night mines', s.nightMines ?? 0, 20)}
+        ${row('Crystal ore', s.crystalMined ?? 0, 10)}
+        ${row('Lucky finds', s.luckyFinds ?? 0, 5)}
+      </div>
+      <div class="stat-card">
+        <h4>CRAFTING</h4>
+        ${row('Recipes known', (s.crafted?.size ?? 0), 25)}
+        ${row('Items crafted (types)', (s.crafted?.size ?? 0))}
+        ${row('Quests completed', s.questsCompleted ?? 0, 14)}
+        ${row('XP earned', x?.xp ?? 0, 1440)}
+        ${row('Level', x?.level ?? 0, 12)}
+      </div>
+      <div class="stat-card">
+        <h4>MAKER LAB</h4>
+        ${row('Programs run', s.programsRun ?? 0, 20)}
+        ${row('Sensors explored', s.uniqueSensorsUsed ?? 0, 12)}
+        ${row('Wokwi exports', s.wokwiExported ?? 0, 5)}
+        ${row('Lap records', s.lapsCompleted ?? 0, 5)}
+        ${row('Waypoints reached', s.waypointReached ?? 0, 5)}
+      </div>
+      <div class="stat-card">
+        <h4>CHAOS METRICS</h4>
+        ${row('Cannons fired', s.cannonsFired ?? 0, 20)}
+        ${row('Airdrop loots', s.airdropLoots ?? 0, 10)}
+        ${row('Ore detections', s.oreDetections ?? 0, 10)}
+        ${row('Grenade max blast', s.grenadeMaxBlocks ?? 0, 10)}
+        ${row('Headlamp uses', s.headlampUsed ?? 0, 5)}
+      </div>`;
+  }
 
   _showCodexEntry(id) {
     const entry = CODEX.find(e => e.id === id);
