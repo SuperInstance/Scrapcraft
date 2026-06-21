@@ -328,6 +328,45 @@ export const SENSORS = {
     },
   },
 
+  ore_nearby: {
+    id: 'ore_nearby',
+    category: 'sense',
+    kind: 'analog',
+    label: 'ore signal',
+    blurb: 'magnetic field strength from nearby crystal ore (0 = none in range, 1 = ore right here). Works within 10 blocks. Use in The Deep Yard!',
+    requiresBrain: 'spark',
+    read: (robot, world) => world.oreNearby?.(robot.x, robot.z) ?? 0,
+    hw: {
+      platform: ['esp32', 'jetson'],
+      peripheral: 'AS5600 hall-effect / magnetic field sensor (I2C)',
+      pin: 'SDA=21, SCL=22',
+      setup: { arduino: 'mag.begin();', micropython: 'mag = AS5600(i2c)' },
+    },
+    firmware: {
+      arduino: () => '(mag.getFieldStrength() / 4095.0)',
+      micropython: () => '(mag.field_strength() / 4095.0)',
+    },
+  },
+
+  floor_type: {
+    id: 'floor_type',
+    category: 'sense',
+    kind: 'analog',
+    label: 'floor material',
+    blurb: 'surface under the bot — 0 = dirt/void, 0.33 = concrete, 0.66 = metal/scrap, 1.0 = track or crystal. Like an IR reflectance sensor reading texture.',
+    read: (robot, world) => world.floorType?.(robot.x, robot.z) ?? 0,
+    hw: {
+      platform: ['uno', 'esp32', 'jetson'],
+      peripheral: 'TCRT5000 IR reflectance array (2 sensors, A1 + A2)',
+      pin: 'A1, A2',
+      setup: { arduino: '', micropython: '' },
+    },
+    firmware: {
+      arduino: () => 'readFloorType()',
+      micropython: () => 'read_floor_type()',
+    },
+  },
+
   // Vision Brain (Jetson) — abstracted computer vision. "Just works" in-game;
   // maps to a real on-device inference call on actual hardware.
   sees_target: {

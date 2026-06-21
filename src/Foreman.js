@@ -152,6 +152,11 @@ const QUIPS = {
     "Bot reached the flag. That's GPS. Real GPS. In a scrapyard game. I'm genuinely moved.",
     "Waypoint reached! Your bot navigated there using math I won't pretend to fully understand. Good job.",
   ],
+  ore_detect: [
+    "Bot's magnetic sensor just picked up crystal ore. Hall-effect chip, same as the real ones. That's not a game gimmick — that's actual I2C sensor protocol.",
+    "Signal spike! Your bot found ore. The LED went green, which is the universal language for 'dig here, genius.'",
+    "Ore detected. I put those crystals back there myself. Don't tell anyone they light up.",
+  ],
 };
 
 // Quests Earl assigns in sequence
@@ -293,6 +298,16 @@ export const QUESTS = [
     reward: { item: 'vision_brain', qty: 1 },
     rewardText: "Vision Brain. The big one. A Jetson Nano in the game, computer vision in your hands. You've officially graduated from my scrapyard. I'm not crying. My eye itches.",
   },
+  {
+    id: 'q14',
+    title: 'Crystal Sweep',
+    intro: "One last trick. Load the Ore Hunter preset in the Maker Bench — you need a Spark Brain for this one. Run your bot in the Deep Yard. The magnetic sensor sniffs out crystal ore from 10 blocks away. Same chip a real mining robot uses. Hall-effect IC on I2C. Go find something.",
+    steps: [
+      { label: 'Bot detects crystal ore (ore signal > 65%)', check: (_, g) => (g?.achievements?.stats?.oreDetections ?? 0) >= 1 },
+    ],
+    reward: { item: 'crystal_fragment', qty: 8 },
+    rewardText: "Eight crystal fragments. Your bot earned those by sniffing out ore like a bloodhound made of scrap metal. I couldn't be prouder. I'm also never saying that again.",
+  },
 ];
 
 export class Foreman {
@@ -339,6 +354,10 @@ export class Foreman {
       'enter_band_1':       'enter_band_1',
       'enter_band_2':       'enter_band_2',
       'enter_band_3':       'enter_band_3',
+      'headlamp_toggle':    'headlamp_on',
+      'cannon_fire':        'cannon_fire',
+      'waypoint_reach':     'waypoint_reached',
+      'ore_detect':         'ore_detect',
     };
     const key = map[event];
     if (key) this.say(key);

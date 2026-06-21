@@ -300,6 +300,13 @@ export const ACHIEVEMENT_LIST = [
     desc: 'Your bot reaches a waypoint flag for the first time. That\'s real GPS navigation. In a scrapyard game. Earl is quietly amazed.',
     check: (s) => (s.waypointReached ?? 0) >= 1,
   },
+  {
+    id: 'bot_scanner',
+    icon: '🔍',
+    name: 'Deep Yard Detective',
+    desc: 'Your bot detected crystal ore using its magnetic sensor. The Deep Yard holds its secrets — but not from your bot.',
+    check: (s) => (s.oreDetections ?? 0) >= 1,
+  },
 ];
 
 export class Achievements {
@@ -330,6 +337,7 @@ export class Achievements {
       headlampUsed: 0,
       cannonsFired: 0,
       waypointReached: 0,
+      oreDetections: 0,
     };
   }
 
@@ -389,6 +397,9 @@ export class Achievements {
         break;
       case 'waypoint_reach':
         s.waypointReached = (s.waypointReached ?? 0) + 1;
+        break;
+      case 'ore_detect':
+        s.oreDetections = (s.oreDetections ?? 0) + 1;
         break;
     }
     this._check();

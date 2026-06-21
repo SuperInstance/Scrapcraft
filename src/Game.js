@@ -797,6 +797,22 @@ export class Game {
       }
     }
 
+    // Ore detection tracking — fires once per 10s when ore_nearby > 0.6
+    const oreDef = getSensor('ore_nearby');
+    if (oreDef) {
+      const oreVal = oreDef.read(robot, adapter);
+      if (oreVal > 0.6) {
+        this._oreDetectCooldown = (this._oreDetectCooldown ?? 0) - 1;
+        if (this._oreDetectCooldown <= 0) {
+          this._oreDetectCooldown = 600; // ~10s at 60fps
+          this.achievements?.track('ore_detect');
+          this.foreman?.onEvent('ore_detect', {});
+        }
+      } else {
+        this._oreDetectCooldown = 0;
+      }
+    }
+
     // Motor bars (center-origin ±50%)
     const driveVal = document.getElementById('bsh-drive-val');
     const driveBar = document.getElementById('bsh-drive-bar');
