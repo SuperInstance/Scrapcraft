@@ -119,6 +119,7 @@ export class SaveSystem {
           oreDetections:      s.oreDetections        ?? 0,
           grenadeMaxBlocks:   s.grenadeMaxBlocks     ?? 0,
           airdropLoots:       s.airdropLoots         ?? 0,
+          luckyFinds:         s.luckyFinds           ?? 0,
         },
       },
 
@@ -193,6 +194,7 @@ export class SaveSystem {
         oreDetections:     s.oreDetections     ?? 0,
         grenadeMaxBlocks:  s.grenadeMaxBlocks  ?? 0,
         airdropLoots:      s.airdropLoots      ?? 0,
+        luckyFinds:        s.luckyFinds        ?? 0,
       });
     }
 

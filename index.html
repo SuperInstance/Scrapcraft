@@ -650,7 +650,7 @@
 
     /* Code view */
     .te-code-view {
-      border-top:1px solid #1a1a1a; max-height:230px;
+      border-top:1px solid #1a1a1a; max-height:340px;
       flex-direction:column; flex-shrink:0; background:#050505;
     }
     .te-code-tabs {
@@ -668,6 +668,8 @@
       font-size:10px; line-height:1.7; color:#7aa2a8; background:transparent;
       white-space:pre;
     }
+    #te-wiring-svg { flex:1; overflow:auto; }
+    #te-wiring-svg svg { width:100%; height:auto; display:block; }
 
     /* Errors */
     #te-errors {
@@ -1060,11 +1062,12 @@
       <div class="te-code-tabs">
         <button class="te-code-tab active" data-lang="arduino">Arduino (.ino)</button>
         <button class="te-code-tab" data-lang="micropython">MicroPython (.py)</button>
+        <button class="te-code-tab" data-lang="wiring">📐 Wiring</button>
         <button id="te-dl"       class="te-btn" style="margin-left:auto;">⬇ Download</button>
         <button id="te-dl-wokwi" class="te-btn" title="Download sketch + diagram.json for Wokwi simulator">🔌 Wokwi</button>
-        <button id="te-dl-svg"   class="te-btn" title="Download wiring diagram as SVG">📐 Wiring</button>
       </div>
       <pre id="te-code-pre"></pre>
+      <div id="te-wiring-svg" style="display:none;overflow:auto;padding:8px;"></div>
     </div>
 
     <!-- Compile errors / warnings -->

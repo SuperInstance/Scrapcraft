@@ -120,6 +120,7 @@ export class TileEditor {
     this._botSel     = null;
     this._presetSel  = null;
     this._sensorsEl  = null;
+    this._wiringEl   = null;
 
     this._buildDOM();
   }
@@ -140,6 +141,7 @@ export class TileEditor {
     this._codePre    = this._panel.querySelector('#te-code-pre');
     this._errView    = this._panel.querySelector('#te-errors');
     this._sensorsEl  = this._panel.querySelector('#te-sensors');
+    this._wiringEl   = this._panel.querySelector('#te-wiring-svg');
 
     this._nameIn.addEventListener('input', () => {
       this._program.name = this._nameIn.value || 'My Brain';
@@ -157,7 +159,6 @@ export class TileEditor {
     this._panel.querySelector('#te-share-btn')?.addEventListener('click', () => this._shareProgram());
     this._panel.querySelector('#te-dl').addEventListener('click', () => this._download());
     this._panel.querySelector('#te-dl-wokwi')?.addEventListener('click', () => this._downloadWokwi());
-    this._panel.querySelector('#te-dl-svg')?.addEventListener('click',   () => this._downloadSVG());
 
     this._botSel    = this._panel.querySelector('#te-bot-sel');
     this._presetSel = this._panel.querySelector('#te-preset-sel');
@@ -614,6 +615,20 @@ export class TileEditor {
   }
 
   _refreshCode() {
+    if (this._codeLang === 'wiring') {
+      this._codePre.style.display = 'none';
+      if (this._wiringEl) {
+        this._wiringEl.style.display = 'block';
+        try {
+          this._wiringEl.innerHTML = toWiringSVG(this._program);
+        } catch (err) {
+          this._wiringEl.innerHTML = `<p style="color:#f66;padding:8px;">Wiring error: ${err.message}</p>`;
+        }
+      }
+      return;
+    }
+    this._codePre.style.display = '';
+    if (this._wiringEl) this._wiringEl.style.display = 'none';
     try {
       this._codePre.textContent = this._codeLang === 'arduino'
         ? toArduino(this._program)
@@ -624,6 +639,7 @@ export class TileEditor {
   }
 
   _download() {
+    if (this._codeLang === 'wiring') { this._downloadSVG(); return; }
     const isArd  = this._codeLang === 'arduino';
     const text   = isArd ? toArduino(this._program) : toMicroPython(this._program);
     const ext    = isArd ? 'ino' : 'py';
