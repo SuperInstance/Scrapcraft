@@ -177,6 +177,11 @@ const QUIPS = {
     "Supply drop contents secured. Earl approves of this level of initiative.",
     "Mystery crate. Real gear inside. That's the scrapyard lottery and you just won.",
   ],
+  bot_battery_dead: [
+    "Your bot ran out of power. This is how electric vehicles work — lithium-ion pack, charge it or park it. Use a charging pad.",
+    "Battery dead. Real robots have battery management systems (BMS) that shut down cleanly at 0% to protect the cells. Your bot does the same.",
+    "Bot's done. Zero percent battery. Charge it with a charging pad. Real autonomous vehicles have the same problem — ask any delivery drone operator.",
+  ],
   acid_hazard: [
     "Get out of the acid. Now. That's sulfuric acid leaking from old batteries. Eats through rubber, metal, and boot soles.",
     "MOVE. That green stuff is H₂SO₄ — battery acid. It corrodes metal in seconds. You are not made of metal. Mostly.",
@@ -400,6 +405,7 @@ export class Foreman {
       'lucky_find':         'lucky_find',
       'waypoint_drop':      'waypoint_drop',
       'acid_hazard':        'acid_hazard',
+      'bot_battery_dead':   'bot_battery_dead',
     };
     const key = map[event];
     if (key) this.say(key);

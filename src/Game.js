@@ -1071,6 +1071,16 @@ export class Game {
       turnBar.style.width      = Math.abs(tp) * 50 + '%';
       turnBar.style.background = '#f0b429';
     }
+
+    // Battery meter
+    const battVal = document.getElementById('bsh-battery-val');
+    const battBar = document.getElementById('bsh-battery-bar');
+    if (battVal && battBar && bot) {
+      const bPct = bot.battery ?? 100;
+      battVal.textContent = Math.round(bPct) + '%';
+      battBar.style.width = bPct + '%';
+      battBar.style.background = bPct > 50 ? '#44cc44' : bPct > 20 ? '#f0b429' : '#cc2222';
+    }
   }
 
   _useActiveItem() {
@@ -1132,16 +1142,18 @@ export class Game {
         this.audio.pickup();
         this.particles.burst(p.x, p.y + 1, p.z, 'circuit', 8);
         break;
-      case 'charging_pad':
-        if (this.scrapBot?.isActive) {
-          this.scrapBot.speak('[CHARGING] Thank you. My circuits feel warm.');
-          this.ui.notify('🔌 Bot recharged!');
+      case 'charging_pad': {
+        const targetBot = this.scrapBot?.isActive ? this.scrapBot : (this.scrapBot2?.isActive ? this.scrapBot2 : null);
+        if (targetBot) {
+          targetBot.chargeBattery(50);
+          this.ui.notify(`🔌 Charging pad used — bot battery +50% (now ${Math.round(targetBot.battery)}%)`);
           this.audio.brainLoad();
-          this.particles.burst(this.scrapBot._pos.x, 1.5, this.scrapBot._pos.z, 'circuit', 10);
+          this.particles.burst(targetBot._pos.x, 1.5, targetBot._pos.z, 'circuit', 10);
         } else {
           this.ui.notify('No active bot to charge.');
         }
         break;
+      }
       case 'waypoint_flag':
         this._dropWaypoint(true);
         return;
