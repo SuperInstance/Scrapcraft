@@ -17,6 +17,12 @@ export class Player {
     this.pitch   = 0;
     this.onGround= false;
 
+    this.hp     = 100;
+    this.maxHp  = 100;
+    this.onDamage = null;  // callback(hp) set by Game
+
+    this._prevVelY = 0;
+
     this.inventory   = new Array(36).fill(null);
     this.hotbarIndex = 0;
     this.crafted     = new Set();
@@ -91,6 +97,16 @@ export class Player {
   countItem(id) { return this.inventory.reduce((n, s) => n + (s?.id === id ? s.qty : 0), 0); }
   hasTool(id)   { return this.inventory.some(s => s?.id === id); }
 
+  takeDamage(n) {
+    this.hp = Math.max(0, this.hp - n);
+    this.onDamage?.(this.hp);
+  }
+
+  heal(n) {
+    this.hp = Math.min(this.maxHp, this.hp + n);
+    this.onDamage?.(this.hp);
+  }
+
   tick(dt, world) {
     if (!this._locked) return;
 
@@ -112,13 +128,20 @@ export class Player {
 
     // Gravity
     const wasGround = this.onGround;
+    const preVelY = this.vel.y;
     this.vel.y += GRAVITY * dt;
 
     const newPos = this.pos.clone().addScaledVector(this.vel, dt);
     this._resolveCollision(newPos, world);
 
-    // Landing bounce
-    if (!wasGround && this.onGround) this._landBob = -0.06;
+    // Landing bounce + fall damage (>12 m/s = painful)
+    if (!wasGround && this.onGround) {
+      this._landBob = -0.06;
+      if (preVelY < -12) {
+        const dmg = Math.round((-preVelY - 12) * 4);
+        this.takeDamage(dmg);
+      }
+    }
 
     // Camera bob
     const moving = this.isMoving && this.onGround;

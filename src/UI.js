@@ -623,4 +623,23 @@ export class UI {
     this._notifContainer.appendChild(el);
     setTimeout(() => el.remove(), 4200);
   }
+
+  setHealth(hp, maxHp = 100) {
+    const fill = document.getElementById('hud-health-fill');
+    const num  = document.getElementById('hud-health-num');
+    if (!fill || !num) return;
+    const pct = Math.max(0, Math.min(100, (hp / maxHp) * 100));
+    fill.style.width = `${pct}%`;
+    fill.classList.toggle('warn', pct <= 50 && pct > 25);
+    fill.classList.toggle('crit', pct <= 25);
+    num.textContent = Math.round(hp);
+  }
+
+  flashDamage() {
+    const el = document.getElementById('damage-vignette');
+    if (!el) return;
+    el.classList.add('flash');
+    clearTimeout(this._dmgFlashTimer);
+    this._dmgFlashTimer = setTimeout(() => el.classList.remove('flash'), 350);
+  }
 }

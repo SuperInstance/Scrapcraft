@@ -85,6 +85,7 @@ export class SaveSystem {
       player: {
         pos:        { x: p.pos.x, y: p.pos.y, z: p.pos.z },
         yaw:        p.yaw ?? 0,
+        hp:         p.hp ?? 100,
         inventory:  p.inventory,           // array of {id,qty}|null (already plain JSON)
         crafted:    [...p.crafted],         // Set → array
         hotbarIndex: p.hotbarIndex ?? 0,
@@ -120,6 +121,7 @@ export class SaveSystem {
           grenadeMaxBlocks:   s.grenadeMaxBlocks     ?? 0,
           airdropLoots:       s.airdropLoots         ?? 0,
           luckyFinds:         s.luckyFinds           ?? 0,
+          narrowEscapes:      s.narrowEscapes        ?? 0,
         },
       },
 
@@ -148,9 +150,13 @@ export class SaveSystem {
     if (pd) {
       g.player.pos.set(pd.pos.x, pd.pos.y, pd.pos.z);
       g.player.yaw         = pd.yaw ?? 0;
+      g.player.hp          = pd.hp ?? 100;
       g.player.inventory   = pd.inventory ?? new Array(36).fill(null);
       g.player.crafted     = new Set(pd.crafted ?? []);
       g.player.hotbarIndex = pd.hotbarIndex ?? 0;
+
+      // Restore health HUD after load
+      g.ui?.setHealth(g.player.hp, g.player.maxHp);
 
       // Restore headlamp + waypoint state
       if (pd.waypoint) {
@@ -195,6 +201,7 @@ export class SaveSystem {
         grenadeMaxBlocks:  s.grenadeMaxBlocks  ?? 0,
         airdropLoots:      s.airdropLoots      ?? 0,
         luckyFinds:        s.luckyFinds        ?? 0,
+        narrowEscapes:     s.narrowEscapes     ?? 0,
       });
     }
 

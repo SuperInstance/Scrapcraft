@@ -123,6 +123,14 @@ export class Game {
 
     this._bindInput();
 
+    // Wire health callback: any damage/heal updates HUD + flashes vignette on damage
+    this.player.onDamage = (hp) => {
+      this.ui.setHealth(hp, this.player.maxHp);
+      if (hp < this.player.maxHp) this.ui.flashDamage();
+      if (hp > 0 && hp < 15) this.achievements?.track('narrow_escape');
+    };
+    this.ui.setHealth(100, 100);
+
     // Load saved state — if none, show first-time greeting
     const loaded = this.saveSystem.load();
     if (!loaded) setTimeout(() => this.foreman.greet(), 1200);
@@ -460,6 +468,14 @@ export class Game {
     if (type === 'grenade') {
       this.particles.burst(x, y + 1, z, 'smoke', 8);
       this._cameraShake(0.15, 0.25);
+      // Friendly-fire splash: player within 2.5 blocks of explosion takes damage
+      const pp = this.player.pos;
+      const d = Math.hypot(pp.x - x, pp.z - z);
+      if (d < 2.5) {
+        const dmg = Math.round((1 - d / 2.5) * 25);
+        this.player.takeDamage(dmg);
+        this.ui.notify(`💥 Caught in blast! −${dmg} HP`);
+      }
       if (blocksDestroyed >= 3) {
         this.achievements.track('grenade_splash', { count: blocksDestroyed });
         this.foreman.onEvent('grenade_big_hit', {});
@@ -630,11 +646,14 @@ export class Game {
       this.ui.setWeather(this.weather.state, this.weather.intensityValue);
     }
 
-    // Auto-respawn if player falls off the world
-    if (this.player.pos.y < -5) {
+    // Player death (hp = 0) or fall off world
+    const fell = this.player.pos.y < -5;
+    if (this.player.hp <= 0 || fell) {
       this.player.pos.set(8, 2, 5);
       this.player.vel?.set(0, 0, 0);
-      this.ui.notify('🏁 Respawned at the yard gate.');
+      this.player.hp = 40;  // respawn at 40 HP — don't start full
+      this.ui.setHealth(40, this.player.maxHp);
+      this.ui.notify(fell ? '🏁 Respawned at the yard gate. (−60 HP)' : '💀 You blacked out. Respawned at the gate. (−60 HP)');
       this.foreman.onEvent('player_die', {});
     }
 
@@ -1025,13 +1044,16 @@ export class Game {
     if (!item) return;
     const p = this.player.pos;
     switch (item.id) {
-      case 'repair_kit':
+      case 'repair_kit': {
+        const healed = Math.min(35, this.player.maxHp - this.player.hp);
         this.player.removeItem('repair_kit', 1);
+        this.player.heal(35);
         this.xpSystem.gain(5);
-        this.ui.notify('🩹 Repair kit used — systems patched!');
+        this.ui.notify(`🩹 Repair kit used — +${healed > 0 ? healed : 35} HP restored!`);
         this.audio.pickup();
         this.particles.burst(p.x, p.y + 1, p.z, 'pickup', 10);
         break;
+      }
       case 'signal_flare':
         this.player.removeItem('signal_flare', 1);
         this.ui.notify('🚨 Flare fired! Earl has been notified.');
