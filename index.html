@@ -177,6 +177,16 @@
     }
     #lap-timer.show { opacity:1; }
 
+    /* ── Ghost lap indicator ── */
+    #ghost-indicator {
+      position:absolute; bottom:186px; right:16px;
+      background:rgba(0,180,140,0.12); border:1px solid rgba(0,255,200,0.35);
+      border-radius:4px; padding:2px 8px; font-size:10px; letter-spacing:1px;
+      color:rgba(0,255,200,0.75); pointer-events:none;
+      opacity:0; transition:opacity 0.4s;
+    }
+    #ghost-indicator.show { opacity:1; }
+
     /* ── Bot sensor dashboard (bottom-left, above XP bar) ── */
     /* ── Bot serial monitor (above sensor HUD) ── */
     #bot-serial-log {
@@ -1014,6 +1024,8 @@
 
     <!-- Lap Timer -->
     <div id="lap-timer"></div>
+    <!-- Ghost lap indicator -->
+    <div id="ghost-indicator">👻 GHOST: BEST LAP</div>
 
     <!-- Codex shortcut -->
     <button id="codex-btn">📖 CODEX</button>

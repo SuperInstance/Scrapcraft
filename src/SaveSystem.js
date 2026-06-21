@@ -141,6 +141,8 @@ export class SaveSystem {
         placedBlocks: g.world._placedBlocks ?? [],
       },
 
+      ghostLap: g._bestGhostFrames?.length ? g._bestGhostFrames : null,
+
       fogMap: (() => {
         const fm = g._fogMap;
         if (!fm) return null;
@@ -249,6 +251,9 @@ export class SaveSystem {
       wd.placedBlocks.forEach(({ x, y, z, id }) => g.world.setBlock(x, y, z, id));
       g.world._placedBlocks = [...wd.placedBlocks];
     }
+
+    // Ghost lap replay
+    if (data.ghostLap?.length) g._bestGhostFrames = data.ghostLap;
 
     // Fog of war map
     if (data.fogMap) {
