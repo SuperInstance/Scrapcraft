@@ -328,6 +328,13 @@ export const ACHIEVEMENT_LIST = [
     desc: 'Find a hidden rare item buried in scrap. The yard hides things. Sometimes good things.',
     check: (s) => (s.luckyFinds ?? 0) >= 1,
   },
+  {
+    id: 'narrow_escape',
+    icon: '🩹',
+    name: 'Narrow Escape',
+    desc: 'Take a hit that drops you below 15 HP and survive. Earl says the scrapyard builds character. This is what he means.',
+    check: (s) => (s.narrowEscapes ?? 0) >= 1,
+  },
 ];
 
 export class Achievements {
@@ -362,6 +369,7 @@ export class Achievements {
       grenadeMaxBlocks: 0,
       airdropLoots: 0,
       luckyFinds: 0,
+      narrowEscapes: 0,
     };
   }
 
@@ -433,6 +441,9 @@ export class Achievements {
         break;
       case 'lucky_find':
         s.luckyFinds = (s.luckyFinds ?? 0) + 1;
+        break;
+      case 'narrow_escape':
+        s.narrowEscapes = (s.narrowEscapes ?? 0) + 1;
         break;
     }
     this._check();

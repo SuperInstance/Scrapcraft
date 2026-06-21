@@ -94,6 +94,34 @@
       white-space:nowrap;
     }
 
+    /* ── Health bar (bottom-left) ── */
+    #hud-health {
+      position:absolute; bottom:90px; left:16px;
+      display:flex; align-items:center; gap:6px;
+      background:rgba(0,0,0,0.55); padding:4px 8px;
+      border-radius:6px; border:1px solid rgba(255,80,80,0.3);
+    }
+    #hud-health-label { font-size:9px; color:#ff6666; letter-spacing:1px; }
+    #hud-health-bar {
+      width:80px; height:7px; background:#1a0000; border-radius:4px; overflow:hidden;
+    }
+    #hud-health-fill {
+      height:100%; width:100%; background:#cc2222;
+      border-radius:4px; transition:width 0.2s, background-color 0.3s;
+    }
+    #hud-health-fill.warn { background:#cc7700; }
+    #hud-health-fill.crit { background:#ff0000; animation:hp-pulse 0.5s ease-in-out infinite alternate; }
+    @keyframes hp-pulse { from { opacity:0.6; } to { opacity:1; } }
+    #hud-health-num { font-size:9px; color:#ff9999; min-width:24px; text-align:right; }
+
+    /* ── Damage vignette ── */
+    #damage-vignette {
+      position:fixed; inset:0; pointer-events:none;
+      background:radial-gradient(transparent 50%, rgba(180,0,0,0.7) 100%);
+      opacity:0; transition:opacity 0.08s ease-in;
+    }
+    #damage-vignette.flash { opacity:1; }
+
     /* Active item label — just above hotbar */
     #active-item-label {
       position:absolute; bottom:90px; left:50%; transform:translateX(-50%);
@@ -873,6 +901,16 @@
         <div class="if-desc"></div>
       </div>
     </div>
+
+    <!-- Health bar -->
+    <div id="hud-health">
+      <span id="hud-health-label">❤ HP</span>
+      <div id="hud-health-bar"><div id="hud-health-fill"></div></div>
+      <span id="hud-health-num">100</span>
+    </div>
+
+    <!-- Damage vignette (red flash on taking damage) -->
+    <div id="damage-vignette"></div>
 
     <!-- Hotbar -->
     <div id="hotbar"></div>
