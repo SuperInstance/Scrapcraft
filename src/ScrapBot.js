@@ -154,6 +154,7 @@ export class ScrapBot {
 
   speak(line) {
     this._ui?.notify(`🤖 ${line}`);
+    this._ui?.logBotMessage(line);
   }
 
   /**
@@ -223,6 +224,7 @@ export class ScrapBot {
     this._brainMode = false;
     this._runtime   = null;
     this.speak('[BRAIN CLEARED] Back to following you around. Lucky you.');
+    setTimeout(() => this._ui?.clearBotLog?.(), 3000);
   }
 
   /** Restore battery by pct (0-100). */

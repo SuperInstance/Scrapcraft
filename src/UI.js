@@ -687,6 +687,29 @@ export class UI {
     setTimeout(() => el.remove(), 4200);
   }
 
+  // ── Bot Serial Monitor ────────────────────────────────────────────────
+
+  logBotMessage(line) {
+    this._botLog = this._botLog ?? [];
+    this._botLog.push(line);
+    if (this._botLog.length > 5) this._botLog.shift();
+    const logEl  = document.getElementById('bot-serial-log');
+    const linesEl = document.getElementById('bsl-lines');
+    if (!logEl || !linesEl) return;
+    logEl.classList.add('active');
+    linesEl.innerHTML = this._botLog.map((msg, i) =>
+      `<div class="bsl-line${i === this._botLog.length - 1 ? ' new' : ''}">${msg.replace(/</g,'&lt;').slice(0, 30)}</div>`
+    ).join('');
+    clearTimeout(this._botLogHideTimer);
+    this._botLogHideTimer = setTimeout(() => logEl.classList.remove('active'), 6000);
+  }
+
+  clearBotLog() {
+    this._botLog = [];
+    const logEl = document.getElementById('bot-serial-log');
+    if (logEl) logEl.classList.remove('active');
+  }
+
   setHealth(hp, maxHp = 100) {
     const fill = document.getElementById('hud-health-fill');
     const num  = document.getElementById('hud-health-num');
