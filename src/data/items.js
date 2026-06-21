@@ -347,6 +347,13 @@ export const ITEMS = {
     stackSize: 4,
     placeable: true,
   },
+  scrap_grenade: {
+    name: 'Scrap Grenade',
+    icon: '💣',
+    desc: "Throw it (G key). It arcs through the air and blasts a 2-block radius on impact. Don't throw it at your feet.",
+    category: 'utility',
+    stackSize: 8,
+  },
 
   // ── Special tools ──
   scrap_magnet: {

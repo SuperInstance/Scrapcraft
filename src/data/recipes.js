@@ -433,6 +433,15 @@ export const RECIPES = [
     tier: 2,
     foremanQuip: "Right-click it to fire. Keep it pointed AWAY from the stations. Earl cannot stress this enough.",
   },
+  {
+    id: 'r_scrap_grenade',
+    output: 'scrap_grenade',
+    qty: 3,
+    ingredients: { iron_scrap: 3, fuel_can: 1, rubber_chunk: 1 },
+    station: 'workbench',
+    tier: 2,
+    foremanQuip: "Hold G with it selected and it flies. Blasts a 2-block radius. Do NOT throw it at my shed. Or the oil drums. Or me.",
+  },
 ];
 
 export function getRecipe(id) {

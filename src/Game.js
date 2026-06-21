@@ -18,6 +18,7 @@ import { TileEditor } from './TileEditor.js';
 import { SaveSystem } from './SaveSystem.js';
 import { XPSystem } from './XPSystem.js';
 import { WeatherSystem } from './WeatherSystem.js';
+import { ProjectileSystem } from './ProjectileSystem.js';
 
 export class Game {
   constructor(canvas) {
@@ -79,6 +80,8 @@ export class Game {
     this.weather = new WeatherSystem(this.renderer.scene, this.audio);
     // Expose weather to bot world adapters — updated by setGame() in ScrapBot
     this._weatherForBots = this.weather;
+
+    this.projectiles = new ProjectileSystem(this.renderer.scene);
 
     this.tileEditor = new TileEditor(this);
     this.saveSystem = new SaveSystem(this);
@@ -381,28 +384,52 @@ export class Game {
     const p = this.player.pos;
     const dx = cx - p.x, dz = cz - p.z;
     const len = Math.hypot(dx, dz) || 1;
-    // Fire in direction from player to cannon
-    const fx = dx / len, fz = dz / len;
-    const range = 8;
-    // Visual burst in the firing direction
-    for (let step = 1; step <= range; step++) {
-      const tx = Math.round(cx + fx * step);
-      const tz = Math.round(cz + fz * step);
-      const blockAhead = this.world.getBlock(tx, cy, tz);
-      if (blockAhead && blockAhead !== B.AIR) {
-        this.particles.burst(tx, cy + 0.5, tz, 'ember', 12);
-        const def = BLOCK_DEF[blockAhead];
-        if (def?.solid) {
-          this.world.mine(tx, cy, tz);
-          this.ui.notify('💥 Scrap Cannon fired!');
-        }
-        break;
-      }
-    }
+    const dir = { x: dx / len, y: 0, z: dz / len };
+
+    this.projectiles.fire({ x: cx, y: cy, z: cz }, dir, 'cannon');
     this.particles.burst(cx, cy + 0.5, cz, 'smoke', 6);
     this.audio.mine(B.RUST_METAL);
     this.achievements.track('cannon_fire', {});
+    this.foreman.onEvent('cannon_fire', {});
     this.xpSystem.gain(1);
+    this.ui.notify('💥 Scrap Cannon fired!');
+  }
+
+  _throwGrenade() {
+    const p = this.player.pos;
+    const yaw = this.player.yaw ?? 0;
+    const dir = { x: Math.sin(yaw), y: 0, z: Math.cos(yaw) };
+    this.projectiles.fire({ x: p.x, y: p.y, z: p.z }, dir, 'grenade');
+    this.player.removeItem('scrap_grenade', 1);
+    this.audio.mine(B.SCRAP_PILE);
+    this.ui.updateHotbar(this.player);
+    this.ui.notify('💣 Grenade thrown!');
+  }
+
+  _onProjectileHit({ x, y, z, type, blocksDestroyed }) {
+    this.particles.burst(x, y + 0.5, z, type === 'grenade' ? 'ember' : 'mine', type === 'grenade' ? 20 : 10);
+    if (type === 'grenade') {
+      this.particles.burst(x, y + 1, z, 'smoke', 8);
+      this._cameraShake(0.15, 0.25);
+      if (blocksDestroyed >= 3) {
+        this.achievements.track('grenade_splash', { count: blocksDestroyed });
+        this.foreman.onEvent('grenade_big_hit', {});
+      } else {
+        this.foreman.onEvent('grenade_fire', {});
+      }
+      if (blocksDestroyed > 0) {
+        this.ui.notify(`💥 Grenade — ${blocksDestroyed} block${blocksDestroyed > 1 ? 's' : ''} destroyed!`);
+        this.xpSystem.gain(blocksDestroyed * 2);
+      }
+    }
+    this.audio.mine(B.RUST_METAL);
+    this.saveSystem.markDirty();
+  }
+
+  _cameraShake(intensity, duration) {
+    this._shakeIntensity = intensity;
+    this._shakeDuration  = duration;
+    this._shakeTimer     = 0;
   }
 
   _dropWaypoint() {
@@ -510,6 +537,7 @@ export class Game {
     // Grapple hook: extends mining / targeting reach
     this.renderer.raycaster.far = this.player.hasTool('grapple_hook') ? 10 : 6;
     this.particles.tick(dt);
+    this.projectiles.tick(dt, this.world, (hit) => this._onProjectileHit(hit));
     this.achievements.tick(dt);
 
     // Drain newly unlocked skills → level-up toast + Earl quip
@@ -647,6 +675,15 @@ export class Game {
 
     // Bot sensor dashboard
     this._updateBotSensorHUD();
+
+    // Camera shake (grenade impact)
+    if (this._shakeDuration > 0) {
+      this._shakeTimer  = (this._shakeTimer ?? 0) + dt;
+      this._shakeDuration -= dt;
+      const k = this._shakeIntensity * (this._shakeDuration > 0 ? 1 : 0);
+      this.renderer.camera.position.x += (Math.random() - 0.5) * k;
+      this.renderer.camera.position.y += (Math.random() - 0.5) * k;
+    }
 
     // Minimap — refresh every 0.5 s
     this._minimapTimer += dt;
@@ -901,6 +938,9 @@ export class Game {
           this.ui.notify('No active bot to charge.');
         }
         break;
+      case 'scrap_grenade':
+        this._throwGrenade();
+        return; // _throwGrenade handles removeItem + updateHotbar
       default:
         this.ui.notify(`${item.id.replace(/_/g,' ')} has no use action (yet!)`);
     }
