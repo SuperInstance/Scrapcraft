@@ -20,6 +20,7 @@ import { XPSystem } from './XPSystem.js';
 import { WeatherSystem } from './WeatherSystem.js';
 import { ProjectileSystem } from './ProjectileSystem.js';
 import { Challenge } from './Challenge.js';
+import { BotUpgrades, UPGRADE_DEFS } from './BotUpgrades.js';
 import { OnboardingWizard } from './onboarding/OnboardingWizard.js';
 
 export class Game {
@@ -104,8 +105,9 @@ export class Game {
     this.projectiles = new ProjectileSystem(this.renderer.scene);
 
     this.tileEditor = new TileEditor(this);
-    this.saveSystem = new SaveSystem(this);
-    this.challenge  = new Challenge(this);
+    this.saveSystem  = new SaveSystem(this);
+    this.challenge   = new Challenge(this);
+    this.botUpgrades = new BotUpgrades();
 
     // Radio tower endgame — track installed components + activated state
     const TOWER_REQS = { signal_amp: 1, crystal_fragment: 5, circuit_board: 4, battery_pack: 3 };
@@ -309,6 +311,9 @@ export class Game {
       }
       if (e.code === 'KeyN' && !this.tileEditor.isOpen) {
         this.ui.toggleFieldNotes();
+      }
+      if (e.code === 'KeyU' && !this.ui.isOpen && !this.tileEditor.isOpen) {
+        this._toggleBotUpgradePanel();
       }
       if (e.code === 'KeyH' && !this.ui.isOpen && !this.tileEditor.isOpen) this._toggleHelp();
       if (e.code === 'KeyR' && document.pointerLockElement) {
@@ -559,6 +564,39 @@ export class Game {
     const show = forceState !== undefined ? forceState : !this._helpOverlay?.classList.contains('show');
     this._helpOverlay?.classList.toggle('show', show);
     if (show && document.pointerLockElement) document.exitPointerLock();
+  }
+
+  _toggleBotUpgradePanel() {
+    let panel = document.getElementById('bot-upgrade-panel');
+    if (panel) { panel.remove(); return; }
+
+    if (document.pointerLockElement) document.exitPointerLock();
+
+    panel = this.ui.showBotUpgradePanel(
+      UPGRADE_DEFS,
+      this.botUpgrades,
+      this.xpSystem,
+      this.player,
+      (id) => {
+        const ok = this.botUpgrades.purchase(id, this.player, this.xpSystem);
+        if (ok) {
+          const def = UPGRADE_DEFS.find(u => u.id === id);
+          this.ui.notify(`${def?.icon ?? '⚡'} ${def?.name ?? id} installed!`);
+          this.xpSystem.gain(50);
+          this.achievements.track('bot_upgrade', { id });
+          this.foreman.say('bot_upgrade');
+          this.ui.updateHotbar(this.player);
+          // Re-render the panel with updated state
+          panel.remove();
+          this._toggleBotUpgradePanel();
+        } else {
+          const def = UPGRADE_DEFS.find(u => u.id === id);
+          if (!this.botUpgrades.prereqsMet(id)) this.ui.notify('⚠ Unlock prerequisites first!');
+          else if (!this.botUpgrades.levelOk(id, this.xpSystem)) this.ui.notify(`⚠ Need level ${def?.levelReq} to install.`);
+          else this.ui.notify('⚠ Not enough materials.');
+        }
+      }
+    );
   }
 
   _toggleBot2() {

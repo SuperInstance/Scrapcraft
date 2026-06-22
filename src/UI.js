@@ -870,4 +870,94 @@ export class UI {
     clearTimeout(this._dmgFlashTimer);
     this._dmgFlashTimer = setTimeout(() => el.classList.remove('flash'), 350);
   }
+
+  // ── Bot Upgrade Panel ───────────────────────────────────────────────────────
+
+  showBotUpgradePanel(upgradeDefs, botUpgrades, xpSystem, player, onPurchase) {
+    const existing = document.getElementById('bot-upgrade-panel');
+    if (existing) { existing.remove(); return null; }
+
+    const panel = document.createElement('div');
+    panel.id = 'bot-upgrade-panel';
+    panel.style.cssText = `
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:#0a0a0a; border:1px solid #2a2a2a; border-radius:10px;
+      padding:20px 24px; z-index:900; min-width:480px; max-width:580px;
+      font-family:'Courier New',monospace; color:#ccc; font-size:11px;
+      box-shadow:0 8px 40px rgba(0,0,0,0.8);
+    `;
+
+    const lvl = xpSystem?.level ?? 0;
+
+    const rows = upgradeDefs.map(def => {
+      const owned      = botUpgrades.purchased.has(def.id);
+      const prereqOk   = botUpgrades.prereqsMet(def.id);
+      const levelOk    = lvl >= def.levelReq;
+      const affordable = botUpgrades.canAfford(def.id, player.inventory);
+      const available  = !owned && prereqOk && levelOk && affordable;
+      const locked     = !prereqOk;
+
+      const costHTML = Object.entries(def.cost)
+        .map(([item, qty]) => {
+          const slot = player.inventory?.find(s => s?.id === item);
+          const have = slot?.qty ?? 0;
+          const ok   = have >= qty;
+          return `<span style="color:${ok?'#6c6':'#c66'}">${qty}× ${item.replace(/_/g,' ')}</span>`;
+        }).join(', ');
+
+      const prereqNames = def.prereqs
+        .map(id => upgradeDefs.find(u => u.id === id)?.name ?? id)
+        .join(' + ');
+
+      let statusBadge;
+      if (owned)      statusBadge = `<span style="color:#4c4;font-size:9px;padding:2px 6px;border:1px solid #1a3a1a;border-radius:3px;">✓ INSTALLED</span>`;
+      else if (locked) statusBadge = `<span style="color:#555;font-size:9px;padding:2px 6px;border:1px solid #222;border-radius:3px;">LOCKED</span>`;
+      else if (!levelOk) statusBadge = `<span style="color:#866;font-size:9px;padding:2px 6px;border:1px solid #431;border-radius:3px;">LEVEL ${def.levelReq} REQ</span>`;
+      else if (!affordable) statusBadge = `<span style="color:#a84;font-size:9px;padding:2px 6px;border:1px solid #430;border-radius:3px;">MATERIALS NEEDED</span>`;
+      else             statusBadge = `<span style="color:#4af;font-size:9px;padding:2px 6px;border:1px solid #148;border-radius:3px;">AVAILABLE</span>`;
+
+      const canBtn = available && !owned;
+      return `
+        <div style="border:1px solid ${owned?'#1a3a1a':available?'#0a2030':'#1a1a1a'};border-radius:7px;
+                    padding:10px 12px;margin-bottom:8px;background:${owned?'#080e08':available?'#080c10':'#080808'};">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+            <span style="font-size:18px">${def.icon}</span>
+            <div style="flex:1">
+              <div style="color:${owned?'#4c4':available?'#4af':'#888'};font-weight:bold;letter-spacing:1px">${def.name}</div>
+              <div style="color:#555;font-size:9px;margin-top:1px">${def.desc}</div>
+            </div>
+            ${statusBadge}
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+            <div style="color:#444;font-size:9px">${costHTML}${locked?` · Requires: ${prereqNames}`:''}</div>
+            ${canBtn ? `<button class="bup-install" data-id="${def.id}" style="
+              background:#071420;border:1px solid #1a4060;border-radius:4px;
+              color:#4af;padding:4px 12px;font-family:inherit;font-size:10px;
+              cursor:pointer;letter-spacing:1px;white-space:nowrap;">Install</button>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+
+    panel.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;
+                  padding-bottom:10px;border-bottom:1px solid #1a1a1a">
+        <div>
+          <div style="color:#f0b429;font-size:14px;font-weight:bold;letter-spacing:2px">🔧 BOT WORKSHOP</div>
+          <div style="color:#555;font-size:9px;margin-top:2px">Install permanent hardware upgrades · Level ${lvl}</div>
+        </div>
+        <button id="bup-close" style="background:none;border:none;color:#555;font-size:18px;cursor:pointer;padding:0 4px">✕</button>
+      </div>
+      <div id="bup-rows">${rows}</div>
+      <div style="color:#333;font-size:9px;margin-top:12px;text-align:center">[U] to close</div>
+    `;
+
+    document.getElementById('hud').appendChild(panel);
+
+    panel.querySelector('#bup-close').addEventListener('click', () => panel.remove());
+    panel.querySelectorAll('.bup-install').forEach(btn => {
+      btn.addEventListener('click', () => onPurchase?.(btn.dataset.id));
+    });
+
+    return panel;
+  }
 }

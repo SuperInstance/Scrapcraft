@@ -819,6 +819,47 @@
     #te-wiring-svg { flex:1; overflow:auto; }
     #te-wiring-svg svg { width:100%; height:auto; display:block; }
 
+    /* ── WebSerial flash button ── */
+    .te-flash-btn { background:#081808; border-color:#1a4a1a; color:#44dd44; }
+    .te-flash-btn:hover:not(:disabled) { background:#0c2c0c; border-color:#44dd44; }
+    .te-flash-btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .te-flash-btn[data-status="connecting"],
+    .te-flash-btn[data-status="flashing"]  { color:#f0b429; border-color:#80600a; background:#181008; }
+    .te-flash-btn[data-status="running"]   { color:#44ee88; border-color:#226633; }
+    .te-flash-btn[data-status="error"]     { color:#ff6655; border-color:#661111; background:#140808; }
+
+    /* ── Serial monitor panel ── */
+    #te-serial-monitor {
+      flex-direction:column;
+      border-top:1px solid #1a2a1a;
+      background:#060e06;
+      max-height:160px;
+    }
+    #te-serial-header {
+      display:flex; align-items:center; gap:6px;
+      padding:4px 8px;
+      border-bottom:1px solid #0f1f0f;
+      background:#081208;
+      flex-shrink:0;
+    }
+    #te-serial-status {
+      font-size:9px; letter-spacing:1px; color:#44dd44;
+    }
+    #te-serial-status[data-status="flashing"] { color:#f0b429; }
+    #te-serial-status[data-status="running"]  { color:#44ee88; }
+    #te-serial-status[data-status="error"]    { color:#ff6655; }
+    #te-serial-lines {
+      overflow-y:auto; flex:1;
+      padding:4px 8px;
+    }
+    .tse-line {
+      display:flex; gap:6px;
+      font-size:10px; line-height:1.5;
+      color:#9ad09a;
+    }
+    .tse-ts  { color:#2a5a2a; flex-shrink:0; }
+    .tse-text { word-break:break-all; }
+
     /* Errors */
     #te-errors {
       padding:5px 12px; flex-shrink:0; background:#070707;
@@ -1106,6 +1147,7 @@
         <div class="help-row"><span class="help-key">R</span><span class="help-desc">Respawn at the yard gate</span></div>
         <div class="help-row"><span class="help-key">I</span><span class="help-desc">Sort inventory (while inventory open)</span></div>
         <div class="help-row"><span class="help-key">N</span><span class="help-desc">Open / close Field Notes (saved locally)</span></div>
+        <div class="help-row"><span class="help-key">U</span><span class="help-desc">Bot Workshop — install hardware upgrades</span></div>
       </div>
       <div class="help-section">
         <h3>MAKER LAB</h3>
@@ -1236,10 +1278,11 @@
         </select>
         <button id="te-run"       class="te-btn te-btn-run">▶ RUN</button>
         <button id="te-stop"      class="te-btn te-btn-stop" disabled>■ STOP</button>
-        <button id="te-spark-btn" class="te-btn">⚡ SPARK</button>
-        <button id="te-share-btn" class="te-btn" title="Copy share link to clipboard">🔗 SHARE</button>
-        <button id="te-code-btn"  class="te-btn">&lt;/&gt; CODE</button>
-        <button id="te-close-btn" class="te-btn">✕ CLOSE</button>
+        <button id="te-spark-btn"   class="te-btn">⚡ SPARK</button>
+        <button id="te-share-btn"   class="te-btn" title="Copy share link to clipboard">🔗 SHARE</button>
+        <button id="te-upgrades-btn" class="te-btn" title="Bot Workshop — install hardware upgrades [U]">🔧 MODS</button>
+        <button id="te-code-btn"    class="te-btn">&lt;/&gt; CODE</button>
+        <button id="te-close-btn"   class="te-btn">✕ CLOSE</button>
       </div>
     </div>
 
@@ -1272,9 +1315,21 @@
         <button class="te-code-tab" data-lang="wiring">📐 Wiring</button>
         <button id="te-dl"       class="te-btn" style="margin-left:auto;">⬇ Download</button>
         <button id="te-dl-wokwi" class="te-btn" title="Download sketch + diagram.json for Wokwi simulator">🔌 Wokwi</button>
+        <button id="te-flash"    class="te-btn te-flash-btn" title="Send MicroPython program to a real device via USB (Chrome only)" style="display:none;">⚡ Flash to Device</button>
       </div>
       <pre id="te-code-pre"></pre>
       <div id="te-wiring-svg" style="display:none;overflow:auto;padding:8px;"></div>
+      <!-- Serial monitor: appears when a device is connected -->
+      <div id="te-serial-monitor" style="display:none;">
+        <div id="te-serial-header">
+          <span id="te-serial-status" data-status="connected">● Connected</span>
+          <div style="display:flex;gap:4px;margin-left:auto;">
+            <button id="te-serial-clear" class="te-btn" style="font-size:9px;padding:2px 7px;">Clear</button>
+            <button id="te-serial-disc"  class="te-btn" style="font-size:9px;padding:2px 7px;color:#f66;">Disconnect</button>
+          </div>
+        </div>
+        <div id="te-serial-lines"></div>
+      </div>
     </div>
 
     <!-- Compile errors / warnings -->

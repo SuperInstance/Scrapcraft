@@ -107,6 +107,8 @@ export class SaveSystem {
           programsRun:        s.programsRun,
           blocksPlaced:       s.blocksPlaced,
           wokwiExported:      s.wokwiExported      ?? 0,
+          hardwareFlashes:    s.hardwareFlashes     ?? 0,
+          botUpgradesInstalled: s.botUpgradesInstalled ?? 0,
           tracksPlaced:       s.tracksPlaced        ?? 0,
           floodlightsPlaced:  s.floodlightsPlaced   ?? 0,
           lapsCompleted:      s.lapsCompleted        ?? 0,
@@ -148,6 +150,8 @@ export class SaveSystem {
         slots:     g._towerSlots     ?? {},
         activated: g._towerActivated  ?? false,
       },
+
+      botUpgrades: g.botUpgrades?.toSaveData() ?? [],
 
       ghostLap: g._bestGhostFrames?.length ? g._bestGhostFrames : null,
 
@@ -206,6 +210,8 @@ export class SaveSystem {
         programsRun:       s.programsRun       ?? 0,
         blocksPlaced:      s.blocksPlaced      ?? 0,
         wokwiExported:     s.wokwiExported     ?? 0,
+        hardwareFlashes:       s.hardwareFlashes       ?? 0,
+        botUpgradesInstalled:  s.botUpgradesInstalled  ?? 0,
         tracksPlaced:      s.tracksPlaced      ?? 0,
         floodlightsPlaced: s.floodlightsPlaced ?? 0,
         lapsCompleted:     s.lapsCompleted     ?? 0,
@@ -271,6 +277,9 @@ export class SaveSystem {
       g._towerActivated = !!data.tower.activated;
       if (g._towerActivated) g._towerNearNotified = true;
     }
+
+    // Bot hardware upgrades
+    if (data.botUpgrades) g.botUpgrades?.fromSaveData(data.botUpgrades);
 
     // Ghost lap replay
     if (data.ghostLap?.length) g._bestGhostFrames = data.ghostLap;

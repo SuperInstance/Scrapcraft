@@ -107,6 +107,16 @@ const QUIPS = {
     "...It's broadcasting. After all these years. You know, I wasn't always a junkyard foreman. I used to listen for signals like this one. Welcome to the other side of the static, kid. You earned it.",
     "There it goes. 433 megahertz, screaming into the dark. Somewhere out there, somebody just heard the scrapyard wake up. That somebody might be me, twenty years ago. Good work. Genuinely.",
   ],
+  bot_upgrade: [
+    "Hardware mod installed. You're customizing your bot now. That's the difference between a user and an engineer.",
+    "Upgraded. The factory settings are for people who don't know what they're doing. You clearly do now.",
+    "Bot modification recorded. Earl approves. (Earl rarely approves. Enjoy the moment.)",
+  ],
+  hardware_flash: [
+    "You just pushed code from a game to a real processor. That's not a metaphor anymore, kid. That's engineering.",
+    "Real iron. USB cable, live firmware. You know what the difference is between playing and building? That button you just clicked.",
+    "You flashed actual hardware. I've been waiting ten years for someone to do that in my yard. Take the day off. Actually don't. I still need scrap.",
+  ],
   buried_cache_found: [
     "You found one. I buried those before the yard got this crowded. It was a different time.",
     "Emergency supply cache. Built these during the grid outage of '09. You're welcome, by the way.",
@@ -472,6 +482,8 @@ export class Foreman {
       'near_tower':          'near_tower',
       'tower_ready':         'tower_ready',
       'tower_activated':     'tower_activated',
+      'bot_upgrade':          'bot_upgrade',
+      'hardware_flash':       'hardware_flash',
       'buried_cache_found':  'buried_cache_found',
       'ghost_lap_start':     'ghost_lap_start',
       'bot_lap_record':      'bot_lap_record',

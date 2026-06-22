@@ -6,6 +6,7 @@
 import { TileProgram, EXAMPLE_WALL_AVOIDER, EXAMPLE_LIGHT_RUNNER, EXAMPLE_SQUARE, EXAMPLE_LINE_FOLLOWER, EXAMPLE_WAYPOINT_NAV, EXAMPLE_ORE_HUNTER, EXAMPLE_BATTERY_SAVER } from './maker/TileProgram.js';
 import { SENSORS, ACTUATORS, BRAINS, withDefaults } from './maker/primitives.js';
 import { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG, compile } from './maker/index.js';
+import { WebSerialBridge } from './maker/WebSerialBridge.js';
 import { Spark } from './Spark.js';
 
 const BRAIN_ORDER = ['tin', 'spark', 'vision'];
@@ -122,6 +123,14 @@ export class TileEditor {
     this._sensorsEl  = null;
     this._wiringEl   = null;
 
+    // WebSerial hardware bridge
+    this._bridge       = null;
+    this._flashBtn     = null;
+    this._serialEl     = null;
+    this._serialLinesEl = null;
+    this._serialLog    = [];   // [{ts, text}]
+    this._flashStatus  = 'disconnected'; // disconnected|connecting|connected|flashing|running|error
+
     this._buildDOM();
   }
 
@@ -155,10 +164,27 @@ export class TileEditor {
 
     this._panel.querySelector('#te-code-btn').addEventListener('click',  () => this._toggleCode());
     this._panel.querySelector('#te-close-btn').addEventListener('click', () => this.close());
+    this._panel.querySelector('#te-upgrades-btn')?.addEventListener('click', () => this._game._toggleBotUpgradePanel?.());
     this._panel.querySelector('#te-spark-btn')?.addEventListener('click', () => this._toggleSpark());
     this._panel.querySelector('#te-share-btn')?.addEventListener('click', () => this._shareProgram());
     this._panel.querySelector('#te-dl').addEventListener('click', () => this._download());
     this._panel.querySelector('#te-dl-wokwi')?.addEventListener('click', () => this._downloadWokwi());
+
+    // WebSerial flash button
+    this._flashBtn     = this._panel.querySelector('#te-flash');
+    this._serialEl     = this._panel.querySelector('#te-serial-monitor');
+    this._serialLinesEl = this._panel.querySelector('#te-serial-lines');
+    if (this._flashBtn) {
+      if (!new WebSerialBridge().isSupported) {
+        this._flashBtn.style.display = 'none';
+      } else {
+        this._flashBtn.addEventListener('click', () => this._handleFlash());
+        this._panel.querySelector('#te-serial-clear')
+          ?.addEventListener('click', () => this._clearSerial());
+        this._panel.querySelector('#te-serial-disc')
+          ?.addEventListener('click', () => this._bridge?.disconnect());
+      }
+    }
 
     this._botSel    = this._panel.querySelector('#te-bot-sel');
     this._presetSel = this._panel.querySelector('#te-preset-sel');
@@ -185,6 +211,7 @@ export class TileEditor {
         this._panel.querySelectorAll('.te-code-tab').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         if (this._codeOpen) this._refreshCode();
+        this._updateFlashBtn();
       });
     });
 
@@ -667,6 +694,107 @@ export class TileEditor {
   _downloadSVG() {
     const name = (this._program.name || 'brain').replace(/[^a-z0-9]+/gi, '_');
     this._dlBlob(toWiringSVG(this._program), `${name}_wiring.svg`, 'image/svg+xml');
+  }
+
+  // ── WebSerial hardware bridge ─────────────────────────────────────────────
+
+  _updateFlashBtn() {
+    if (!this._flashBtn) return;
+    const isPy = this._codeLang === 'micropython';
+    const isSupported = new WebSerialBridge().isSupported;
+    this._flashBtn.style.display = (isPy && isSupported) ? '' : 'none';
+  }
+
+  async _handleFlash() {
+    if (!this._bridge || !this._bridge.isConnected) {
+      await this._connectAndFlash();
+    } else {
+      await this._doFlash();
+    }
+  }
+
+  async _connectAndFlash() {
+    this._setFlashStatus('connecting');
+    try {
+      this._bridge = new WebSerialBridge();
+      this._bridge.onStatus = (s) => this._setFlashStatus(s);
+      this._bridge.onLine   = (line) => this._appendSerial(line);
+      await this._bridge.connect();
+      this._appendSerial('─── Connected ───');
+      await this._doFlash();
+    } catch (e) {
+      if (e.name === 'NotFoundError') {
+        // User cancelled port picker — clean up silently.
+        this._bridge = null;
+        this._setFlashStatus('disconnected');
+      } else {
+        this._appendSerial(`⚠ Connect failed: ${e.message}`);
+        this._setFlashStatus('error');
+      }
+    }
+  }
+
+  async _doFlash() {
+    if (!this._bridge?.isConnected) return;
+    try {
+      const code = toMicroPython(this._program);
+      await this._bridge.flash(code);
+      this._appendSerial('─── Flashed ───');
+      this._game.achievements?.track('hardware_flash', {});
+      this._game.xpSystem?.gain(30);
+      this._game.ui?.notify('⚡ Flashed to device! Check your serial monitor.');
+      this._game.foreman?.say('hardware_flash');
+    } catch (e) {
+      this._appendSerial(`⚠ Flash failed: ${e.message}`);
+      this._setFlashStatus('error');
+    }
+  }
+
+  _setFlashStatus(status) {
+    this._flashStatus = status;
+    if (!this._flashBtn) return;
+
+    const LABEL = {
+      disconnected: '⚡ Flash to Device',
+      connecting:   'Connecting…',
+      connected:    '⚡ Flash',
+      flashing:     'Flashing…',
+      running:      '▶ Re-Flash',
+      error:        '⚠ Retry Flash',
+    };
+    const DISABLED = { connecting: true, flashing: true };
+
+    this._flashBtn.textContent  = LABEL[status] ?? '⚡ Flash to Device';
+    this._flashBtn.disabled     = !!DISABLED[status];
+    this._flashBtn.dataset.status = status;
+
+    // Show/hide serial monitor
+    const show = status !== 'disconnected';
+    if (this._serialEl) this._serialEl.style.display = show ? 'flex' : 'none';
+
+    // Update status indicator inside serial monitor
+    const indicator = this._serialEl?.querySelector('#te-serial-status');
+    if (indicator) {
+      const STATUS_LABEL = { connected: '● Connected', flashing: '⚡ Flashing', running: '▶ Running', error: '⚠ Error' };
+      indicator.textContent = STATUS_LABEL[status] ?? '● ' + status;
+      indicator.dataset.status = status;
+    }
+  }
+
+  _appendSerial(line) {
+    if (!this._serialLinesEl) return;
+    const ts = new Date().toLocaleTimeString('en', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const entry = document.createElement('div');
+    entry.className = 'tse-line';
+    entry.innerHTML = `<span class="tse-ts">${ts}</span><span class="tse-text">${line.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
+    this._serialLinesEl.appendChild(entry);
+    // Keep last 60 lines
+    while (this._serialLinesEl.children.length > 60) this._serialLinesEl.firstChild.remove();
+    this._serialLinesEl.scrollTop = this._serialLinesEl.scrollHeight;
+  }
+
+  _clearSerial() {
+    if (this._serialLinesEl) this._serialLinesEl.innerHTML = '';
   }
 
   _dlBlob(text, filename, mime) {
