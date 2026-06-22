@@ -122,6 +122,7 @@ export class TileEditor {
     this._presetSel  = null;
     this._sensorsEl  = null;
     this._wiringEl   = null;
+    this._statsEl    = null;
 
     // WebSerial hardware bridge
     this._bridge       = null;
@@ -151,6 +152,7 @@ export class TileEditor {
     this._errView    = this._panel.querySelector('#te-errors');
     this._sensorsEl  = this._panel.querySelector('#te-sensors');
     this._wiringEl   = this._panel.querySelector('#te-wiring-svg');
+    this._statsEl    = this._panel.querySelector('#te-stats');
 
     this._nameIn.addEventListener('input', () => {
       this._program.name = this._nameIn.value || 'My Brain';
@@ -858,6 +860,7 @@ export class TileEditor {
     this._btnStop.disabled = true;
     this._clearHL();
     if (this._sensorsEl) this._sensorsEl.style.display = 'none';
+    if (this._statsEl)   this._statsEl.style.display   = 'none';
     if (this._rafId) { cancelAnimationFrame(this._rafId); this._rafId = null; }
   }
 
@@ -883,9 +886,11 @@ export class TileEditor {
         this._activeId = activeId;
       }
       this._refreshSensors(rt);
+      this._refreshStats(rt);
     } else {
       this._clearHL();
       if (this._sensorsEl) this._sensorsEl.style.display = 'none';
+      if (this._statsEl)   this._statsEl.style.display   = 'none';
     }
 
     this._rafId = requestAnimationFrame(() => this._tickHL());
@@ -932,6 +937,39 @@ export class TileEditor {
       return `<div class="te-sensor-row"><span class="te-sensor-key">${r.key}</span>`
            + `<span class="te-sensor-val">${fval}</span>${bar}</div>`;
     }).join('');
+  }
+
+  _refreshStats(rt) {
+    if (!this._statsEl) return;
+    const vm = rt?.vm;
+    if (!vm) { this._statsEl.style.display = 'none'; return; }
+
+    const ms      = rt.elapsedMs ?? 0;
+    const secs    = Math.floor(ms / 1000);
+    const mins    = Math.floor(secs / 60);
+    const timeStr = mins > 0 ? `${mins}m ${secs % 60}s` : `${secs}s`;
+
+    const steps   = vm.steps;
+    const rate    = rt.stepsPerSec ?? 0;
+    const sensors = vm.sensorReads ?? 0;
+    const motors  = vm.motorActs   ?? 0;
+
+    // Efficiency grade based on steps-per-second (higher = more work per frame)
+    let grade = 'A'; let gradeColor = '#00ff88';
+    if      (rate > 1000) { grade = 'A+'; gradeColor = '#00ffaa'; }
+    else if (rate > 500)  { grade = 'A';  gradeColor = '#00ff88'; }
+    else if (rate > 100)  { grade = 'B';  gradeColor = '#88cc44'; }
+    else if (rate > 20)   { grade = 'C';  gradeColor = '#f0b429'; }
+    else                  { grade = 'D';  gradeColor = '#f44336'; }
+
+    this._statsEl.style.display = 'flex';
+    this._statsEl.innerHTML =
+      `<div class="te-stat-item"><span class="te-stat-lbl">RUNTIME</span><span class="te-stat-val">${timeStr}</span></div>`
+    + `<div class="te-stat-item"><span class="te-stat-lbl">STEPS</span><span class="te-stat-val">${steps.toLocaleString()}</span></div>`
+    + `<div class="te-stat-item"><span class="te-stat-lbl">RATE</span><span class="te-stat-val">${rate.toLocaleString()}/s</span></div>`
+    + `<div class="te-stat-item"><span class="te-stat-lbl">SENSORS</span><span class="te-stat-val">${sensors.toLocaleString()}</span></div>`
+    + `<div class="te-stat-item"><span class="te-stat-lbl">MOTORS</span><span class="te-stat-val">${motors.toLocaleString()}</span></div>`
+    + `<div class="te-stat-item"><span class="te-stat-lbl">EFFICIENCY</span><span class="te-stat-val" style="color:${gradeColor}">${grade}</span></div>`;
   }
 
   // ── Spark panel ───────────────────────────────────────────────────────────

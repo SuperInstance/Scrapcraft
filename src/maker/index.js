@@ -45,6 +45,10 @@ export class MakerRuntime {
     this.ok = result.ok;
     this.sourceMap = result.sourceMap ?? [];
     this.vm = new TileVM(result.bytecode, this.robot, world);
+
+    this.elapsedMs    = 0;
+    this.stepsPerSec  = 0;
+    this._prevSteps   = 0;
   }
 
   /** Advance one frame: run the brain, then move the robot.
@@ -53,6 +57,10 @@ export class MakerRuntime {
   tick(dt, timeScale = 1) {
     this.vm.step(dt * timeScale);
     this.robot.tick(dt, this.world);
+    this.elapsedMs   += dt * 1000;
+    const delta       = this.vm.steps - this._prevSteps;
+    this._prevSteps   = this.vm.steps;
+    this.stepsPerSec  = dt > 0 ? Math.round(delta / dt) : this.stepsPerSec;
   }
 
   /** Hot-swap the program (e.g. after the kid edits tiles) without respawning. */
@@ -64,6 +72,9 @@ export class MakerRuntime {
     this.ok = result.ok;
     this.sourceMap = result.sourceMap ?? [];
     this.vm = new TileVM(result.bytecode, this.robot, this.world);
+    this.elapsedMs = 0;
+    this.stepsPerSec = 0;
+    this._prevSteps = 0;
   }
 
   drainEvents() { return this.robot.drainEvents(); }

@@ -55,6 +55,8 @@ export class TileVM {
     this.halted = false;
     this._yield = false;
     this.steps = 0;         // total instructions executed (telemetry)
+    this.sensorReads = 0;   // SENSE ops fired
+    this.motorActs   = 0;   // drive/turn ACT ops fired
   }
 
   get isRunning() { return !this.halted; }
@@ -93,6 +95,7 @@ export class TileVM {
 
       case 'SENSE':
         this.stack.push(this._read(instr.sensor));
+        this.sensorReads++;
         this.pc++;
         break;
 
@@ -122,6 +125,7 @@ export class TileVM {
 
       case 'ACT':
         this._act(instr.action, instr.params);
+        if (instr.action === 'drive' || instr.action === 'turn') this.motorActs++;
         this.pc++;
         break;
 

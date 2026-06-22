@@ -922,6 +922,16 @@
     }
     .te-sensor-fill { height:100%; background:#00cc66; border-radius:2px; transition:width 0.1s; }
 
+    /* ── Program stats readout ── */
+    #te-stats {
+      padding:5px 12px; flex-shrink:0; background:#0a080f;
+      border-top:1px solid #16102a;
+      display:flex; flex-wrap:wrap; gap:4px 18px; align-items:center;
+    }
+    .te-stat-item { display:flex; align-items:center; gap:4px; }
+    .te-stat-lbl  { font-size:9px; color:#5a4a7a; letter-spacing:0.8px; }
+    .te-stat-val  { font-size:10px; color:#bb88ff; font-weight:bold; }
+
     /* ── Spark panel ── */
     #spark-panel {
       width:250px; flex-shrink:0; flex-direction:column;
@@ -1357,6 +1367,9 @@
 
     <!-- Live sensor readout (shown while bot is running) -->
     <div id="te-sensors" style="display:none;"></div>
+
+    <!-- Program stats (shown while bot is running) -->
+    <div id="te-stats" style="display:none;"></div>
 
     <!-- Code view (hidden until toggled) -->
     <div id="te-code-view" class="te-code-view" style="display:none;">
