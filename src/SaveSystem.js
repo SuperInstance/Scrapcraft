@@ -124,6 +124,7 @@ export class SaveSystem {
           narrowEscapes:      s.narrowEscapes        ?? 0,
           challengesCompleted: s.challengesCompleted ?? 0,
           buriedCachesFound:   s.buriedCachesFound   ?? 0,
+          towerActivated:      s.towerActivated      ?? false,
         },
       },
 
@@ -141,6 +142,11 @@ export class SaveSystem {
         minedBlocks:  g.world._minedBlocks  ?? [],
         placedBlocks: g.world._placedBlocks ?? [],
         signalCaches: [...(g.world.signalCaches ?? [])],
+      },
+
+      tower: {
+        slots:     g._towerSlots     ?? {},
+        activated: g._towerActivated  ?? false,
       },
 
       ghostLap: g._bestGhostFrames?.length ? g._bestGhostFrames : null,
@@ -217,6 +223,7 @@ export class SaveSystem {
         narrowEscapes:     s.narrowEscapes     ?? 0,
         challengesCompleted: s.challengesCompleted ?? 0,
         buriedCachesFound:   s.buriedCachesFound   ?? 0,
+        towerActivated:      s.towerActivated      ?? false,
       });
     }
 
@@ -256,6 +263,13 @@ export class SaveSystem {
     }
     if (wd?.signalCaches) {
       g.world.signalCaches = new Set(wd.signalCaches);
+    }
+
+    // Radio tower endgame
+    if (data.tower) {
+      if (data.tower.slots) Object.assign(g._towerSlots, data.tower.slots);
+      g._towerActivated = !!data.tower.activated;
+      if (g._towerActivated) g._towerNearNotified = true;
     }
 
     // Ghost lap replay

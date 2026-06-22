@@ -94,6 +94,19 @@ const QUIPS = {
     "Eight track strips from two rubber chunks. That's called efficiency. I taught you that. Indirectly.",
     "Now you can build your own race course. First rule: don't let the bot win unsupervised.",
   ],
+  near_tower: [
+    "That tower? Tallest thing in the yard. Dead for years. You bring it the right parts, maybe it talks again.",
+    "Old comms tower. Needs a signal amp, some crystal, circuit boards, and battery packs. Then we'll see who's out there listening.",
+    "I built that tower a long time ago. Never finished it. Press E at the base if you think you've got what it takes.",
+  ],
+  tower_ready: [
+    "All four components seated. That's it. That's the whole list. Hit the activate switch, kid. Let's wake it up.",
+    "You did it. Every part's in. Now fire the transmitter and let's find out if anyone's still on the other end.",
+  ],
+  tower_activated: [
+    "...It's broadcasting. After all these years. You know, I wasn't always a junkyard foreman. I used to listen for signals like this one. Welcome to the other side of the static, kid. You earned it.",
+    "There it goes. 433 megahertz, screaming into the dark. Somewhere out there, somebody just heard the scrapyard wake up. That somebody might be me, twenty years ago. Good work. Genuinely.",
+  ],
   buried_cache_found: [
     "You found one. I buried those before the yard got this crowded. It was a different time.",
     "Emergency supply cache. Built these during the grid outage of '09. You're welcome, by the way.",
@@ -456,6 +469,9 @@ export class Foreman {
       'craft_track_strip':   'craft_track',
       'craft_scrap_magnet':  'craft_scrap_magnet',
       'craft_ir_module':     'craft_ir_module',
+      'near_tower':          'near_tower',
+      'tower_ready':         'tower_ready',
+      'tower_activated':     'tower_activated',
       'buried_cache_found':  'buried_cache_found',
       'ghost_lap_start':     'ghost_lap_start',
       'bot_lap_record':      'bot_lap_record',
