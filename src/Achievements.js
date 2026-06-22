@@ -217,6 +217,34 @@ export const ACHIEVEMENT_LIST = [
     check: (s) => (s.wokwiExported ?? 0) >= 1,
   },
   {
+    id: 'first_flash',
+    icon: '⚡',
+    name: 'Real Iron',
+    desc: 'Flash a tile program to a real physical device. The scrapyard just jumped into your hands.',
+    check: (s) => (s.hardwareFlashes ?? 0) >= 1,
+  },
+  {
+    id: 'ten_flashes',
+    icon: '🔧',
+    name: 'Workshop Veteran',
+    desc: 'Flash 10 programs to real hardware. Earl called you an engineer. First time.',
+    check: (s) => (s.hardwareFlashes ?? 0) >= 10,
+  },
+  {
+    id: 'bot_modder',
+    icon: '🛠',
+    name: 'Hardware Hacker',
+    desc: 'Install your first bot upgrade. The factory defaults were just suggestions.',
+    check: (s) => (s.botUpgradesInstalled ?? 0) >= 1,
+  },
+  {
+    id: 'bot_maxed',
+    icon: '🤖',
+    name: 'Optimized Unit',
+    desc: 'Install the Neural Optimizer. Your bot is now running beyond factory spec. Earl is suspicious.',
+    check: (s) => (s.botUpgradesInstalled ?? 0) >= 5,
+  },
+  {
     id: 'track_builder',
     icon: '🏁',
     name: 'Circuit Designer',
@@ -427,6 +455,8 @@ export class Achievements {
       programsRun: 0,
       blocksPlaced: 0,
       wokwiExported: 0,
+      hardwareFlashes: 0,
+      botUpgradesInstalled: 0,
       tracksPlaced: 0,
       floodlightsPlaced: 0,
       lapsCompleted: 0,
@@ -482,6 +512,12 @@ export class Achievements {
         break;
       case 'wokwi_export':
         s.wokwiExported = (s.wokwiExported ?? 0) + 1;
+        break;
+      case 'hardware_flash':
+        s.hardwareFlashes = (s.hardwareFlashes ?? 0) + 1;
+        break;
+      case 'bot_upgrade':
+        s.botUpgradesInstalled = (s.botUpgradesInstalled ?? 0) + 1;
         break;
       case 'lap_complete':
         s.lapsCompleted = (s.lapsCompleted ?? 0) + 1;

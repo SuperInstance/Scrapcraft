@@ -47,9 +47,11 @@ export class MakerRuntime {
     this.vm = new TileVM(result.bytecode, this.robot, world);
   }
 
-  /** Advance one frame: run the brain, then move the robot. */
-  tick(dt) {
-    this.vm.step(dt);
+  /** Advance one frame: run the brain, then move the robot.
+   *  @param {number} timeScale  Optional speed multiplier (Neural Optimizer: 1.4).
+   */
+  tick(dt, timeScale = 1) {
+    this.vm.step(dt * timeScale);
     this.robot.tick(dt, this.world);
   }
 

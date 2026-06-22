@@ -177,7 +177,8 @@ export class ScrapBot {
     const weather  = this._game?.weather  ?? null;
     const waypoint = this._game?._waypoint ?? null;
     const bot      = this;  // closure for battery sensor
-    const adapter  = new GameWorldAdapter(world, player, dayNight, weather, waypoint, bot);
+    const sensorRangeMult = this._game?.botUpgrades?.getMultiplier('sensor_range') ?? 1;
+    const adapter  = new GameWorldAdapter(world, player, dayNight, weather, waypoint, bot, sensorRangeMult);
     this._adapter   = adapter;  // exposed so Game.js can update .waypoint live
     this._runtime   = new MakerRuntime(program, spawn, adapter);
     this._brainMode = true;
@@ -278,7 +279,9 @@ export class ScrapBot {
         }
       }
 
-      const speedMult = this._game?.player?.hasTool('speed_coil') ? 1.4 : 1;
+      const speedCoil  = this._game?.player?.hasTool('speed_coil') ? 1.4 : 1;
+      const upgradeSpd = this._brainMode ? (this._game?.botUpgrades?.getMultiplier('speed') ?? 1) : 1;
+      const speedMult  = speedCoil * upgradeSpd;
       moveDir.normalize().multiplyScalar(BOT_SPEED * speedMult * Math.min(1, (dist - FOLLOW_DIST + 1)));
       this._velocity.lerp(moveDir, 5 * dt);
     } else {
@@ -310,10 +313,11 @@ export class ScrapBot {
   }
 
   _tickBrain(dt) {
-    // Battery drain: 0.4%/s idle, +0.9%/s while driving
+    // Battery drain: 0.4%/s idle, +0.9%/s while driving (halved with Extended Battery upgrade)
     const r0 = this._runtime?.robot;
-    const driving = r0 && Math.abs(r0.drivePower) > 0.08;
-    this.battery = Math.max(0, this.battery - dt * (driving ? 1.3 : 0.4));
+    const driving    = r0 && Math.abs(r0.drivePower) > 0.08;
+    const battLife   = this._game?.botUpgrades?.getMultiplier('battery_life') ?? 1;
+    this.battery = Math.max(0, this.battery - (dt * (driving ? 1.3 : 0.4)) / battLife);
     if (this.battery <= 0) {
       this.speak('[BATTERY DEAD] Shutting down. Plug in a charging pad.');
       this._game?.ui?.notify('🔋 Bot battery depleted — use charging pad to recharge!');
@@ -348,7 +352,8 @@ export class ScrapBot {
       );
     }
 
-    this._runtime.tick(dt);
+    const tickSpeed = this._game?.botUpgrades?.getMultiplier('tick_speed') ?? 1;
+    this._runtime.tick(dt, tickSpeed);
 
     const r = this._runtime.robot;
     this._pos.set(r.x, 1, r.z);

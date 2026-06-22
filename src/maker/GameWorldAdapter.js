@@ -31,13 +31,14 @@ export class GameWorldAdapter {
    * @param {DayNight}       dayNight  has .timeOfDay / .isNight (optional)
    * @param {WeatherSystem}  weather   has .intensityValue (optional)
    */
-  constructor(world, player, dayNight = null, weather = null, waypoint = null, bot = null) {
+  constructor(world, player, dayNight = null, weather = null, waypoint = null, bot = null, sensorRangeMult = 1) {
     this.world = world;
     this.player = player;
     this.dayNight = dayNight;
     this.weather = weather;
-    this.waypoint = waypoint;  // { x, z } or null — updated live by Game._dropWaypoint
-    this._bot = bot;           // ScrapBot ref — used for battery sensor
+    this.waypoint = waypoint;      // { x, z } or null — updated live by Game._dropWaypoint
+    this._bot = bot;               // ScrapBot ref — used for battery sensor
+    this.sensorRangeMult = sensorRangeMult; // Wide-Angle Sensors upgrade
   }
 
   /** Solid at ground level (y=1, where the robot rolls). */
@@ -84,11 +85,12 @@ export class GameWorldAdapter {
   /** Raycast forward through the voxel grid; normalized clear distance. */
   distanceAhead(x, z, heading) {
     const dx = Math.sin(heading), dz = Math.cos(heading);
+    const range = SONAR_RANGE * this.sensorRangeMult;
     const stepN = 24;
     for (let i = 1; i <= stepN; i++) {
-      const t = (i / stepN) * SONAR_RANGE;
+      const t = (i / stepN) * range;
       if (this.isSolidAt(x + dx * t, z + dz * t)) {
-        return Math.max(0, (t - 0.25) / SONAR_RANGE);
+        return Math.max(0, (t - 0.25) / range);
       }
     }
     return 1;
@@ -126,7 +128,7 @@ export class GameWorldAdapter {
   }
 
   /** Generator: yield [bx, bz, blockId] within a cone, closest first. */
-  *_conescan(x, z, heading, range = SONAR_RANGE, halfCone = Math.PI / 6) {
+  *_conescan(x, z, heading, range = SONAR_RANGE * this.sensorRangeMult, halfCone = Math.PI / 6) {
     for (let r = 1; r <= range; r++) {
       for (let a = -halfCone; a <= halfCone; a += 0.2) {
         const bx = Math.round(x + r * Math.sin(heading + a));
