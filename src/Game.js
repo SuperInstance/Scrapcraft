@@ -107,6 +107,13 @@ export class Game {
     this.saveSystem = new SaveSystem(this);
     this.challenge  = new Challenge(this);
 
+    // Radio tower endgame — track installed components + activated state
+    const TOWER_REQS = { signal_amp: 1, crystal_fragment: 5, circuit_board: 4, battery_pack: 3 };
+    this._towerReqs      = TOWER_REQS;
+    this._towerSlots     = Object.fromEntries(Object.keys(TOWER_REQS).map(k => [k, 0]));
+    this._towerActivated = false;
+    this._towerNearNotified = false;
+
     this.world.on('change', () => this.renderer.rebuildMeshes(this.world));
 
     // Speech bubble elements (screen-projected world-space)
@@ -257,6 +264,24 @@ export class Game {
       if (e.code === 'KeyE') {
         if (this._tutorialActive && this._tutorialStep === 2) this._advanceTutorial();
         if (this.ui.isOpen) { this.ui.closeInventory(); return; }
+        // Toggle tower panel closed if it's already open
+        if (this.ui._towerPanelOpen) {
+          document.getElementById('tower-panel')?.remove();
+          this.ui._towerPanelOpen = false;
+          document.getElementById('game-canvas')?.requestPointerLock();
+          return;
+        }
+        // Radio tower interaction — takes priority when nearby
+        const tower = this.world.landmarks?.radio_tower;
+        if (tower) {
+          const p0 = this.player.pos;
+          if ((p0.x - tower.x) ** 2 + (p0.z - tower.z) ** 2 < 36) {
+            this.ui.showTowerPanel(this._towerSlots, this._towerReqs, this._towerActivated,
+              () => this._installTowerComponents(),
+              () => this._activateTower());
+            return;
+          }
+        }
         const p = this.player.pos;
         const nearby = this.world.getNearbyInteractives(p.x, p.y, p.z, 3);
         this.ui.openInventory(nearby[0]?.station ?? 'any');
@@ -751,6 +776,64 @@ export class Game {
     this.saveSystem.markDirty();
   }
 
+  // ── Radio tower endgame ────────────────────────────────────────────────
+
+  /** Pull as many required components as the player carries into the tower slots. */
+  _installTowerComponents() {
+    if (this._towerActivated) return;
+    let movedAny = false;
+    for (const [id, need] of Object.entries(this._towerReqs)) {
+      const have    = this._towerSlots[id] ?? 0;
+      const missing = need - have;
+      if (missing <= 0) continue;
+      const take = Math.min(missing, this.player.countItem(id));
+      if (take > 0) {
+        this.player.removeItem(id, take);
+        this._towerSlots[id] = have + take;
+        movedAny = true;
+        const def = getItem(id);
+        this.ui.notify(`🔧 Installed ${take}× ${def?.icon ?? ''} ${def?.name ?? id}`);
+      }
+    }
+    if (!movedAny) {
+      this.ui.notify('No matching components in your inventory.');
+      this.audio.error();
+    } else {
+      this.particles.burst(this.world.landmarks.radio_tower.x, 2, this.world.landmarks.radio_tower.z, 'circuit', 10);
+      this.audio.pickup();
+      this.ui.updateHotbar(this.player);
+      this.saveSystem.markDirty();
+      const allDone = Object.entries(this._towerReqs).every(([id, n]) => (this._towerSlots[id] ?? 0) >= n);
+      if (allDone) this.foreman.onEvent('tower_ready', {});
+    }
+  }
+
+  /** Fire the transmitter: the narrative climax. Lights the beacon, big celebration. */
+  _activateTower() {
+    if (this._towerActivated) return;
+    const allDone = Object.entries(this._towerReqs).every(([id, n]) => (this._towerSlots[id] ?? 0) >= n);
+    if (!allDone) { this.ui.notify('Tower needs all four components first.'); this.audio.error(); return; }
+
+    this._towerActivated = true;
+    const t = this.world.landmarks.radio_tower;
+
+    // Sustained celebration at the tower apex
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => {
+        this.particles.burst(t.x, 9 + Math.random() * 2, t.z, 'confetti', 24);
+        this.particles.burst(t.x, 6, t.z, 'circuit', 14);
+        this.audio.lapComplete?.(true);
+      }, i * 450);
+    }
+    this._shakeDuration = 1.2; this._shakeIntensity = 0.18; this._shakeTimer = 0;
+
+    this.ui.notify('📡 THE TRANSMITTER ROARS TO LIFE. Signal broadcasting on 433 MHz!');
+    this.xpSystem.gain(200);
+    this.achievements.track('tower_activated', {});
+    this.foreman.onEvent('tower_activated', {});
+    this.saveSystem.markDirty();
+  }
+
   _tickStormDamage(dt) {
     if (this.weather.state !== 'storm' || this.weather.intensityValue < 0.5) {
       this._stormDmgTimer = 0;
@@ -1217,6 +1300,15 @@ export class Game {
     if (nearStation !== this._lastNearStation) {
       this._lastNearStation = nearStation;
       if (nearStation) this.foreman.onEvent(`near_${nearStation}`, {});
+    }
+
+    // Radio tower proximity — hint once when player first gets within 10 blocks
+    if (!this._towerNearNotified && !this._towerActivated) {
+      const tower = this.world.landmarks?.radio_tower;
+      if (tower && (p.x - tower.x) ** 2 + (p.z - tower.z) ** 2 < 100) {
+        this._towerNearNotified = true;
+        this.foreman.onEvent('near_tower', {});
+      }
     }
 
     // Zone + time HUD

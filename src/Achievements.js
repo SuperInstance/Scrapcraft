@@ -400,6 +400,13 @@ export const ACHIEVEMENT_LIST = [
     desc: 'Craft all 6 new devices: Magnet Gloves, Solar Panel, Steam Boiler, Pneumatic Drill, Radar Dish, and Comm Relay. The yard will never be the same. Neither will Earl.',
     check: (s) => s.crafted.has('magnet_gloves') && s.crafted.has('solar_panel') && s.crafted.has('steam_boiler') && s.crafted.has('pneumatic_drill') && s.crafted.has('radar_dish') && s.crafted.has('comm_relay'),
   },
+  {
+    id: 'the_transmission',
+    icon: '🛰️',
+    name: 'The Grand Transmission',
+    desc: 'Rebuild and activate the radio tower. You took a dead scrapyard and made it speak. Earl finally told you who he is.',
+    check: (s) => !!s.towerActivated,
+  },
 ];
 
 export class Achievements {
@@ -438,6 +445,7 @@ export class Achievements {
       challengesCompleted: 0,
       solarPlaced: 0,
       buriedCachesFound:  0,
+      towerActivated: false,
     };
   }
 
@@ -519,6 +527,9 @@ export class Achievements {
         break;
       case 'buried_cache':
         s.buriedCachesFound = (s.buriedCachesFound ?? 0) + 1;
+        break;
+      case 'tower_activated':
+        s.towerActivated = true;
         break;
     }
     this._check();

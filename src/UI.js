@@ -778,6 +778,80 @@ export class UI {
     }
   }
 
+  /**
+   * Radio tower control panel. Shows component install progress and, once all
+   * four components are seated, an ACTIVATE button. Reuses the field-notes
+   * overlay pattern (DOM panel appended to #hud, releases pointer lock).
+   */
+  showTowerPanel(slots, reqs, activated, onInstall, onActivate) {
+    document.getElementById('tower-panel')?.remove();
+    if (document.pointerLockElement) document.exitPointerLock();
+
+    const panel = document.createElement('div');
+    panel.id = 'tower-panel';
+    panel.style.cssText = `
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      width:340px; background:rgba(6,10,16,0.97); border:2px solid #2a6688;
+      border-radius:10px; padding:18px; font-family:'Courier New',monospace;
+      color:#9fd8ff; z-index:400; box-shadow:0 0 40px rgba(0,120,200,0.35);`;
+
+    const allDone = Object.entries(reqs).every(([id, n]) => (slots[id] ?? 0) >= n);
+
+    const rows = Object.entries(reqs).map(([id, need]) => {
+      const have = slots[id] ?? 0;
+      const def  = getItem(id);
+      const done = have >= need;
+      const carry = this.game.player.countItem(id);
+      return `<div style="display:flex;justify-content:space-between;align-items:center;
+          padding:5px 0;border-bottom:1px solid #16384a;">
+          <span>${done ? '✅' : '⬜'} ${def?.icon ?? ''} ${def?.name ?? id}</span>
+          <span style="color:${done ? '#44ff99' : '#ffcc44'}">${have}/${need}
+            ${!done ? `<span style="color:#557;font-size:9px">(carry ${carry})</span>` : ''}</span>
+        </div>`;
+    }).join('');
+
+    if (activated) {
+      panel.innerHTML = `
+        <div style="font-size:15px;font-weight:bold;color:#44ff99;margin-bottom:8px;">📡 TRANSMITTER ONLINE</div>
+        <div style="font-size:11px;line-height:1.6;color:#8fc8e8;">
+          The tower hums. Somewhere out past the yard, someone is listening.<br><br>
+          Signal strength: <b style="color:#44ff99">100%</b><br>
+          Broadcasting on 433&nbsp;MHz.</div>
+        <button id="tw-close" style="margin-top:14px;width:100%;padding:9px;
+          background:#163a4a;color:#9fd8ff;border:1px solid #2a6688;border-radius:6px;
+          font-family:inherit;font-weight:bold;cursor:pointer;letter-spacing:1px;">CLOSE  [E]</button>`;
+    } else {
+      panel.innerHTML = `
+        <div style="font-size:15px;font-weight:bold;margin-bottom:4px;">📡 RADIO TOWER</div>
+        <div style="font-size:10px;color:#5a7a8a;margin-bottom:10px;line-height:1.5;">
+          Dead since before your time. Seat all four components, then fire it up.</div>
+        ${rows}
+        <button id="tw-install" style="margin-top:12px;width:100%;padding:9px;
+          background:#1a4a2a;color:#9fffcc;border:1px solid #2a8855;border-radius:6px;
+          font-family:inherit;font-weight:bold;cursor:pointer;letter-spacing:1px;">⬆ INSTALL FROM INVENTORY</button>
+        <button id="tw-activate" style="margin-top:7px;width:100%;padding:9px;
+          background:${allDone ? '#aa6600' : '#222'};color:${allDone ? '#fff' : '#555'};
+          border:1px solid ${allDone ? '#ffaa00' : '#333'};border-radius:6px;
+          font-family:inherit;font-weight:bold;letter-spacing:1px;
+          cursor:${allDone ? 'pointer' : 'not-allowed'};">⚡ ACTIVATE TRANSMITTER</button>
+        <button id="tw-close" style="margin-top:7px;width:100%;padding:7px;
+          background:transparent;color:#557;border:1px solid #234;border-radius:6px;
+          font-family:inherit;font-size:11px;cursor:pointer;">Close  [E]</button>`;
+    }
+
+    document.getElementById('hud').appendChild(panel);
+    this._towerPanelOpen = true;
+    const close = () => { panel.remove(); this._towerPanelOpen = false;
+      document.getElementById('game-canvas')?.requestPointerLock(); };
+    panel.querySelector('#tw-close')?.addEventListener('click', close);
+    panel.querySelector('#tw-install')?.addEventListener('click', () => { onInstall?.(); close();
+      this.game.foreman?.onEvent('near_tower', {}); });
+    panel.querySelector('#tw-activate')?.addEventListener('click', () => {
+      if (!allDone) { this.notify('Tower needs all four components first.'); this.game.audio.error(); return; }
+      close(); onActivate?.();
+    });
+  }
+
   setHealth(hp, maxHp = 100) {
     const fill = document.getElementById('hud-health-fill');
     const num  = document.getElementById('hud-health-num');
