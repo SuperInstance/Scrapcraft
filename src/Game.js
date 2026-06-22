@@ -167,6 +167,13 @@ export class Game {
       lapsEl:    document.getElementById('lap-timer'),
     };
 
+    // Oval lap timer — Circuit City oval (x≈49, z≈84)
+    this._ovalLapState = {
+      inGate:   false,
+      lapStart: 0,
+      bestMs:   Infinity,
+    };
+
     // Ghost lap replay — records best lap as [x,z,yaw,ms] frames, plays back translucent bot
     this._ghostFrames     = [];
     this._bestGhostFrames = [];
@@ -174,9 +181,16 @@ export class Game {
     this._ghostRecTimer   = 0;
     this._ghostBotMesh    = null;
 
+    // Oval ghost replay
+    this._ovalGhostFrames     = [];
+    this._bestOvalGhostFrames = [];
+    this._ovalGhostPbTime     = 0;
+    this._ovalGhostRecTimer   = 0;
+
     // Uninitialized variable guards
     this._oreDetectCooldown = 0;
     this._nearTrackSeen    = false;
+    this._nearOvalSeen     = false;
     this._nightBonusShown  = false;
 
     // ── Onboarding wizard (first-run only) ──
@@ -1302,7 +1316,9 @@ export class Game {
 
     this._tickBotBadge();
     this._tickLapTimer(dt);
+    this._tickOvalLapTimer(dt);
     this._tickGhostPlayback(dt);
+    this._tickOvalGhostPlayback(dt);
     this._tickBotTrackSparks(dt);
 
     // Speech bubble projection
@@ -1429,6 +1445,15 @@ export class Game {
       if (px2 >= 28 && px2 <= 48 && pz2 >= 12 && pz2 <= 25) {
         this._nearTrackSeen = true;
         this.foreman.onEvent('near_track', {});
+      }
+    }
+
+    // Near oval circuit hint — fire once when player enters Circuit City oval area
+    if (!this._nearOvalSeen) {
+      const px2 = p.x, pz2 = p.z;
+      if (px2 >= 20 && px2 <= 50 && pz2 >= 76 && pz2 <= 92) {
+        this._nearOvalSeen = true;
+        this.foreman.onEvent('near_oval', {});
       }
     }
 
@@ -1769,6 +1794,7 @@ export class Game {
           this.ui.notify(`🔌 Charging pad used — bot battery +50% (now ${Math.round(targetBot.battery)}%)`);
           this.audio.brainLoad();
           this.particles.burst(targetBot._pos.x, 1.5, targetBot._pos.z, 'circuit', 10);
+          this.challenge.onBotCharge();
         } else {
           this.ui.notify('No active bot to charge.');
         }
@@ -1881,6 +1907,7 @@ export class Game {
         // Confetti burst at start/finish gate
         this.particles.burst(38, 1.5, 14, 'confetti', improved ? 30 : 14);
         this.achievements.track('lap_complete', {});
+        this.challenge.onLapComplete();
         this.xpSystem.gain(20);
         // Bot says something about the lap
         const activeBot = bot;
@@ -1947,6 +1974,83 @@ export class Game {
     ghost.rotation.y = frame[2];
     ghost.visible = true;
     ghostEl?.classList.add('show');
+  }
+
+  // ── Oval Circuit lap timer — Circuit City (center x=35, z=84; gate at x=49, z=82-86) ──
+
+  _tickOvalLapTimer(dt) {
+    const ls = this._ovalLapState;
+    const bot = (this.scrapBot?._brainMode ? this.scrapBot : null)
+             ?? (this.scrapBot2?._brainMode ? this.scrapBot2 : null);
+    if (!bot?.isActive) { if (ls.inGate) ls.inGate = false; return; }
+
+    // Record ghost at 10 Hz
+    if (ls.lapStart > 0) {
+      this._ovalGhostRecTimer += dt;
+      if (this._ovalGhostRecTimer >= 0.1) {
+        this._ovalGhostRecTimer = 0;
+        this._ovalGhostFrames.push([
+          +bot._pos.x.toFixed(2), +bot._pos.z.toFixed(2),
+          +(bot._mesh?.rotation.y ?? 0).toFixed(3),
+          (performance.now() - ls.lapStart) | 0,
+        ]);
+      }
+    }
+
+    // Gate: rightmost point of oval, x=48..50, z=81..87
+    const bx = bot._pos.x, bz = bot._pos.z;
+    const inGate = bx >= 47.5 && bx <= 50.5 && bz >= 81 && bz <= 87;
+
+    if (inGate && !ls.inGate) {
+      const now = performance.now();
+      if (ls.lapStart > 0 && (now - ls.lapStart) > 3000) {
+        const ms       = now - ls.lapStart;
+        const improved = ms < ls.bestMs;
+        ls.bestMs      = Math.min(ls.bestMs, ms);
+        const secs     = (ms / 1000).toFixed(2);
+        const best     = (ls.bestMs / 1000).toFixed(2);
+        const lapsEl   = this._lapState.lapsEl;
+        if (lapsEl) {
+          lapsEl.innerHTML = `🏟 Oval Lap: <b>${secs}s</b>${improved ? ' 🏆 NEW BEST!' : ''}<br><span style="font-size:10px">Best: ${best}s</span>`;
+          lapsEl.classList.add('show');
+          setTimeout(() => lapsEl.classList.remove('show'), 5000);
+        }
+        this.ui.notify(improved ? `🏆 Oval circuit record: ${secs}s!` : `🏟 Oval lap: ${secs}s`);
+        this.audio.lapComplete?.(improved);
+        this.particles.burst(49, 1.5, 84, 'confetti', improved ? 30 : 14);
+        this.achievements.track('lap_complete', {});
+        this.challenge.onLapComplete();
+        this.xpSystem.gain(improved ? 30 : 20);
+        bot.speak(bot.personality.quip(improved ? 'lap_record' : 'lap_complete'));
+        if (improved) {
+          this._bestOvalGhostFrames = this._ovalGhostFrames.slice();
+          this.saveSystem.markDirty();
+          setTimeout(() => this.foreman.onEvent('bot_lap_record', {}), 500);
+        }
+      }
+      // New lap starting
+      this._ovalGhostFrames     = [];
+      this._ovalGhostRecTimer   = 0;
+      this._ovalGhostPbTime     = 0;
+      ls.lapStart = now ?? performance.now();
+    }
+    ls.inGate = inGate;
+  }
+
+  _tickOvalGhostPlayback(dt) {
+    const frames = this._bestOvalGhostFrames;
+    const ls     = this._ovalLapState;
+    if (!frames?.length || !ls.lapStart) return;
+    this._ovalGhostPbTime += dt * 1000;
+    let frame = frames[0];
+    for (let i = 1; i < frames.length; i++) {
+      if (frames[i][3] > this._ovalGhostPbTime) break;
+      frame = frames[i];
+    }
+    const ghost = this._getGhostMesh();
+    ghost.position.set(frame[0], 1.42, frame[1]);
+    ghost.rotation.y = frame[2];
+    ghost.visible = true;
   }
 
   _tickBotBadge() {

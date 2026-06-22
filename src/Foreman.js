@@ -157,6 +157,11 @@ const QUIPS = {
     "Race circuit's right there. Bot needs a Line Follower brain. I'll time it. (With my watch. Don't tell anyone.)",
     "I built that track myself. Took a weekend. Nobody's thanked me yet. You're welcome anyway.",
   ],
+  near_oval: [
+    "That's the Circuit City oval. Professional-grade loop. Load a line-following program and send your bot out. This one has a proper grandstand. I may have gone overboard.",
+    "The oval circuit. I measured it twice. Ran the perimeter calculations myself. Your bot can set a lap record here. Better than the test track.",
+    "Welcome to the oval. Twenty-eight by fourteen meters. The only thing in this scrapyard I'm actually proud of. Try not to crash your bot into the bleachers.",
+  ],
   craft_scrap_magnet: [
     "A scrap magnet. The lazy genius way to collect iron. I say that with full respect.",
     "Electromagnetic induction in your back pocket. Faraday would be proud and confused.",
@@ -512,6 +517,7 @@ export class Foreman {
       'ghost_lap_start':     'ghost_lap_start',
       'bot_lap_record':      'bot_lap_record',
       'near_track':          'near_track',
+      'near_oval':           'near_oval',
       'near_workbench':     'near_workbench',
       'near_forge':         'near_forge',
       'near_smelter':       'near_smelter',

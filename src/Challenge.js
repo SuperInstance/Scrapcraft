@@ -64,6 +64,32 @@ const POOL = [
     label: 'Collect 3 Small Gears', icon: '⚙️',
     reward: { xp: 45, item: 'copper_wire', qty: 2 },
   },
+  // Programming-specific challenges
+  {
+    type: 'bot_run', need: 60,
+    label: 'Keep your bot running for 60 seconds straight', icon: '🤖',
+    reward: { xp: 100, item: 'battery_pack', qty: 2 },
+  },
+  {
+    type: 'bot_on_track', need: 30,
+    label: "Drive a bot on the TRACK for 30 seconds", icon: '🏁',
+    reward: { xp: 80, item: 'circuit_board', qty: 1 },
+  },
+  {
+    type: 'bot_charge', need: 1,
+    label: 'Recharge your bot at a charging pad', icon: '🔋',
+    reward: { xp: 40, item: 'battery_pack', qty: 1 },
+  },
+  {
+    type: 'bot_sensor', need: 1,
+    label: 'Run a bot program that uses at least 1 sensor', icon: '📡',
+    reward: { xp: 75, item: 'ir_module', qty: 1 },
+  },
+  {
+    type: 'bot_lap', need: 1,
+    label: 'Complete a lap of the test circuit with your bot', icon: '🏟',
+    reward: { xp: 120, item: 'crystal_fragment', qty: 1 },
+  },
 ];
 
 export class Challenge {
@@ -99,6 +125,21 @@ export class Challenge {
     }
   }
 
+  onBotCharge() {
+    if (this._completed || !this._current) return;
+    if (this._current.type === 'bot_charge') this._advance(1);
+  }
+
+  onLapComplete() {
+    if (this._completed || !this._current) return;
+    if (this._current.type === 'bot_lap') this._advance(1);
+  }
+
+  onBrainLoaded(sensorIds) {
+    if (this._completed || !this._current) return;
+    if (this._current.type === 'bot_sensor' && sensorIds.size > 0) this._advance(1);
+  }
+
   tick(dt) {
     if (this._completed) {
       this._cooldown -= dt;
@@ -106,11 +147,23 @@ export class Challenge {
       return;
     }
     if (!this._current) return;
-    // Time-based: bot must be actively running
+    const bots = [this._game.scrapBot, this._game.scrapBot2].filter(Boolean);
+    const running = bots.some(b => b._brainMode && (b.battery ?? 100) > 0);
+
     if (this._current.type === 'bot_run') {
-      const bots = [this._game.scrapBot, this._game.scrapBot2].filter(Boolean);
-      const running = bots.some(b => b._brainMode && (b.battery ?? 100) > 0);
       if (running) this._advance(dt);
+    }
+
+    if (this._current.type === 'bot_on_track' && running) {
+      // Progress while any bot is on a TRACK block
+      const { B } = this._game.world?.constructor ? { B: null } : {};
+      for (const bot of bots) {
+        if (!bot._brainMode) continue;
+        const bx = Math.floor(bot._pos?.x ?? 0);
+        const bz = Math.floor(bot._pos?.z ?? 0);
+        const blockBelow = this._game.world?.getBlock(bx, 0, bz) ?? 0;
+        if (blockBelow === 17) { this._advance(dt); break; } // 17 = TRACK
+      }
     }
   }
 
