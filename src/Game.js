@@ -21,6 +21,7 @@ import { WeatherSystem } from './WeatherSystem.js';
 import { ProjectileSystem } from './ProjectileSystem.js';
 import { Challenge } from './Challenge.js';
 import { BotUpgrades, UPGRADE_DEFS } from './BotUpgrades.js';
+import { ScrapExchange, EXCHANGE_POS, EXCHANGE_RADIUS } from './ScrapExchange.js';
 import { OnboardingWizard } from './onboarding/OnboardingWizard.js';
 
 export class Game {
@@ -105,9 +106,11 @@ export class Game {
     this.projectiles = new ProjectileSystem(this.renderer.scene);
 
     this.tileEditor = new TileEditor(this);
-    this.saveSystem  = new SaveSystem(this);
-    this.challenge   = new Challenge(this);
-    this.botUpgrades = new BotUpgrades();
+    this.saveSystem   = new SaveSystem(this);
+    this.challenge    = new Challenge(this);
+    this.botUpgrades  = new BotUpgrades();
+    this.exchange     = new ScrapExchange();
+    this._exchangeNearNotified = false;
 
     // Radio tower endgame — track installed components + activated state
     const TOWER_REQS = { signal_amp: 1, crystal_fragment: 5, circuit_board: 4, battery_pack: 3 };
@@ -273,6 +276,18 @@ export class Game {
           document.getElementById('game-canvas')?.requestPointerLock();
           return;
         }
+        // Scrap Exchange interaction
+        {
+          const ep = EXCHANGE_POS;
+          const pp = this.player.pos;
+          if ((pp.x - ep.x) ** 2 + (pp.z - ep.z) ** 2 < EXCHANGE_RADIUS ** 2) {
+            const excPanel = document.getElementById('exchange-panel');
+            if (excPanel) { excPanel.remove(); document.getElementById('game-canvas')?.requestPointerLock(); return; }
+            this._openExchangePanel();
+            return;
+          }
+        }
+
         // Radio tower interaction — takes priority when nearby
         const tower = this.world.landmarks?.radio_tower;
         if (tower) {
@@ -564,6 +579,27 @@ export class Game {
     const show = forceState !== undefined ? forceState : !this._helpOverlay?.classList.contains('show');
     this._helpOverlay?.classList.toggle('show', show);
     if (show && document.pointerLockElement) document.exitPointerLock();
+  }
+
+  _openExchangePanel() {
+    document.getElementById('exchange-panel')?.remove();
+    const onTrade = (idx) => {
+      const ok = this.exchange.trade(idx, this.player);
+      if (ok) {
+        const deal = this.exchange.getDeals()[idx];
+        this.ui.notify(`📦 Traded! Got ${deal.get.qty}× ${deal.get.item.replace(/_/g,' ')}.`);
+        this.xpSystem.gain(20);
+        this.achievements.track('exchange_trade', {});
+        this.foreman.onEvent('exchange_trade', {});
+        this.saveSystem.markDirty();
+        this.ui.updateHotbar(this.player);
+        // Rebuild panel to reflect updated inventory
+        this._openExchangePanel();
+      } else {
+        this.ui.notify('⚠ Not enough items for that trade.');
+      }
+    };
+    this.ui.showExchangePanel(this.exchange.getDeals(), this.exchange, this.player, this.xpSystem, onTrade);
   }
 
   _toggleBotUpgradePanel() {
@@ -1338,6 +1374,16 @@ export class Game {
     if (nearStation !== this._lastNearStation) {
       this._lastNearStation = nearStation;
       if (nearStation) this.foreman.onEvent(`near_${nearStation}`, {});
+    }
+
+    // Scrap Exchange proximity — hint once per session when within range
+    if (!this._exchangeNearNotified) {
+      const exDist2 = (p.x - EXCHANGE_POS.x) ** 2 + (p.z - EXCHANGE_POS.z) ** 2;
+      if (exDist2 < (EXCHANGE_RADIUS + 2) ** 2) {
+        this._exchangeNearNotified = true;
+        this.ui.notify('📦 Scrap Exchange nearby — press [E] to see today\'s deals.');
+        this.foreman.say('near_exchange');
+      }
     }
 
     // Radio tower proximity — hint once when player first gets within 10 blocks

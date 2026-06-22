@@ -231,6 +231,20 @@ export const ACHIEVEMENT_LIST = [
     check: (s) => (s.hardwareFlashes ?? 0) >= 10,
   },
   {
+    id: 'first_trade',
+    icon: '📦',
+    name: 'Supply Chain',
+    desc: "Complete your first Scrap Exchange trade. Earl's contact is pleased.",
+    check: (s) => (s.exchangeTrades ?? 0) >= 1,
+  },
+  {
+    id: 'trader',
+    icon: '💼',
+    name: 'Scrap Broker',
+    desc: 'Complete 10 Scrap Exchange trades. You know how to work a deal.',
+    check: (s) => (s.exchangeTrades ?? 0) >= 10,
+  },
+  {
     id: 'bot_modder',
     icon: '🛠',
     name: 'Hardware Hacker',
@@ -457,6 +471,7 @@ export class Achievements {
       wokwiExported: 0,
       hardwareFlashes: 0,
       botUpgradesInstalled: 0,
+      exchangeTrades: 0,
       tracksPlaced: 0,
       floodlightsPlaced: 0,
       lapsCompleted: 0,
@@ -518,6 +533,9 @@ export class Achievements {
         break;
       case 'bot_upgrade':
         s.botUpgradesInstalled = (s.botUpgradesInstalled ?? 0) + 1;
+        break;
+      case 'exchange_trade':
+        s.exchangeTrades = (s.exchangeTrades ?? 0) + 1;
         break;
       case 'lap_complete':
         s.lapsCompleted = (s.lapsCompleted ?? 0) + 1;
