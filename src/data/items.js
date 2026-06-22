@@ -87,6 +87,14 @@ export const ITEMS = {
     stackSize: 8,
     placeable: true,
   },
+  signal_beacon: {
+    name: 'Signal Beacon',
+    icon: '📶',
+    desc: 'Emits a teal RF pulse. Place it in the world and your bot can home in on it using the beacon_signal sensor. Like a BLE beacon — same physics, no Bluetooth bill.',
+    category: 'device',
+    stackSize: 8,
+    placeable: true,
+  },
 
   // ── Tools ──
   wrench: {

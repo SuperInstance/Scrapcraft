@@ -916,7 +916,9 @@ export class TileEditor {
       { key: 'player',     val: (world.playerDistance?.(robot.x, robot.z) ?? 999) < 4, kind: 'digital' },
       { key: 'line',       val: world.lineUnder?.(robot.x, robot.z) ?? null, kind: 'digital' },
       { key: 'temp',       val: world.temperatureAt?.(robot.x, robot.z) ?? null, kind: 'analog' },
-    ].filter(r => r.val !== null && r.val !== undefined);
+      { key: 'beacon',     val: world.beaconSignal?.(robot.x, robot.z) ?? null, kind: 'analog' },
+      { key: 'weather',    val: world.weatherIntensity?.() ?? null, kind: 'analog' },
+    ].filter(r => r.val !== null && r.val !== undefined && r.val !== 0);
 
     // Heading compass (N/NE/E/SE/S/SW/W/NW)
     const hdgDeg = ((robot.heading ?? 0) * 180 / Math.PI + 360) % 360;

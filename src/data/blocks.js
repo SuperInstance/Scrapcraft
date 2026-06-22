@@ -25,6 +25,7 @@ export const B = {
   BURIED_CACHE: 22,
   HOT_SLAG: 23,
   SOLAR_PANEL: 24,
+  BEACON: 25,
 };
 
 // hex color, emissive tint, roughness, whether it's solid/interactive/drops loot
@@ -91,6 +92,9 @@ export const BLOCK_DEF = {
   [B.SOLAR_PANEL]:{ name: 'Solar Panel',   color: 0x2244aa, rough: 0.3, solid: true, hardness: 0.8,
                      emissive: 0x4488ff, emissiveIntensity: 0.4,
                      drop: 'solar_panel', dropChance: 1.0 },
+  [B.BEACON]:     { name: 'Signal Beacon', color: 0x004444, rough: 0.35, solid: true, hardness: 0.5,
+                     emissive: 0x00ffcc, emissiveIntensity: 0.9,
+                     drop: 'signal_beacon', dropChance: 1.0 },
 };
 
 // Items the player can place as blocks (item ID → block ID)
@@ -100,7 +104,8 @@ export const ITEM_TO_BLOCK = {
   track_strip:  B.TRACK,
   floodlight:   B.FLOODLIGHT,
   scrap_cannon: B.SCRAP_CANNON,
-  solar_panel: B.SOLAR_PANEL,
+  solar_panel:    B.SOLAR_PANEL,
+  signal_beacon:  B.BEACON,
 };
 
 export function isInteractive(id) {

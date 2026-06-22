@@ -20,7 +20,7 @@ import { SONAR_RANGE } from './kinematics.js';
 import { B } from '../data/blocks.js';
 
 // Blocks that count as "distinctly coloured" for the Vision Brain colour sensor.
-const COLOURFUL_IDS = new Set([B.RUST_METAL, B.FORGE, B.OIL_DRUM, B.POWER_BOX, B.WOOD_PLANK, B.SCRAP_PILE]);
+const COLOURFUL_IDS = new Set([B.RUST_METAL, B.FORGE, B.OIL_DRUM, B.POWER_BOX, B.WOOD_PLANK, B.SCRAP_PILE, B.BEACON]);
 // Blocks that act as a floor "line" for line-following.
 const LINE_IDS = new Set([B.WOOD_PLANK, B.OIL_DRUM, B.TRACK]);
 
@@ -239,6 +239,24 @@ export class GameWorldAdapter {
       return 0.1; // dirt / wood / misc
     }
     return 0;
+  }
+
+  /**
+   * RF signal strength from the nearest player-placed BEACON block.
+   * Returns 0 (none in 12-block range) → 1 (standing on it).
+   * Mirrors real BLE RSSI attenuation (1/d² simplified).
+   */
+  beaconSignal(x, z) {
+    const RANGE = 12;
+    const range2 = RANGE * RANGE;
+    let minDist2 = range2 + 1;
+    for (const { x: bx, z: bz, id } of this.world._placedBlocks ?? []) {
+      if (id !== B.BEACON) continue;
+      const d2 = (bx - x) ** 2 + (bz - z) ** 2;
+      if (d2 < minDist2) minDist2 = d2;
+    }
+    if (minDist2 > range2) return 0;
+    return Math.max(0, 1 - Math.sqrt(minDist2) / RANGE);
   }
 
   /** Battery level as a 0..1 fraction (feeds the battery sensor tile). */

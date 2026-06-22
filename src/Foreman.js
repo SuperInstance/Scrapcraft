@@ -281,6 +281,11 @@ const QUIPS = {
     "Solar panel, placed. Clean energy. I'm contractually obligated to be grumpy about it, but secretly, I approve.",
     "Solar power in a scrapyard. The irony is not lost on me. Neither is the free electricity.",
   ],
+  place_beacon: [
+    "Signal beacon, placed. That teal pulse is your bot's North Star now. Load the beacon_signal sensor in your program and watch it home in. That's BLE RSSI — same thing your phone uses to find AirTags.",
+    "Beacon down. In real robotics, this is called an IR beacon or Bluetooth anchor. Your bot reads signal strength and triangulates. You just built indoor positioning. Don't let it go to your head.",
+    "That glowing thing you just placed? Your bot can see it from 12 blocks away via sensor. Program it to chase the signal. It's the same reason airports use ILS landing beacons. True story.",
+  ],
   steam_boiler_fire: [
     "That's the steam boiler going. I can hear it from here. It sounds angry. That means it's working.",
     "Steam pressure building. Hope you used the right gauge. I didn't teach you gauge theory for nothing.",
@@ -543,6 +548,7 @@ export class Foreman {
       'craft_magnet_gloves':'craft_magnet_gloves',
       'craft_comm_relay':   'craft_comm_relay',
       'place_solar_panel':  'place_solar_panel',
+      'place_beacon':       'place_beacon',
       'steam_boiler_fire':  'steam_boiler_fire',
       'radar_active':       'radar_active',
       'waypoint_drop':      'waypoint_drop',

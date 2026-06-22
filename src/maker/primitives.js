@@ -387,6 +387,29 @@ export const SENSORS = {
     },
   },
 
+  beacon_signal: {
+    id: 'beacon_signal',
+    category: 'sense',
+    kind: 'analog',
+    label: 'beacon signal',
+    blurb: 'RF signal strength from the nearest placed Signal Beacon (0 = none in range, 1 = right on it). Works within 12 blocks. Requires Spark Brain.',
+    requiresBrain: 'spark',
+    read: (robot, world) => world.beaconSignal?.(robot.x, robot.z) ?? 0,
+    hw: {
+      platform: ['esp32', 'jetson'],
+      peripheral: 'BLE RSSI reader (ESP32 built-in)',
+      pin: 'internal WiFi/BT radio',
+      setup: {
+        arduino: 'BLE.begin(); BLE.scan();',
+        micropython: 'ble = BLE(); ble.active(True)',
+      },
+    },
+    firmware: {
+      arduino: () => 'readBeaconRSSI()',
+      micropython: () => 'ble_rssi_normalized()',
+    },
+  },
+
   // Vision Brain (Jetson) — abstracted computer vision. "Just works" in-game;
   // maps to a real on-device inference call on actual hardware.
   sees_target: {
