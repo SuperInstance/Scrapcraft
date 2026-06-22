@@ -160,7 +160,9 @@ export class SaveSystem {
       botPersonality:  g.scrapBot?.personality?.toSaveData()  ?? null,
       bot2Personality: g.scrapBot2?.personality?.toSaveData() ?? null,
 
-      ghostLap: g._bestGhostFrames?.length ? g._bestGhostFrames : null,
+      ghostLap:     g._bestGhostFrames?.length     ? g._bestGhostFrames     : null,
+      ovalGhostLap: g._bestOvalGhostFrames?.length ? g._bestOvalGhostFrames : null,
+      ovalBestMs:   g._ovalLapState?.bestMs < Infinity ? g._ovalLapState.bestMs : null,
 
       fogMap: (() => {
         const fm = g._fogMap;
@@ -298,8 +300,10 @@ export class SaveSystem {
     if (data.botPersonality)  g.scrapBot?.personality?.fromSaveData(data.botPersonality);
     if (data.bot2Personality && g.scrapBot2) g.scrapBot2.personality?.fromSaveData(data.bot2Personality);
 
-    // Ghost lap replay
-    if (data.ghostLap?.length) g._bestGhostFrames = data.ghostLap;
+    // Ghost lap replay (test track + oval)
+    if (data.ghostLap?.length)     g._bestGhostFrames     = data.ghostLap;
+    if (data.ovalGhostLap?.length) g._bestOvalGhostFrames = data.ovalGhostLap;
+    if (data.ovalBestMs != null && g._ovalLapState) g._ovalLapState.bestMs = data.ovalBestMs;
 
     // Fog of war map
     if (data.fogMap) {
