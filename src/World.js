@@ -394,6 +394,12 @@ export class World {
     this.setBlock(22, 5, 79, B.FLOODLIGHT);
     this.setBlock(26, 5, 79, B.FLOODLIGHT);
 
+    // Race board (leaderboard sign) — east end of grandstand, x=28, z=78
+    this.setBlock(28, 1, 78, B.POWER_BOX);
+    this.setBlock(28, 2, 78, B.POWER_BOX);
+    this.setBlock(28, 3, 78, B.POWER_BOX);
+    this.landmarks.race_board = { x: 28, y: 2, z: 78 };
+
     // Rare crystal ore teaser clusters in Band 2 (hint at Band 3)
     for (const [cx, cz] of [[55, 85], [95, 72]]) {
       for (let dz = -1; dz <= 1; dz++) {

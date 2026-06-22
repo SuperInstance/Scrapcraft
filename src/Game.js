@@ -23,6 +23,7 @@ import { Challenge } from './Challenge.js';
 import { BotUpgrades, UPGRADE_DEFS } from './BotUpgrades.js';
 import { ScrapExchange, EXCHANGE_POS, EXCHANGE_RADIUS } from './ScrapExchange.js';
 import { OnboardingWizard } from './onboarding/OnboardingWizard.js';
+import { RaceBoard, NPC_GHOSTS, BEAT_QUIPS } from './RaceBoard.js';
 
 export class Game {
   constructor(canvas) {
@@ -110,7 +111,9 @@ export class Game {
     this.challenge    = new Challenge(this);
     this.botUpgrades  = new BotUpgrades();
     this.exchange     = new ScrapExchange();
+    this.raceBoard    = new RaceBoard();
     this._exchangeNearNotified = false;
+    this._raceBoardNearNotified = false;
 
     // Radio tower endgame — track installed components + activated state
     const TOWER_REQS = { signal_amp: 1, crystal_fragment: 5, circuit_board: 4, battery_pack: 3 };
@@ -299,6 +302,20 @@ export class Game {
             if (excPanel) { excPanel.remove(); document.getElementById('game-canvas')?.requestPointerLock(); return; }
             this._openExchangePanel();
             return;
+          }
+        }
+
+        // Race Board interaction (oval grandstand, x=28, z=78)
+        {
+          const rb = this.world.landmarks?.race_board;
+          if (rb) {
+            const pp = this.player.pos;
+            if ((pp.x - rb.x) ** 2 + (pp.z - rb.z) ** 2 < 20) {
+              const existing = document.getElementById('race-board-panel');
+              if (existing) { existing.remove(); document.getElementById('game-canvas')?.requestPointerLock(); return; }
+              this.ui.showRaceBoardPanel(this.raceBoard);
+              return;
+            }
           }
         }
 
@@ -1422,6 +1439,15 @@ export class Game {
       }
     }
 
+    // Race board proximity — hint once when player first approaches grandstand
+    if (!this._raceBoardNearNotified) {
+      const rb = this.world.landmarks?.race_board;
+      if (rb && (p.x - rb.x) ** 2 + (p.z - rb.z) ** 2 < 64) {
+        this._raceBoardNearNotified = true;
+        this.ui.notify('🏟 Race Board nearby — press [E] to see the leaderboard!');
+      }
+    }
+
     // Radio tower proximity — hint once when player first gets within 10 blocks
     if (!this._towerNearNotified && !this._towerActivated) {
       const tower = this.world.landmarks?.radio_tower;
@@ -2025,6 +2051,17 @@ export class Game {
         if (improved) {
           this._bestOvalGhostFrames = this._ovalGhostFrames.slice();
           this.saveSystem.markDirty();
+          // Update race board + announce beaten ghosts
+          const beaten = this.raceBoard.setPlayerTime(ms, bot.personality.name, bot.personality.name);
+          if (beaten.length) {
+            for (const idx of beaten) {
+              const ghost = NPC_GHOSTS[idx];
+              setTimeout(() => {
+                this.ui.notify(`🏆 Beaten ${ghost.name} (${ghost.bot})!`);
+                this.foreman.sayLine(BEAT_QUIPS[idx]);
+              }, 1200 + idx * 800);
+            }
+          }
           setTimeout(() => this.foreman.onEvent('bot_lap_record', {}), 500);
         }
       }
