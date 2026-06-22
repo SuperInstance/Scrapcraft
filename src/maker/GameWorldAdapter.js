@@ -46,7 +46,7 @@ export class GameWorldAdapter {
     return this.world.isSolidAt(Math.floor(x), 1, Math.floor(z));
   }
 
-  /** Ambient light 0..1: night is dark unless near a light source. */
+  /** Ambient light 0..1: night is dark unless near a light source. Rain dims, storm dims more. */
   lightAt(x, z) {
     let base = 0.85;
     if (this.dayNight) {
@@ -60,7 +60,9 @@ export class GameWorldAdapter {
     }
     // Forge / power glow boosts local light (cheap proximity check to landmarks).
     const glow = this._nearGlow(x, z);
-    return Math.min(1, base + glow);
+    // Overcast sky — rain/storm reduces ambient light proportionally.
+    const weatherDim = (this.weather?.intensityValue ?? 0) * 0.45;
+    return Math.min(1, Math.max(0, base + glow - weatherDim));
   }
 
   _nearGlow(x, z) {
@@ -82,18 +84,27 @@ export class GameWorldAdapter {
     return g;
   }
 
-  /** Raycast forward through the voxel grid; normalized clear distance. */
+  /** Raycast forward through the voxel grid; normalized clear distance.
+   *  Storm interference adds slow-wave sonar noise (mirrors rain-scatter on ultrasonic). */
   distanceAhead(x, z, heading) {
     const dx = Math.sin(heading), dz = Math.cos(heading);
     const range = SONAR_RANGE * this.sensorRangeMult;
     const stepN = 24;
+    let raw = 1;
     for (let i = 1; i <= stepN; i++) {
       const t = (i / stepN) * range;
       if (this.isSolidAt(x + dx * t, z + dz * t)) {
-        return Math.max(0, (t - 0.25) / range);
+        raw = Math.max(0, (t - 0.25) / range);
+        break;
       }
     }
-    return 1;
+    const intensity = this.weather?.intensityValue ?? 0;
+    if (intensity > 0.5) {
+      // Slow sine-wave interference: 0.8 Hz at full storm, max ±12% error.
+      const noise = Math.sin(Date.now() * 0.005 + x * 0.7 + z * 0.3) * (intensity - 0.5) * 0.24;
+      raw = Math.min(1, Math.max(0, raw + noise));
+    }
+    return raw;
   }
 
   playerDistance(x, z) {

@@ -1115,4 +1115,61 @@ export class UI {
     panel.querySelector('#rb-close').addEventListener('click', () => panel.remove());
     return panel;
   }
+
+  /** Toggle the Codex (Field Guide) panel. */
+  toggleCodex(codex) {
+    const panel = document.getElementById('codex-panel');
+    if (!panel) return;
+    const isOpen = panel.classList.toggle('open');
+    if (!isOpen) return;
+    this._renderCodex(codex, 'all');
+    // Filter buttons
+    panel.querySelectorAll('.cx-filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        panel.querySelectorAll('.cx-filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this._renderCodex(codex, btn.dataset.cat);
+      });
+    });
+    panel.querySelector('#codex-close').onclick = () => panel.classList.remove('open');
+  }
+
+  _renderCodex(codex, cat = 'all') {
+    const grid   = document.getElementById('codex-grid');
+    const detail = document.getElementById('codex-detail');
+    const countEl = document.getElementById('codex-count');
+    const barEl   = document.getElementById('codex-bar');
+    if (!grid || !detail) return;
+
+    countEl.textContent = `${codex.count} / ${codex.total} DISCOVERED`;
+    barEl.style.width   = `${codex.percent}%`;
+
+    const all = codex.getAll();
+    const items = cat === 'all' ? all : all.filter(i => (i.category ?? 'other') === cat);
+
+    grid.innerHTML = items.map(item => {
+      const unk = !item.discovered;
+      return `<div class="cx-card${unk ? ' unknown' : ''}" data-id="${item.id}" title="${unk ? '???' : item.name}">
+        <span class="cx-icon">${unk ? '❓' : (item.icon ?? '📦')}</span>
+        <span class="cx-label">${unk ? '???' : item.name}</span>
+      </div>`;
+    }).join('');
+
+    detail.innerHTML = `<div id="codex-detail-empty">Select an item to see details</div>`;
+
+    grid.querySelectorAll('.cx-card:not(.unknown)').forEach(card => {
+      card.addEventListener('click', () => {
+        grid.querySelectorAll('.cx-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        const item = all.find(i => i.id === card.dataset.id);
+        if (!item) return;
+        detail.innerHTML = `
+          <span id="codex-detail-icon">${item.icon ?? '📦'}</span>
+          <div id="codex-detail-name">${item.name}</div>
+          <div id="codex-detail-cat">${(item.category ?? '—').toUpperCase()} · ${item.id}</div>
+          <div id="codex-detail-desc">${item.desc ?? ''}</div>
+        `;
+      });
+    });
+  }
 }

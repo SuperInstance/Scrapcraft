@@ -477,6 +477,20 @@ export const ACHIEVEMENT_LIST = [
     desc: 'Rebuild and activate the radio tower. You took a dead scrapyard and made it speak. Earl finally told you who he is.',
     check: (s) => !!s.towerActivated,
   },
+  {
+    id: 'field_scholar',
+    icon: '📖',
+    name: 'Field Scholar',
+    desc: 'Discover 20 different items. Your Field Guide is filling up. Earl has noticed you reading it.',
+    check: (s) => (s.codexCount ?? 0) >= 20,
+  },
+  {
+    id: 'full_codex',
+    icon: '📚',
+    name: 'Encyclopedia Scrapcraft',
+    desc: 'Discover every item in the Field Guide. The yard has no more secrets. Earl has one. He won\'t say.',
+    check: (s) => (s.codexCount ?? 0) >= 40,
+  },
 ];
 
 export class Achievements {
@@ -521,6 +535,7 @@ export class Achievements {
       towerActivated: false,
       botNamed:    0,
       botBondMax:  0,
+      codexCount:  0,
     };
   }
 
@@ -620,6 +635,9 @@ export class Achievements {
         break;
       case 'tower_activated':
         s.towerActivated = true;
+        break;
+      case 'codex_discover':
+        s.codexCount = Math.max(s.codexCount ?? 0, data.count ?? 0);
         break;
     }
     this._check();

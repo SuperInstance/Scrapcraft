@@ -179,6 +179,8 @@ const QUIPS = {
     "Storm rolling in. Get your bot under cover if you care about it. I don't. (I do.)",
     "Thunder. Lightning. Perfect weather for building things indoors. Which we don't have. Well, sheds.",
     "Thunderstorm. You want a tip? Don't hold copper wire over your head right now.",
+    "Storm's interfering with sonar. Your bot's distance readings will jitter. Use the weatherIntensity sensor in your program to detect it and slow down. That's how real field robots handle weather.",
+    "Rain scatter kills ultrasonic sensors. Your bot's seeing noise right now. Read the weatherIntensity tile to compensate — it returns 0 (clear) to 1 (storm). Good robotics teaches fault tolerance.",
   ],
   weather_clear: [
     "Sun's out. No excuses now, rookie. The scrap doesn't sort itself.",
