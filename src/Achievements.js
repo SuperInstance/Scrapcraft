@@ -478,6 +478,13 @@ export const ACHIEVEMENT_LIST = [
     check: (s) => !!s.towerActivated,
   },
   {
+    id: 'beacon_placed',
+    icon: '📶',
+    name: 'Signal Out',
+    desc: 'Place your first Signal Beacon. Your bot now has a landmark to home in on. Real autonomous robots use the exact same trick.',
+    check: (s) => (s.beaconsPlaced ?? 0) >= 1,
+  },
+  {
     id: 'field_scholar',
     icon: '📖',
     name: 'Field Scholar',
@@ -531,6 +538,7 @@ export class Achievements {
       narrowEscapes: 0,
       challengesCompleted: 0,
       solarPlaced: 0,
+      beaconsPlaced: 0,
       buriedCachesFound:  0,
       towerActivated: false,
       botNamed:    0,
@@ -568,7 +576,8 @@ export class Achievements {
         s.blocksPlaced++;
         if (data.blockId === 'track_strip')  s.tracksPlaced     = (s.tracksPlaced ?? 0) + 1;
         if (data.blockId === 'floodlight')   s.floodlightsPlaced = (s.floodlightsPlaced ?? 0) + 1;
-        if (data.blockId === 'solar_panel')  s.solarPlaced     = (s.solarPlaced ?? 0) + 1;
+        if (data.blockId === 'solar_panel')   s.solarPlaced     = (s.solarPlaced ?? 0) + 1;
+        if (data.blockId === 'signal_beacon') s.beaconsPlaced   = (s.beaconsPlaced ?? 0) + 1;
         break;
       case 'wokwi_export':
         s.wokwiExported = (s.wokwiExported ?? 0) + 1;

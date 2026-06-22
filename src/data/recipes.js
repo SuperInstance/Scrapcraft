@@ -564,6 +564,16 @@ export const RECIPES = [
     unlockAfter: 'r_signal_radio',
     foremanQuip: "A comm relay. You patched through to my frequency. I'm choosing to be impressed, not annoyed. For now.",
   },
+  {
+    id: 'r_signal_beacon',
+    output: 'signal_beacon',
+    qty: 2,
+    ingredients: { copper_wire: 3, crystal_fragment: 1, circuit_board: 1 },
+    station: 'workbench',
+    tool: 'pliers',
+    tier: 2,
+    foremanQuip: "Signal beacons. Teal, glowy, pulsing. Place them around the yard and your bot can home in on them like a drone on a landing pad. Place it, load the beacon_signal sensor tile, and watch the bot find its way.",
+  },
 ];
 
 export function getRecipe(id) {

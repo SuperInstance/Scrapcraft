@@ -616,6 +616,7 @@ export class Game {
       if (blockId === B.FLOODLIGHT) this.audio.floodOn(); else this.audio.place();
       this.particles.burst(px, py + 0.5, pz, 'pickup', 4);
       this.achievements.track('place', { blockId: activeItem.id });
+      if (blockId === B.BEACON) this.foreman.onEvent('place_beacon', {});
       this.xpSystem.gain(2);
       this.saveSystem.markDirty();
       this.ui.updateHotbar(this.player);
