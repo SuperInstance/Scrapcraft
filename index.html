@@ -187,6 +187,44 @@
     }
     #ghost-indicator.show { opacity:1; }
 
+    /* ── Bot name badge (top-right, below XP level) ── */
+    #bot-name-badge {
+      position:absolute; top:52px; right:16px; display:none;
+      background:rgba(0,12,8,0.88); border:1px solid #1a4a2a;
+      border-radius:6px; padding:5px 10px; width:130px;
+      font-family:'Courier New',monospace; font-size:8px;
+      pointer-events:none;
+    }
+    #bot-badge-name {
+      color:#00ff99; font-size:11px; font-weight:bold; letter-spacing:1px;
+      display:block; margin-bottom:3px;
+    }
+    #bot-badge-pct { color:#448855; font-size:8px; float:right; }
+    #bot-badge-bond-wrap {
+      height:3px; background:#0a2016; border-radius:2px; margin-top:4px; overflow:hidden;
+    }
+    #bot-badge-bar {
+      height:100%; background:linear-gradient(90deg,#00aa55,#00ff99);
+      transition:width 2s ease; border-radius:2px;
+    }
+
+    /* ── Bot speech card (lower-left, above serial monitor) ── */
+    #bot-speech-card {
+      position:absolute; bottom:290px; left:16px; width:220px;
+      background:rgba(0,10,5,0.93); border:1px solid #1a5a2a;
+      border-radius:6px; padding:8px 10px;
+      font-family:'Courier New',monospace; font-size:9px;
+      opacity:0; transition:opacity 0.35s ease; pointer-events:none;
+    }
+    #bot-speech-card.show { opacity:1; }
+    #bsc-name {
+      color:#00ff99; font-size:10px; font-weight:bold;
+      letter-spacing:1px; margin-bottom:4px;
+    }
+    #bsc-text {
+      color:#88ddbb; line-height:1.45; word-break:break-word;
+    }
+
     /* ── Bot sensor dashboard (bottom-left, above XP bar) ── */
     /* ── Bot serial monitor (above sensor HUD) ── */
     #bot-serial-log {
@@ -1004,6 +1042,18 @@
       <div id="ch-counter">0 / ?</div>
     </div>
 
+    <!-- Bot name badge (top-right) -->
+    <div id="bot-name-badge">
+      <span id="bot-badge-name">BOT</span><span id="bot-badge-pct">Bond 0%</span>
+      <div id="bot-badge-bond-wrap"><div id="bot-badge-bar" style="width:0%"></div></div>
+    </div>
+
+    <!-- Bot speech card (lower-left) -->
+    <div id="bot-speech-card">
+      <div id="bsc-name">🤖 BOT</div>
+      <div id="bsc-text"></div>
+    </div>
+
     <!-- Bot serial monitor (last 5 speak() calls, Arduino-style) -->
     <div id="bot-serial-log">
       <div id="bsl-title">📟 BOT SERIAL</div>
@@ -1153,6 +1203,7 @@
         <h3>MAKER LAB</h3>
         <div class="help-row"><span class="help-key">T</span><span class="help-desc">Open Tile Editor (robot brain)</span></div>
         <div class="help-row"><span class="help-key">B</span><span class="help-desc">Toggle bot program (run / stop)</span></div>
+        <div class="help-row"><span class="help-key">CTRL+B</span><span class="help-desc">Rename your bot</span></div>
         <div class="help-row"><span class="help-key">SHIFT+B</span><span class="help-desc">Spawn second bot (Level 5+)</span></div>
         <div class="help-row"><span class="help-key">Y</span><span class="help-desc">Drop waypoint flag (bot navigates here)</span></div>
       </div>

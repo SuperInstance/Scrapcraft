@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { MakerRuntime, GameWorldAdapter } from './maker/index.js';
 import { EXAMPLE_WALL_AVOIDER } from './maker/TileProgram.js';
+import { BotPersonality, randomBotName } from './BotPersonality.js';
 
 /**
  * ScrapBot — your robot companion, built from the robot_helper recipe.
@@ -74,6 +75,9 @@ export class ScrapBot {
     // Speech bubble state (read by Game.js for screen projection)
     this.speechText  = '';
     this._speechTimer = 0;
+
+    // Personality & bond
+    this.personality = new BotPersonality(randomBotName());
   }
 
   setUI(ui) { this._ui = ui; }
@@ -86,7 +90,7 @@ export class ScrapBot {
     this._active = true;
     this._pos.copy(spawnPos).add(new THREE.Vector3(1.5, 0, 0));
     this._buildMesh();
-    this.speak('[BOOT SEQUENCE COMPLETE] SCRAP BOT ONLINE. GREETINGS, BIOLOGICAL UNIT.');
+    this.speak(this.personality.quip('boot'));
   }
 
   get isActive() { return this._active; }
@@ -157,8 +161,8 @@ export class ScrapBot {
   }
 
   speak(line) {
-    this._ui?.notify(`🤖 ${line}`);
-    this._ui?.logBotMessage(line);
+    if (!line) return;
+    this._ui?.showBotSpeech(this.personality.name, line);
   }
 
   /**
@@ -194,9 +198,9 @@ export class ScrapBot {
     }
 
     if (this._runtime.errors.length) {
-      this.speak(`[COMPILE ERROR] ${this._runtime.errors[0]}`);
+      this.speak(this.personality.quip('error') + ` | ${this._runtime.errors[0]}`);
     } else {
-      this.speak(`[BRAIN LOADED] Running "${program.name || 'custom program'}".`);
+      this.speak(this.personality.quip('brain_loaded'));
       // Circuit burst when brain successfully loads
       this._game?.particles?.burst(this._pos.x, 1.6, this._pos.z, 'circuit', 12);
       // Trigger bot sensor HUD rebuild for new brain
@@ -228,14 +232,13 @@ export class ScrapBot {
   clearBrain() {
     this._brainMode = false;
     this._runtime   = null;
-    this.speak('[BRAIN CLEARED] Back to following you around. Lucky you.');
-    setTimeout(() => this._ui?.clearBotLog?.(), 3000);
+    this.speak(this.personality.quip('brain_cleared'));
   }
 
   /** Restore battery by pct (0-100). */
   chargeBattery(pct) {
     this.battery = Math.min(100, this.battery + pct);
-    this.speak(`[CHARGING] Battery now at ${Math.round(this.battery)}%. ${this.battery >= 80 ? 'Ready to run.' : 'More charge needed.'}`);
+    this.speak(this.personality.quip('charging'));
   }
 
   tick(dt, world) {
@@ -319,7 +322,7 @@ export class ScrapBot {
     const battLife   = this._game?.botUpgrades?.getMultiplier('battery_life') ?? 1;
     this.battery = Math.max(0, this.battery - (dt * (driving ? 1.3 : 0.4)) / battLife);
     if (this.battery <= 0) {
-      this.speak('[BATTERY DEAD] Shutting down. Plug in a charging pad.');
+      this.speak(this.personality.quip('battery_dead'));
       this._game?.ui?.notify('🔋 Bot battery depleted — use charging pad to recharge!');
       this._game?.foreman?.onEvent('bot_battery_dead', {});
       this.clearBrain();
@@ -329,7 +332,7 @@ export class ScrapBot {
     // Low-battery distress: warn at 15%, flash red eyes below 10%
     if (this.battery <= 15 && !this._lowBattWarn) {
       this._lowBattWarn = true;
-      this.speak('[LOW BATTERY] 15% remaining. Please locate a charging pad.');
+      this.speak(this.personality.quip('low_battery'));
       this._game?.ui?.notify('🔋 Bot battery critical — 15% remaining!');
     }
     if (this.battery > 15) this._lowBattWarn = false;
@@ -398,6 +401,15 @@ export class ScrapBot {
       this._lastWaypoint = wp;
       this._waypointReachedFired = false;
     }
+
+    // Tick bond — milestone quips are returned when thresholds cross
+    const milestoneQuip = this.personality.tick(dt);
+    if (milestoneQuip) {
+      this.speak(milestoneQuip);
+      this._game?.achievements?.track('bot_bond', { bond: this.personality.bond });
+      this._game?.saveSystem?.markDirty();
+      setTimeout(() => this._game?.foreman?.onEvent('bot_bond_milestone', {}), 2500);
+    }
   }
 
   _tickCommon(dt) {
@@ -414,8 +426,8 @@ export class ScrapBot {
       this._lineTimer += dt;
       if (this._lineTimer >= this._lineInterval) {
         this._lineTimer = 0;
-        this._lineInterval = 20 + Math.random() * 30;
-        this.speak(BOT_LINES[Math.floor(Math.random() * BOT_LINES.length)]);
+        this._lineInterval = 25 + Math.random() * 35;
+        this.speak(this.personality.quip('idle'));
       }
     }
   }

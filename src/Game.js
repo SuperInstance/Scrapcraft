@@ -352,7 +352,10 @@ export class Game {
             this._toggleBot2();
           }
         } else if (this.scrapBot.isActive) {
-          if (this.scrapBot._brainMode) {
+          if (e.ctrlKey) {
+            // Ctrl+B → rename bot
+            this._renameBotPrompt();
+          } else if (this.scrapBot._brainMode) {
             this.scrapBot.clearBrain();
           } else {
             this.scrapBot.setBrain(EXAMPLE_WALL_AVOIDER, this.world, this.player, this.dayNight);
@@ -633,6 +636,22 @@ export class Game {
         }
       }
     );
+  }
+
+  _renameBotPrompt() {
+    const bot = this.scrapBot?.isActive ? this.scrapBot : null;
+    if (!bot) return;
+    const current = bot.personality.name;
+    const entered = prompt(`Rename your bot (currently "${current}"):`, current);
+    if (!entered) return;
+    const name = entered.trim().slice(0, 16);
+    if (!name) return;
+    bot.personality.name = name;
+    this.ui.updateBotBond(name, bot.personality.bond);
+    bot.speak(`[NAME UPDATE] New designation: ${name}. Acknowledged.`);
+    this.saveSystem.markDirty();
+    this.achievements.track('bot_named', {});
+    setTimeout(() => this.foreman?.onEvent('bot_named', {}), 1500);
   }
 
   _toggleBot2() {
@@ -1281,6 +1300,7 @@ export class Game {
     this.scrapBot.tick(dt, this.world);
     if (this.scrapBot2) this.scrapBot2.tick(dt, this.world);
 
+    this._tickBotBadge();
     this._tickLapTimer(dt);
     this._tickGhostPlayback(dt);
     this._tickBotTrackSparks(dt);
@@ -1862,10 +1882,17 @@ export class Game {
         this.particles.burst(38, 1.5, 14, 'confetti', improved ? 30 : 14);
         this.achievements.track('lap_complete', {});
         this.xpSystem.gain(20);
+        // Bot says something about the lap
+        const activeBot = bot;
         if (improved) {
           this._bestGhostFrames = this._ghostFrames.slice();
           this.saveSystem.markDirty();
-          setTimeout(() => this.foreman.onEvent('bot_lap_record', {}), 500);
+          setTimeout(() => {
+            activeBot.speak(activeBot.personality.quip('lap_record'));
+            this.foreman.onEvent('bot_lap_record', {});
+          }, 500);
+        } else {
+          setTimeout(() => activeBot.speak(activeBot.personality.quip('lap_complete')), 500);
         }
         setTimeout(() => ls.lapsEl?.classList.remove('show'), 5000);
       }
@@ -1920,6 +1947,18 @@ export class Game {
     ghost.rotation.y = frame[2];
     ghost.visible = true;
     ghostEl?.classList.add('show');
+  }
+
+  _tickBotBadge() {
+    const bot = this.scrapBot?.isActive ? this.scrapBot
+              : this.scrapBot2?.isActive ? this.scrapBot2
+              : null;
+    if (!bot) {
+      this.ui.showBotBadge(false);
+      return;
+    }
+    this.ui.showBotBadge(true);
+    this.ui.updateBotBond(bot.personality.name, bot.personality.bond);
   }
 
   _updateSpeechBubble(bot, el) {

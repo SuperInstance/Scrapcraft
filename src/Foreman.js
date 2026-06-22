@@ -127,6 +127,16 @@ const QUIPS = {
     "Real iron. USB cable, live firmware. You know what the difference is between playing and building? That button you just clicked.",
     "You flashed actual hardware. I've been waiting ten years for someone to do that in my yard. Take the day off. Actually don't. I still need scrap.",
   ],
+  bot_named: [
+    "You named it. Good. Things with names work harder. That's not science, that's just true.",
+    "A named bot is a bot with stakes. You'll feel worse about letting the battery die now. Good.",
+    "Name it, claim it. That's your machine. It's going to do things you taught it.",
+  ],
+  bot_bond_milestone: [
+    "That bot's logged a lot of hours with you. Something about machines and time — they remember.",
+    "Bond's going up. I've seen people give up on bots after one compile error. You didn't. That matters.",
+    "You and that bot — good team. And I don't say that about many teams. Ask anyone.",
+  ],
   buried_cache_found: [
     "You found one. I buried those before the yard got this crowded. It was a different time.",
     "Emergency supply cache. Built these during the grid outage of '09. You're welcome, by the way.",
@@ -496,6 +506,8 @@ export class Foreman {
       'exchange_trade':        'exchange_trade',
       'bot_upgrade':           'bot_upgrade',
       'hardware_flash':       'hardware_flash',
+      'bot_named':            'bot_named',
+      'bot_bond_milestone':   'bot_bond_milestone',
       'buried_cache_found':  'buried_cache_found',
       'ghost_lap_start':     'ghost_lap_start',
       'bot_lap_record':      'bot_lap_record',

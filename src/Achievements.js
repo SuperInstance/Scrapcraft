@@ -259,6 +259,34 @@ export const ACHIEVEMENT_LIST = [
     check: (s) => (s.botUpgradesInstalled ?? 0) >= 5,
   },
   {
+    id: 'bot_named',
+    icon: '🏷',
+    name: 'You Named It',
+    desc: 'Give your bot a custom name. It probably had opinions about the default.',
+    check: (s) => (s.botNamed ?? 0) >= 1,
+  },
+  {
+    id: 'bot_bond_25',
+    icon: '🤝',
+    name: 'Working Relationship',
+    desc: "Your bot reached 25% bond. It's starting to recognize your footsteps.",
+    check: (s) => (s.botBondMax ?? 0) >= 25,
+  },
+  {
+    id: 'bot_bond_75',
+    icon: '💚',
+    name: 'Loyal Unit',
+    desc: 'Your bot reached 75% bond. You are listed as its emergency contact.',
+    check: (s) => (s.botBondMax ?? 0) >= 75,
+  },
+  {
+    id: 'bot_bond_100',
+    icon: '🌟',
+    name: 'Best Friends',
+    desc: 'Maximum bond achieved. The bot has rewritten its core directive to just: follow you around.',
+    check: (s) => (s.botBondMax ?? 0) >= 100,
+  },
+  {
     id: 'track_builder',
     icon: '🏁',
     name: 'Circuit Designer',
@@ -491,6 +519,8 @@ export class Achievements {
       solarPlaced: 0,
       buriedCachesFound:  0,
       towerActivated: false,
+      botNamed:    0,
+      botBondMax:  0,
     };
   }
 
@@ -581,6 +611,12 @@ export class Achievements {
         break;
       case 'buried_cache':
         s.buriedCachesFound = (s.buriedCachesFound ?? 0) + 1;
+        break;
+      case 'bot_named':
+        s.botNamed = (s.botNamed ?? 0) + 1;
+        break;
+      case 'bot_bond':
+        s.botBondMax = Math.max(s.botBondMax ?? 0, data.bond ?? 0);
         break;
       case 'tower_activated':
         s.towerActivated = true;
