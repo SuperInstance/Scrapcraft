@@ -1,6 +1,7 @@
 import { getItem } from './data/items.js';
 import { BLOCK_DEF } from './data/blocks.js';
 import { ACHIEVEMENT_LIST } from './Achievements.js';
+import { RaceBoard } from './RaceBoard.js';
 
 // ── Engineering Codex entries (teaches real science, middle-school tone) ──
 const CODEX = [
@@ -1065,6 +1066,53 @@ export class UI {
       btn.addEventListener('click', () => onPurchase?.(btn.dataset.id));
     });
 
+    return panel;
+  }
+
+  // ── Race Board Panel ─────────────────────────────────────────────────────
+
+  showRaceBoardPanel(raceBoard) {
+    const existing = document.getElementById('race-board-panel');
+    if (existing) { existing.remove(); return; }
+
+    const board = raceBoard.getBoard();
+    const rows = board.map(e => {
+      const t      = RaceBoard.formatTime(e.ms);
+      const hilit  = e.isPlayer ? 'border-color:#f0b429;background:rgba(240,180,41,0.08)' : '';
+      const medal  = e.rank === 1 ? '🥇' : e.rank === 2 ? '🥈' : e.rank === 3 ? '🥉' : `${e.rank}.`;
+      const name   = e.isPlayer ? `<b style="color:#f0b429">${e.name}</b>` : e.name;
+      const bot    = e.bot ? `<span style="color:#555;font-size:9px"> · bot: ${e.bot}</span>` : '';
+      const note   = `<div style="color:#444;font-size:9px;margin-top:1px">${e.note}</div>`;
+      return `<div style="border:1px solid #222;border-radius:4px;padding:7px 10px;margin-bottom:4px;${hilit}">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="color:#888;font-size:10px;min-width:20px">${medal}</span>
+          <span style="flex:1;color:#ccc;font-size:12px;padding:0 8px">${name}${bot}</span>
+          <span style="color:${e.isPlayer ? '#f0b429' : '#88cc88'};font-size:13px;font-weight:bold;font-family:'Courier New',monospace">${t}</span>
+        </div>${note}</div>`;
+    }).join('');
+
+    const panel = document.createElement('div');
+    panel.id = 'race-board-panel';
+    panel.style.cssText = `
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:#0e0e0e; border:2px solid #f0b429; border-radius:10px;
+      padding:18px 20px; width:360px; z-index:9002;
+      font-family:'Courier New',monospace; font-size:11px; color:#ccc;
+      box-shadow:0 0 32px rgba(240,180,41,0.2);
+    `;
+    panel.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #333">
+        <div>
+          <div style="color:#f0b429;font-size:15px;font-weight:bold;letter-spacing:2px">🏟 OVAL CIRCUIT</div>
+          <div style="color:#555;font-size:9px;margin-top:2px">RACE BOARD — Circuit City Grand Prix</div>
+        </div>
+        <button id="rb-close" style="background:none;border:none;color:#555;font-size:18px;cursor:pointer;padding:0 4px">✕</button>
+      </div>
+      ${rows}
+      <div style="color:#333;font-size:9px;margin-top:10px;text-align:center">Run a bot lap to set your time · [E] to close</div>
+    `;
+    document.getElementById('hud').appendChild(panel);
+    panel.querySelector('#rb-close').addEventListener('click', () => panel.remove());
     return panel;
   }
 }
