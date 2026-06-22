@@ -107,6 +107,16 @@ const QUIPS = {
     "...It's broadcasting. After all these years. You know, I wasn't always a junkyard foreman. I used to listen for signals like this one. Welcome to the other side of the static, kid. You earned it.",
     "There it goes. 433 megahertz, screaming into the dark. Somewhere out there, somebody just heard the scrapyard wake up. That somebody might be me, twenty years ago. Good work. Genuinely.",
   ],
+  near_exchange: [
+    "Exchange board's right there. My contact drops new deals every morning. Don't ask who. Don't ask how. Just use it.",
+    "Scrap Exchange. I've been using that contact for twelve years. Best logistics operation in a 200-mile radius. Allegedly.",
+    "That board gets restocked daily. If the deal's good, take it. It won't be there tomorrow.",
+  ],
+  exchange_trade: [
+    "Traded. My contact will be pleased. They like volume.",
+    "Deal complete. Check your inventory. And don't wonder where the scrap went.",
+    "That's how you work the exchange. Come back tomorrow for the next rotation.",
+  ],
   bot_upgrade: [
     "Hardware mod installed. You're customizing your bot now. That's the difference between a user and an engineer.",
     "Upgraded. The factory settings are for people who don't know what they're doing. You clearly do now.",
@@ -482,7 +492,9 @@ export class Foreman {
       'near_tower':          'near_tower',
       'tower_ready':         'tower_ready',
       'tower_activated':     'tower_activated',
-      'bot_upgrade':          'bot_upgrade',
+      'near_exchange':         'near_exchange',
+      'exchange_trade':        'exchange_trade',
+      'bot_upgrade':           'bot_upgrade',
       'hardware_flash':       'hardware_flash',
       'buried_cache_found':  'buried_cache_found',
       'ghost_lap_start':     'ghost_lap_start',

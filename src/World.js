@@ -127,6 +127,11 @@ export class World {
     this.landmarks.forge     = { x: 14, y: 1, z: 8 };
     this.landmarks.smelter   = { x: 16, y: 1, z: 8 };
 
+    // Scrap Exchange board (near spawn, distinct orange block on a raised plinth)
+    this.setBlock(14, 1, 14, B.POWER_BOX);  // base
+    this.setBlock(14, 2, 14, B.POWER_BOX);  // exchange board marker
+    this.landmarks.exchange = { x: 14, y: 2, z: 14 };
+
     // Concrete path from spawn to stations
     for (let z = 3; z <= 8; z++)   this.setBlock(10, 0, z, B.CONCRETE);
     for (let x = 10; x <= 17; x++) this.setBlock(x,  0, 8, B.CONCRETE);

@@ -109,6 +109,7 @@ export class SaveSystem {
           wokwiExported:      s.wokwiExported      ?? 0,
           hardwareFlashes:    s.hardwareFlashes     ?? 0,
           botUpgradesInstalled: s.botUpgradesInstalled ?? 0,
+          exchangeTrades:       s.exchangeTrades       ?? 0,
           tracksPlaced:       s.tracksPlaced        ?? 0,
           floodlightsPlaced:  s.floodlightsPlaced   ?? 0,
           lapsCompleted:      s.lapsCompleted        ?? 0,
@@ -151,7 +152,8 @@ export class SaveSystem {
         activated: g._towerActivated  ?? false,
       },
 
-      botUpgrades: g.botUpgrades?.toSaveData() ?? [],
+      botUpgrades:  g.botUpgrades?.toSaveData()  ?? [],
+      exchange:     g.exchange?.toSaveData()     ?? {},
 
       ghostLap: g._bestGhostFrames?.length ? g._bestGhostFrames : null,
 
@@ -212,6 +214,7 @@ export class SaveSystem {
         wokwiExported:     s.wokwiExported     ?? 0,
         hardwareFlashes:       s.hardwareFlashes       ?? 0,
         botUpgradesInstalled:  s.botUpgradesInstalled  ?? 0,
+        exchangeTrades:        s.exchangeTrades        ?? 0,
         tracksPlaced:      s.tracksPlaced      ?? 0,
         floodlightsPlaced: s.floodlightsPlaced ?? 0,
         lapsCompleted:     s.lapsCompleted     ?? 0,
@@ -280,6 +283,9 @@ export class SaveSystem {
 
     // Bot hardware upgrades
     if (data.botUpgrades) g.botUpgrades?.fromSaveData(data.botUpgrades);
+
+    // Scrap Exchange trade count
+    if (data.exchange) g.exchange?.fromSaveData(data.exchange);
 
     // Ghost lap replay
     if (data.ghostLap?.length) g._bestGhostFrames = data.ghostLap;

@@ -871,6 +871,80 @@ export class UI {
     this._dmgFlashTimer = setTimeout(() => el.classList.remove('flash'), 350);
   }
 
+  // ── Scrap Exchange Panel ─────────────────────────────────────────────────────
+
+  showExchangePanel(deals, exchange, player, xpSystem, onTrade) {
+    const existing = document.getElementById('exchange-panel');
+    if (existing) { existing.remove(); return null; }
+
+    const panel = document.createElement('div');
+    panel.id = 'exchange-panel';
+    panel.style.cssText = `
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:#0a0a0a; border:1px solid #2a2a2a; border-radius:10px;
+      padding:20px 24px; z-index:900; min-width:460px; max-width:540px;
+      font-family:'Courier New',monospace; color:#ccc; font-size:11px;
+      box-shadow:0 8px 40px rgba(0,0,0,0.8);
+    `;
+
+    const refreshHrs = Math.ceil(exchange.msUntilRefresh / 3_600_000);
+    const haveItem   = (id, qty) => {
+      const s = player.inventory?.find(s => s?.id === id);
+      return (s?.qty ?? 0) >= qty;
+    };
+
+    const rows = deals.map((deal, i) => {
+      const canTrade = haveItem(deal.give.item, deal.give.qty);
+      const giveLabel = `${deal.give.qty}× ${deal.give.item.replace(/_/g,' ')}`;
+      const getLabel  = `${deal.get.qty}× ${deal.get.item.replace(/_/g,' ')}`;
+      const haveQty   = player.inventory?.find(s => s?.id === deal.give.item)?.qty ?? 0;
+      return `
+        <div style="border:1px solid ${canTrade?'#1a3040':'#1a1a1a'};border-radius:7px;
+                    padding:10px 14px;margin-bottom:8px;background:${canTrade?'#070e14':'#080808'};
+                    display:flex;align-items:center;gap:12px">
+          <div style="flex:1">
+            <div style="color:#888;font-size:9px;letter-spacing:1px;margin-bottom:4px">TRADE</div>
+            <div style="color:${canTrade?'#cc8844':'#666'}">${giveLabel}</div>
+            <div style="color:#444;font-size:9px;margin-top:1px">have: ${haveQty}</div>
+          </div>
+          <div style="color:#33557a;font-size:20px;padding:0 4px">→</div>
+          <div style="flex:1">
+            <div style="color:#888;font-size:9px;letter-spacing:1px;margin-bottom:4px">RECEIVE</div>
+            <div style="color:#4af">${getLabel}</div>
+          </div>
+          ${canTrade
+            ? `<button class="exc-trade" data-idx="${i}" style="
+                background:#071420;border:1px solid #1a4060;border-radius:4px;
+                color:#4af;padding:5px 14px;font-family:inherit;font-size:10px;
+                cursor:pointer;letter-spacing:1px;white-space:nowrap;">TRADE</button>`
+            : `<span style="color:#333;font-size:9px">need ${deal.give.qty - haveQty} more</span>`}
+        </div>`;
+    }).join('');
+
+    panel.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;
+                  margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #1a1a1a">
+        <div>
+          <div style="color:#f0b429;font-size:14px;font-weight:bold;letter-spacing:2px">📦 SCRAP EXCHANGE</div>
+          <div style="color:#555;font-size:9px;margin-top:2px">Daily deals — resets in ~${refreshHrs}h · Trades: ${exchange.tradesCompleted}</div>
+        </div>
+        <button id="exc-close" style="background:none;border:none;color:#555;font-size:18px;cursor:pointer;padding:0 4px">✕</button>
+      </div>
+      <div style="color:#444;font-size:9px;margin-bottom:12px;font-style:italic">Earl's contact drops three deals per day. Same deals for everyone. First come, first served.</div>
+      ${rows}
+      <div style="color:#333;font-size:9px;margin-top:10px;text-align:center">[E] to close</div>
+    `;
+
+    document.getElementById('hud').appendChild(panel);
+
+    panel.querySelector('#exc-close').addEventListener('click', () => panel.remove());
+    panel.querySelectorAll('.exc-trade').forEach(btn => {
+      btn.addEventListener('click', () => onTrade?.(parseInt(btn.dataset.idx)));
+    });
+
+    return panel;
+  }
+
   // ── Bot Upgrade Panel ───────────────────────────────────────────────────────
 
   showBotUpgradePanel(upgradeDefs, botUpgrades, xpSystem, player, onPurchase) {
