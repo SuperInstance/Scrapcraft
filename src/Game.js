@@ -24,6 +24,7 @@ import { BotUpgrades, UPGRADE_DEFS } from './BotUpgrades.js';
 import { ScrapExchange, EXCHANGE_POS, EXCHANGE_RADIUS } from './ScrapExchange.js';
 import { OnboardingWizard } from './onboarding/OnboardingWizard.js';
 import { RaceBoard, NPC_GHOSTS, BEAT_QUIPS } from './RaceBoard.js';
+import { Codex } from './Codex.js';
 
 export class Game {
   constructor(canvas) {
@@ -77,6 +78,14 @@ export class Game {
     this.player = new Player(this.renderer.camera, this.world);
     this.player.pos.set(8, 2, 5);
 
+    // Wrap addItem to feed the Codex — discover items as the player acquires them.
+    // (this.codex is initialized below after the import is done)
+    const _origAdd = this.player.addItem.bind(this.player);
+    this.player.addItem = (id, qty) => {
+      this.codex?.discover(id) && this.achievements?.track('codex_discover', { count: this.codex.count });
+      return _origAdd(id, qty);
+    };
+
     this.dayNight = new DayNight(this.renderer.scene, this.renderer.ambientLight, this.renderer.sunLight);
     this.particles = new ParticleSystem(this.renderer.scene);
     this.audio = new AudioSystem();
@@ -112,6 +121,7 @@ export class Game {
     this.botUpgrades  = new BotUpgrades();
     this.exchange     = new ScrapExchange();
     this.raceBoard    = new RaceBoard();
+    this.codex        = new Codex();
     this._exchangeNearNotified = false;
     this._raceBoardNearNotified = false;
 
@@ -354,6 +364,9 @@ export class Game {
       }
       if (e.code === 'KeyI' && this.ui.isOpen) {
         this._sortInventory();
+      }
+      if (e.code === 'KeyC' && !this.ui.isOpen && !this.tileEditor.isOpen) {
+        this.ui.toggleCodex(this.codex);
       }
       if (e.code === 'KeyN' && !this.tileEditor.isOpen) {
         this.ui.toggleFieldNotes();
