@@ -128,6 +128,8 @@ export class SaveSystem {
           challengesCompleted: s.challengesCompleted ?? 0,
           buriedCachesFound:   s.buriedCachesFound   ?? 0,
           towerActivated:      s.towerActivated      ?? false,
+          botNamed:            s.botNamed             ?? 0,
+          botBondMax:          s.botBondMax           ?? 0,
         },
       },
 
@@ -154,6 +156,9 @@ export class SaveSystem {
 
       botUpgrades:  g.botUpgrades?.toSaveData()  ?? [],
       exchange:     g.exchange?.toSaveData()     ?? {},
+
+      botPersonality:  g.scrapBot?.personality?.toSaveData()  ?? null,
+      bot2Personality: g.scrapBot2?.personality?.toSaveData() ?? null,
 
       ghostLap: g._bestGhostFrames?.length ? g._bestGhostFrames : null,
 
@@ -233,6 +238,8 @@ export class SaveSystem {
         challengesCompleted: s.challengesCompleted ?? 0,
         buriedCachesFound:   s.buriedCachesFound   ?? 0,
         towerActivated:      s.towerActivated      ?? false,
+        botNamed:            s.botNamed            ?? 0,
+        botBondMax:          s.botBondMax          ?? 0,
       });
     }
 
@@ -286,6 +293,10 @@ export class SaveSystem {
 
     // Scrap Exchange trade count
     if (data.exchange) g.exchange?.fromSaveData(data.exchange);
+
+    // Bot personalities
+    if (data.botPersonality)  g.scrapBot?.personality?.fromSaveData(data.botPersonality);
+    if (data.bot2Personality && g.scrapBot2) g.scrapBot2.personality?.fromSaveData(data.bot2Personality);
 
     // Ghost lap replay
     if (data.ghostLap?.length) g._bestGhostFrames = data.ghostLap;

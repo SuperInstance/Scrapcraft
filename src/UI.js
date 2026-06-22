@@ -723,7 +723,40 @@ export class UI {
     setTimeout(() => el.remove(), 4200);
   }
 
-  // ── Bot Serial Monitor ────────────────────────────────────────────────
+  // ── Bot Speech Bubble ─────────────────────────────────────────────────
+
+  showBotSpeech(botName, line) {
+    let el = document.getElementById('bot-speech-card');
+    if (!el) return;
+    // Truncate very long lines for the card
+    const display = line.length > 80 ? line.slice(0, 77) + '…' : line;
+    const nameEl  = el.querySelector('#bsc-name');
+    const textEl  = el.querySelector('#bsc-text');
+    if (nameEl) nameEl.textContent = `🤖 ${botName ?? 'BOT'}`;
+    if (textEl) textEl.textContent = display;
+    el.classList.add('show');
+    clearTimeout(this._botSpeechTimer);
+    this._botSpeechTimer = setTimeout(() => el.classList.remove('show'), 5000);
+  }
+
+  updateBotBond(name, bond) {
+    const nameEl = document.getElementById('bot-badge-name');
+    const barEl  = document.getElementById('bot-badge-bar');
+    const pctEl  = document.getElementById('bot-badge-pct');
+    const badge  = document.getElementById('bot-name-badge');
+    if (!badge) return;
+    if (nameEl) nameEl.textContent = name ?? '?';
+    const pct = Math.round(bond ?? 0);
+    if (pctEl) pctEl.textContent = `Bond ${pct}%`;
+    if (barEl)  barEl.style.width = `${pct}%`;
+  }
+
+  showBotBadge(visible) {
+    const badge = document.getElementById('bot-name-badge');
+    if (badge) badge.style.display = visible ? 'block' : 'none';
+  }
+
+  // ── Bot Serial Monitor (legacy, used by TileEditor) ───────────────────
 
   logBotMessage(line) {
     this._botLog = this._botLog ?? [];
