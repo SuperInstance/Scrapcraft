@@ -48,6 +48,7 @@ export class MakerRuntime {
 
     this.elapsedMs    = 0;
     this.stepsPerSec  = 0;
+    this.budgetPct    = 0;
     this._prevSteps   = 0;
   }
 
@@ -60,6 +61,9 @@ export class MakerRuntime {
     this.elapsedMs   += dt * 1000;
     const delta       = this.vm.steps - this._prevSteps;
     this._prevSteps   = this.vm.steps;
+    // budgetPct: fraction of per-frame step budget consumed (0=idle, 100=maxed out every frame)
+    this.budgetPct    = Math.round(Math.min(100, delta / 4096 * 100));
+    // keep stepsPerSec for backwards compat (raw throughput, informational)
     this.stepsPerSec  = dt > 0 ? Math.round(delta / dt) : this.stepsPerSec;
   }
 
@@ -72,9 +76,10 @@ export class MakerRuntime {
     this.ok = result.ok;
     this.sourceMap = result.sourceMap ?? [];
     this.vm = new TileVM(result.bytecode, this.robot, this.world);
-    this.elapsedMs = 0;
+    this.elapsedMs   = 0;
     this.stepsPerSec = 0;
-    this._prevSteps = 0;
+    this.budgetPct   = 0;
+    this._prevSteps  = 0;
   }
 
   drainEvents() { return this.robot.drainEvents(); }
