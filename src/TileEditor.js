@@ -909,16 +909,20 @@ export class TileEditor {
 
     // Read all sensors that exist on the world adapter
     const dist = world.distanceAhead?.(robot.x, robot.z, robot.heading) ?? null;
-    const readings = [
+    const coreSensors = [
       { key: 'distance',   val: dist, kind: 'analog' },
       { key: 'brightness', val: world.lightAt?.(robot.x, robot.z) ?? null, kind: 'analog' },
       { key: 'bumped',     val: dist !== null ? dist < 0.08 : null, kind: 'digital' },
       { key: 'player',     val: (world.playerDistance?.(robot.x, robot.z) ?? 999) < 4, kind: 'digital' },
       { key: 'line',       val: world.lineUnder?.(robot.x, robot.z) ?? null, kind: 'digital' },
       { key: 'temp',       val: world.temperatureAt?.(robot.x, robot.z) ?? null, kind: 'analog' },
-      { key: 'beacon',     val: world.beaconSignal?.(robot.x, robot.z) ?? null, kind: 'analog' },
-      { key: 'weather',    val: world.weatherIntensity?.() ?? null, kind: 'analog' },
-    ].filter(r => r.val !== null && r.val !== undefined && r.val !== 0);
+    ].filter(r => r.val !== null && r.val !== undefined);
+    // Context sensors only shown when active (non-zero means something interesting)
+    const contextSensors = [
+      { key: 'beacon',  val: world.beaconSignal?.(robot.x, robot.z) ?? null, kind: 'analog' },
+      { key: 'weather', val: world.weatherIntensity?.() ?? null, kind: 'analog' },
+    ].filter(r => r.val !== null && r.val !== undefined && r.val > 0);
+    const readings = [...coreSensors, ...contextSensors];
 
     // Heading compass (N/NE/E/SE/S/SW/W/NW)
     const hdgDeg = ((robot.heading ?? 0) * 180 / Math.PI + 360) % 360;
@@ -952,23 +956,23 @@ export class TileEditor {
     const timeStr = mins > 0 ? `${mins}m ${secs % 60}s` : `${secs}s`;
 
     const steps   = vm.steps;
-    const rate    = rt.stepsPerSec ?? 0;
+    const budget  = rt.budgetPct ?? 0;
     const sensors = vm.sensorReads ?? 0;
     const motors  = vm.motorActs   ?? 0;
 
-    // Efficiency grade based on steps-per-second (higher = more work per frame)
+    // Efficiency grade: lower budget use = leaner program = better grade
     let grade = 'A'; let gradeColor = '#00ff88';
-    if      (rate > 1000) { grade = 'A+'; gradeColor = '#00ffaa'; }
-    else if (rate > 500)  { grade = 'A';  gradeColor = '#00ff88'; }
-    else if (rate > 100)  { grade = 'B';  gradeColor = '#88cc44'; }
-    else if (rate > 20)   { grade = 'C';  gradeColor = '#f0b429'; }
+    if      (budget < 5)  { grade = 'A+'; gradeColor = '#00ffaa'; }
+    else if (budget < 20) { grade = 'A';  gradeColor = '#00ff88'; }
+    else if (budget < 50) { grade = 'B';  gradeColor = '#88cc44'; }
+    else if (budget < 80) { grade = 'C';  gradeColor = '#f0b429'; }
     else                  { grade = 'D';  gradeColor = '#f44336'; }
 
     this._statsEl.style.display = 'flex';
     this._statsEl.innerHTML =
       `<div class="te-stat-item"><span class="te-stat-lbl">RUNTIME</span><span class="te-stat-val">${timeStr}</span></div>`
     + `<div class="te-stat-item"><span class="te-stat-lbl">STEPS</span><span class="te-stat-val">${steps.toLocaleString()}</span></div>`
-    + `<div class="te-stat-item"><span class="te-stat-lbl">RATE</span><span class="te-stat-val">${rate.toLocaleString()}/s</span></div>`
+    + `<div class="te-stat-item"><span class="te-stat-lbl">BUDGET</span><span class="te-stat-val">${budget}%</span></div>`
     + `<div class="te-stat-item"><span class="te-stat-lbl">SENSORS</span><span class="te-stat-val">${sensors.toLocaleString()}</span></div>`
     + `<div class="te-stat-item"><span class="te-stat-lbl">MOTORS</span><span class="te-stat-val">${motors.toLocaleString()}</span></div>`
     + `<div class="te-stat-item"><span class="te-stat-lbl">EFFICIENCY</span><span class="te-stat-val" style="color:${gradeColor}">${grade}</span></div>`;

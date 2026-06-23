@@ -1123,15 +1123,17 @@ export class UI {
     const isOpen = panel.classList.toggle('open');
     if (!isOpen) return;
     this._renderCodex(codex, 'all');
-    // Filter buttons
-    panel.querySelectorAll('.cx-filter-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        panel.querySelectorAll('.cx-filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this._renderCodex(codex, btn.dataset.cat);
+    if (!panel.dataset.listenersAttached) {
+      panel.dataset.listenersAttached = '1';
+      panel.querySelectorAll('.cx-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          panel.querySelectorAll('.cx-filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          this._renderCodex(codex, btn.dataset.cat);
+        });
       });
-    });
-    panel.querySelector('#codex-close').onclick = () => panel.classList.remove('open');
+      panel.querySelector('#codex-close').onclick = () => panel.classList.remove('open');
+    }
   }
 
   _renderCodex(codex, cat = 'all') {
