@@ -997,6 +997,7 @@ export class TileEditor {
       { key: 'weather', val: world.weatherIntensity?.() ?? null, kind: 'analog' },
     ].filter(r => r.val !== null && r.val !== undefined && r.val > 0);
     const readings = [...coreSensors, ...contextSensors];
+    this._lastSensors = readings;
 
     // Heading compass (N/NE/E/SE/S/SW/W/NW)
     const hdgDeg = ((robot.heading ?? 0) * 180 / Math.PI + 360) % 360;
@@ -1041,6 +1042,7 @@ export class TileEditor {
     else if (budget < 50) { grade = 'B';  gradeColor = '#88cc44'; }
     else if (budget < 80) { grade = 'C';  gradeColor = '#f0b429'; }
     else                  { grade = 'D';  gradeColor = '#f44336'; }
+    this._lastGrade = grade;
 
     this._statsEl.style.display = 'flex';
     this._statsEl.innerHTML =
@@ -1104,5 +1106,9 @@ export class TileEditor {
     if (this._rafId) { cancelAnimationFrame(this._rafId); this._rafId = null; }
   }
 
-  get isOpen() { return this._open; }
+  get isOpen()      { return this._open; }
+  get isRunning()   { return !!this._runtime?.running; }
+  get lastSensors() { return this._lastSensors ?? []; }
+  get lastGrade()   { return this._lastGrade ?? null; }
+  get lastBudgetPct() { return this._runtime?.budgetPct ?? 0; }
 }

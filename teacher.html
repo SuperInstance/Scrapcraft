@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scrapcraft — Teacher Dashboard</title>
+<style>
+  :root {
+    --green: #44ee88;
+    --green-dim: #226622;
+    --green-dark: #0a1a0a;
+    --bg: #040c04;
+    --card: #061006;
+    --border: #1a3a1a;
+    --text: #88ffaa;
+    --text-dim: #447744;
+    --red: #f44336;
+    --gold: #f0b429;
+    --mono: 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-logo { font-size: 22px; }
+  .header-title { font-size: 14px; color: var(--green); letter-spacing: 3px; font-weight: bold; }
+  .header-sub { font-size: 9px; color: var(--text-dim); letter-spacing: 1px; margin-top: 1px; }
+  .header-status {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-align: right;
+  }
+  .status-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .status-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  /* ── Login form ── */
+  .login-wrap {
+    max-width: 460px;
+    margin: 60px auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+  }
+  .login-title { font-size: 12px; color: var(--green); letter-spacing: 2px; margin-bottom: 18px; }
+  .field-label { font-size: 9px; color: var(--text-dim); letter-spacing: 2px; margin-bottom: 4px; display: block; }
+  .field-input {
+    width: 100%; background: #020802; border: 1px solid var(--border);
+    border-radius: 5px; padding: 9px 12px; color: var(--text);
+    font-family: var(--mono); font-size: 13px; outline: none;
+    transition: border-color 0.15s; margin-bottom: 12px;
+  }
+  .field-input:focus { border-color: #44aa44; }
+  .btn {
+    display: inline-block; padding: 9px 20px; border-radius: 5px;
+    cursor: pointer; font-family: var(--mono); font-size: 11px;
+    letter-spacing: 1px; transition: filter 0.15s; border: none;
+  }
+  .btn:hover { filter: brightness(1.2); }
+  .btn-primary { background: #0c2c0c; border: 1px solid #44aa44; color: var(--green); }
+  .btn-danger  { background: #1a0000; border: 1px solid #622; color: #f66; }
+  .btn-dim     { background: none; border: 1px solid var(--border); color: var(--text-dim); }
+  .err-msg { color: #f66; font-size: 10px; margin-top: 6px; }
+
+  /* ── Main layout ── */
+  .main { padding: 16px 20px; max-width: 1100px; margin: 0 auto; }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 16px; min-width: 120px;
+    flex: 1;
+  }
+  .stat-label { font-size: 8px; color: var(--text-dim); letter-spacing: 2px; }
+  .stat-val   { font-size: 22px; color: var(--green); font-weight: bold; margin-top: 2px; }
+
+  /* ── Challenge panel ── */
+  .challenge-panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; margin-bottom: 16px;
+  }
+  .panel-title { font-size: 10px; color: var(--green); letter-spacing: 2px; margin-bottom: 12px; }
+  .challenge-row {
+    display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;
+  }
+  .challenge-select {
+    flex: 1; background: #020802; border: 1px solid var(--border);
+    border-radius: 5px; padding: 8px 12px; color: var(--text);
+    font-family: var(--mono); font-size: 12px; outline: none; min-width: 200px;
+  }
+  .active-challenge {
+    background: #051505; border: 1px solid var(--green-dim);
+    border-radius: 7px; padding: 10px 14px; margin-top: 10px;
+    font-size: 11px; display: flex; align-items: center; gap: 10px;
+  }
+  .challenge-badge {
+    background: #0c2c0c; border: 1px solid #44aa44;
+    color: var(--green); border-radius: 4px; padding: 2px 8px;
+    font-size: 9px; letter-spacing: 1px;
+  }
+  .no-challenge { color: var(--text-dim); font-size: 11px; font-style: italic; }
+
+  /* ── Roster grid ── */
+  .roster-panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+  }
+  .roster-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+  }
+  .roster-count { font-size: 10px; color: var(--text-dim); margin-left: auto; }
+  table {
+    width: 100%; border-collapse: collapse; font-size: 11px;
+  }
+  th {
+    text-align: left; font-size: 8px; letter-spacing: 2px;
+    color: var(--text-dim); padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: 8px 10px; border-bottom: 1px solid #111a11; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #071207; }
+  .student-name { color: var(--text); }
+  .last-seen { color: var(--text-dim); font-size: 10px; }
+  .save-badge {
+    font-size: 9px; padding: 1px 6px; border-radius: 3px;
+    background: #051505; border: 1px solid var(--green-dim); color: #44aa44;
+  }
+  .no-save { color: var(--text-dim); font-size: 10px; }
+  .grade-badge {
+    font-size: 12px; font-weight: bold; padding: 2px 8px;
+    border-radius: 4px; border: 1px solid;
+  }
+  .grade-Aplus { color: #00ffaa; border-color: #00ffaa; background: #001a10; }
+  .grade-A     { color: #00ff88; border-color: #00ff88; background: #001a10; }
+  .grade-B     { color: #88cc44; border-color: #88cc44; background: #111a00; }
+  .grade-C     { color: #f0b429; border-color: #f0b429; background: #1a1000; }
+  .grade-D     { color: #f44336; border-color: #622;    background: #1a0000; }
+  .pending-grade { color: var(--text-dim); font-size: 10px; }
+  .empty-row td { color: var(--text-dim); text-align: center; padding: 24px; font-size: 11px; }
+
+  /* ── Refresh indicator ── */
+  .refresh-bar {
+    height: 2px; background: var(--border); border-radius: 1px;
+    margin-top: 12px; overflow: hidden;
+  }
+  .refresh-fill {
+    height: 100%; background: var(--green-dim);
+    transition: width 0.5s linear;
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--card); border: 1px solid var(--green-dim);
+    border-radius: 6px; padding: 8px 16px; font-size: 11px;
+    color: var(--text); z-index: 999; opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">🔧</div>
+  <div>
+    <div class="header-title">SCRAPCRAFT — TEACHER DASHBOARD</div>
+    <div class="header-sub" id="class-info">Not connected</div>
+  </div>
+  <div class="header-status">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">—</span>
+  </div>
+</div>
+
+<div id="login-section" class="login-wrap">
+  <div class="login-title">CONNECT TO YOUR CLASS</div>
+
+  <label class="field-label">WORKER URL</label>
+  <input class="field-input" id="in-url" placeholder="https://your-worker.workers.dev" spellcheck="false">
+
+  <label class="field-label">CLASS CODE</label>
+  <input class="field-input" id="in-code" maxlength="6" placeholder="ABC123" spellcheck="false"
+         style="letter-spacing:4px;font-size:18px;text-align:center">
+
+  <label class="field-label">TEACHER KEY</label>
+  <input class="field-input" id="in-key" placeholder="UUID from class creation" spellcheck="false">
+
+  <button class="btn btn-primary" id="btn-connect" style="width:100%">CONNECT →</button>
+  <div class="err-msg" id="login-err" style="display:none"></div>
+</div>
+
+<div id="dashboard" style="display:none">
+  <div class="main">
+
+    <div class="stats-bar" id="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">STUDENTS</div>
+        <div class="stat-val" id="stat-students">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">SAVED PROGRESS</div>
+        <div class="stat-val" id="stat-saves">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">CHALLENGE COMPLETIONS</div>
+        <div class="stat-val" id="stat-completions">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">TOP GRADE</div>
+        <div class="stat-val" id="stat-top-grade" style="font-size:18px">—</div>
+      </div>
+    </div>
+
+    <div class="challenge-panel">
+      <div class="panel-title">⚡ ACTIVE CHALLENGE</div>
+      <div id="active-challenge-display">
+        <div class="no-challenge">No challenge assigned. Select one below.</div>
+      </div>
+      <div class="challenge-row" style="margin-top:12px">
+        <select class="challenge-select" id="challenge-select">
+          <option value="">— Select a challenge to assign —</option>
+          <option value="wall_avoider_30">🤖 Wall Avoider — Survive 30 seconds without bumping</option>
+          <option value="wall_avoider_60">🤖 Wall Avoider — Survive 60 seconds without bumping</option>
+          <option value="wall_avoider_120">🤖 Speed Run — Survive 2 minutes without bumping</option>
+        </select>
+        <button class="btn btn-primary" id="btn-assign">Assign →</button>
+        <button class="btn btn-danger"  id="btn-end-challenge" style="display:none">End Challenge</button>
+      </div>
+    </div>
+
+    <div class="roster-panel">
+      <div class="roster-header">
+        <div class="panel-title" style="margin-bottom:0">📋 CLASS ROSTER</div>
+        <div class="roster-count" id="roster-count"></div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>NAME</th>
+            <th>LAST ACTIVE</th>
+            <th>PROGRESS SAVED</th>
+            <th>CHALLENGE GRADE</th>
+            <th>COMPLETED AT</th>
+          </tr>
+        </thead>
+        <tbody id="roster-body">
+          <tr class="empty-row"><td colspan="5">Connecting…</td></tr>
+        </tbody>
+      </table>
+      <div class="refresh-bar"><div class="refresh-fill" id="refresh-fill" style="width:0%"></div></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div style="text-align:center;padding:24px 0;font-size:9px;color:#1a4a1a;font-family:'Courier New',monospace">
+  <a href="STANDARDS.md" target="_blank" style="color:#226622;text-decoration:none">CSTA / NGSS Standards Alignment ↗</a>
+  &nbsp;·&nbsp;
+  <span>Scrapcraft Teacher Dashboard</span>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+
+const REFRESH_SEC = 15;
+let workerUrl = '';
+let classCode = '';
+let teacherKey = '';
+let refreshTimer = 0;
+let refreshIntervalId = null;
+let currentChallenge = null;
+
+const CHALLENGE_DEFS = {
+  wall_avoider_30: {
+    title: 'Wall Avoider (30s)',
+    description: 'Keep your robot running for 30 seconds without hitting a wall!',
+    criteria: { type: 'wall_avoider', durationSec: 30 },
+  },
+  wall_avoider_60: {
+    title: 'Wall Avoider (60s)',
+    description: 'Keep your robot running for 60 seconds without hitting a wall!',
+    criteria: { type: 'wall_avoider', durationSec: 60 },
+  },
+  wall_avoider_120: {
+    title: 'Speed Run (2 min)',
+    description: 'Run your robot for 2 full minutes without any bumps. Efficiency matters!',
+    criteria: { type: 'wall_avoider', durationSec: 120 },
+  },
+};
+
+// ── Init — read URL params ────────────────────────────────────────────────────
+
+const params = new URLSearchParams(location.search);
+const pUrl  = params.get('url');
+const pCode = params.get('code');
+const pKey  = params.get('key');
+
+if (pUrl)  document.getElementById('in-url').value  = pUrl;
+if (pCode) document.getElementById('in-code').value = pCode?.toUpperCase();
+if (pKey)  document.getElementById('in-key').value  = pKey;
+
+// Also try localStorage
+try {
+  const cfg = JSON.parse(localStorage.getItem('scrapcraft_onboarding_config') ?? '{}');
+  if (cfg.cfWorkerUrl && !pUrl) document.getElementById('in-url').value = cfg.cfWorkerUrl;
+  const teacher = JSON.parse(localStorage.getItem('scrapcraft_class_teacher') ?? '{}');
+  if (teacher.classCode  && !pCode) document.getElementById('in-code').value = teacher.classCode;
+  if (teacher.teacherKey && !pKey)  document.getElementById('in-key').value  = teacher.teacherKey;
+} catch {}
+
+// Auto-connect if all fields pre-filled
+if ((pUrl || document.getElementById('in-url').value) &&
+    (pCode || document.getElementById('in-code').value) &&
+    (pKey  || document.getElementById('in-key').value)) {
+  setTimeout(connect, 100);
+}
+
+// ── Login ─────────────────────────────────────────────────────────────────────
+
+document.getElementById('btn-connect').addEventListener('click', connect);
+document.getElementById('in-code').addEventListener('input', e => {
+  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+});
+
+async function connect() {
+  workerUrl  = document.getElementById('in-url').value.trim().replace(/\/$/, '');
+  classCode  = document.getElementById('in-code').value.trim().toUpperCase();
+  teacherKey = document.getElementById('in-key').value.trim();
+
+  if (!workerUrl || !classCode || !teacherKey) {
+    showErr('All fields are required.');
+    return;
+  }
+
+  setStatus(false, 'Connecting…');
+  const errEl = document.getElementById('login-err');
+  errEl.style.display = 'none';
+
+  try {
+    const r = await apiFetch(`/api/v1/class/${classCode}/roster`);
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      showErr(e.error ?? `Error ${r.status}`);
+      return;
+    }
+    const data = await r.json();
+    document.getElementById('login-section').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('class-info').textContent = `Class ${classCode}  ·  ${data.students.length} students`;
+    setStatus(true, 'Live');
+    renderRoster(data);
+    startPolling();
+  } catch (e) {
+    showErr('Could not reach worker: ' + e.message);
+    setStatus(false, 'Offline');
+  }
+}
+
+function showErr(msg) {
+  const el = document.getElementById('login-err');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setStatus(false, 'Error');
+}
+
+// ── Polling ───────────────────────────────────────────────────────────────────
+
+function startPolling() {
+  refresh();
+  refreshIntervalId = setInterval(() => {
+    refreshTimer += 1;
+    const pct = (refreshTimer / REFRESH_SEC) * 100;
+    document.getElementById('refresh-fill').style.width = pct + '%';
+    if (refreshTimer >= REFRESH_SEC) {
+      refreshTimer = 0;
+      refresh();
+    }
+  }, 1000);
+}
+
+async function refresh() {
+  document.getElementById('refresh-fill').style.width = '0%';
+  refreshTimer = 0;
+  try {
+    const r = await apiFetch(`/api/v1/class/${classCode}/roster`);
+    if (!r.ok) { setStatus(false, 'Sync error'); return; }
+    const data = await r.json();
+    renderRoster(data);
+    setStatus(true, 'Live · ' + new Date().toLocaleTimeString());
+  } catch { setStatus(false, 'Offline'); }
+}
+
+// ── Render roster ─────────────────────────────────────────────────────────────
+
+function renderRoster(data) {
+  const students = data.students ?? [];
+  currentChallenge = data.challenge ?? null;
+
+  // Stats
+  const saves = students.filter(s => s.has_save).length;
+  const completions = students.filter(s => s.grade).length;
+  const grades = students.filter(s => s.grade).map(s => s.grade);
+  const topGrade = grades.length
+    ? grades.sort((a, b) => gradeValue(a) - gradeValue(b))[0]
+    : '—';
+
+  document.getElementById('stat-students').textContent    = students.length;
+  document.getElementById('stat-saves').textContent       = saves;
+  document.getElementById('stat-completions').textContent = completions;
+  const tg = document.getElementById('stat-top-grade');
+  tg.textContent = topGrade;
+  tg.style.color = topGrade !== '—' ? gradeColor(topGrade) : '';
+
+  // Challenge display
+  renderChallengePanel();
+
+  // Count
+  document.getElementById('roster-count').textContent = `${students.length} student${students.length !== 1 ? 's' : ''}`;
+
+  // Table
+  const tbody = document.getElementById('roster-body');
+  if (!students.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No students have joined yet. Share code <strong>' + classCode + '</strong> to get started.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = students.map(s => {
+    const lastSeen = s.last_seen ? relTime(s.last_seen) : '—';
+    const saveBadge = s.has_save
+      ? '<span class="save-badge">☁ SAVED</span>'
+      : '<span class="no-save">—</span>';
+    let gradeBadge = '<span class="pending-grade">waiting…</span>';
+    let completedAt = '—';
+    if (s.grade) {
+      const cls = 'grade-' + s.grade.replace('+', 'plus');
+      gradeBadge = `<span class="grade-badge ${cls}">${s.grade}</span>`;
+      if (s.budget_pct != null) gradeBadge += ` <span style="color:#447;font-size:9px">${s.budget_pct}% budget</span>`;
+      if (s.completed_at) completedAt = relTime(s.completed_at);
+    } else if (!currentChallenge) {
+      gradeBadge = '<span class="pending-grade" style="color:#333">no challenge</span>';
+    }
+    return `<tr>
+      <td class="student-name">${esc(s.display_name)}</td>
+      <td class="last-seen">${lastSeen}</td>
+      <td>${saveBadge}</td>
+      <td>${gradeBadge}</td>
+      <td class="last-seen">${completedAt}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderChallengePanel() {
+  const disp = document.getElementById('active-challenge-display');
+  const endBtn = document.getElementById('btn-end-challenge');
+  if (currentChallenge) {
+    disp.innerHTML = `
+      <div class="active-challenge">
+        <span class="challenge-badge">ACTIVE</span>
+        <span style="color:var(--text)">${esc(currentChallenge.title)}</span>
+        ${currentChallenge.description ? `<span style="color:var(--text-dim);font-size:10px"> — ${esc(currentChallenge.description)}</span>` : ''}
+      </div>`;
+    endBtn.style.display = '';
+  } else {
+    disp.innerHTML = '<div class="no-challenge">No challenge assigned. Select one below.</div>';
+    endBtn.style.display = 'none';
+  }
+}
+
+// ── Challenge assign / end ───────────────────────────────────────────────────
+
+document.getElementById('btn-assign').addEventListener('click', async () => {
+  const sel = document.getElementById('challenge-select').value;
+  if (!sel) { toast('Select a challenge first.'); return; }
+  const def = CHALLENGE_DEFS[sel];
+  if (!def) return;
+  try {
+    const r = await apiFetch(`/api/v1/class/${classCode}/challenge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(def),
+    });
+    if (!r.ok) { const e = await r.json(); toast('Error: ' + e.error); return; }
+    toast('Challenge assigned! Students will see it within 60 seconds.');
+    refresh();
+  } catch (e) { toast('Network error: ' + e.message); }
+});
+
+document.getElementById('btn-end-challenge').addEventListener('click', async () => {
+  if (!confirm('End the active challenge?')) return;
+  try {
+    const r = await apiFetch(`/api/v1/class/${classCode}/challenge`, { method: 'DELETE' });
+    if (!r.ok) { const e = await r.json(); toast('Error: ' + e.error); return; }
+    toast('Challenge ended.');
+    refresh();
+  } catch (e) { toast('Network error: ' + e.message); }
+});
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function apiFetch(path, opts = {}) {
+  const url = workerUrl + path + (path.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(teacherKey);
+  return fetch(url, opts);
+}
+
+function setStatus(live, text) {
+  document.getElementById('status-dot').className = 'status-dot' + (live ? ' live' : '');
+  document.getElementById('status-text').textContent = text;
+}
+
+function relTime(isoStr) {
+  try {
+    // D1 returns UTC datetime without timezone suffix
+    const dt = new Date(isoStr.includes('Z') || isoStr.includes('+') ? isoStr : isoStr + 'Z');
+    const sec = Math.round((Date.now() - dt.getTime()) / 1000);
+    if (sec < 60)    return `${sec}s ago`;
+    if (sec < 3600)  return `${Math.floor(sec / 60)}m ago`;
+    if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
+    return dt.toLocaleDateString();
+  } catch { return isoStr; }
+}
+
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+const GRADE_ORDER = ['A+', 'A', 'B', 'C', 'D'];
+function gradeValue(g) { return GRADE_ORDER.indexOf(g); }
+function gradeColor(g) {
+  const c = { 'A+': '#00ffaa', A: '#00ff88', B: '#88cc44', C: '#f0b429', D: '#f44336' };
+  return c[g] ?? '#88ffaa';
+}
+
+let toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

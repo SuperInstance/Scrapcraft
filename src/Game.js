@@ -26,6 +26,7 @@ import { OnboardingWizard } from './onboarding/OnboardingWizard.js';
 import { RaceBoard, NPC_GHOSTS, BEAT_QUIPS } from './RaceBoard.js';
 import { Codex } from './Codex.js';
 import { ClassRoom } from './ClassRoom.js';
+import { ChallengeSystem } from './ChallengeSystem.js';
 
 export class Game {
   constructor(canvas) {
@@ -125,7 +126,8 @@ export class Game {
     this.exchange     = new ScrapExchange();
     this.raceBoard    = new RaceBoard();
     this.codex        = new Codex();
-    this.classRoom    = new ClassRoom(this.saveSystem, this.ui);
+    this.classRoom        = new ClassRoom(this.saveSystem, this.ui);
+    this.challengeSystem  = new ChallengeSystem(this);
     this._exchangeNearNotified = false;
     this._raceBoardNearNotified = false;
 
@@ -1420,6 +1422,7 @@ export class Game {
     this.audio.tick(dt, this.player, this.world);
     this.saveSystem.tick(dt);
     this.challenge.tick(dt);
+    this.challengeSystem.tick(dt);
 
     const locked = !!document.pointerLockElement;
 
