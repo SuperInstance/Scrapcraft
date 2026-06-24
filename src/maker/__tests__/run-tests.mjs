@@ -331,7 +331,35 @@ console.log('\nVariables');
   ok('reset() clears vars', Object.keys(vmReset.vars).length === 0);
 }
 
-// ── 12. Achievement stats for variables ─────────────────────────────────────
+// ── 12. Variable initialization warnings ────────────────────────────────────
+console.log('\nVariable init warnings');
+{
+  // change_var with no matching set_var → warning
+  const progNoInit = new TileProgram({ nodes: [
+    T.changeVar('score', 1),
+  ]});
+  const r1 = compile(progNoInit);
+  ok('warns on change_var with no set_var', r1.warnings.some(w => w.includes('"score"')));
+  ok('program still compiles ok (warning, not error)', r1.ok);
+
+  // var: condition with no set_var → warning
+  const progCondNoInit = new TileProgram({ nodes: [
+    T.if(T.varCond('hp', 'lt', 0), [ T.action('stop') ]),
+  ]});
+  const r2 = compile(progCondNoInit);
+  ok('warns on var: condition with no set_var', r2.warnings.some(w => w.includes('"hp"')));
+
+  // set_var + change_var → no warning
+  const progOk = new TileProgram({ nodes: [
+    T.setVar('score', 0),
+    T.changeVar('score', 1),
+  ]});
+  const r3 = compile(progOk);
+  ok('no warning when change_var has matching set_var',
+     !r3.warnings.some(w => w.includes('"score"')));
+}
+
+// ── 13. Achievement stats for variables ─────────────────────────────────────
 console.log('\nAchievement — variable tracking');
 {
   // Import dynamically so Node resolves the path without a browser DOM
