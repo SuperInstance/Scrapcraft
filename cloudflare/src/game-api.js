@@ -183,6 +183,11 @@ export default async function handleGameApi(request, env, ctx) {
     if (request.method === 'GET'    && sub === 'leaderboard')  return handleClassLeaderboard(code, db);
     if (request.method === 'GET'    && sub === 'export.csv')   return handleClassExportCsv(code, url, db);
   }
+  // Teacher view of a single student's saved brain
+  const brainMatch = url.pathname.match(/^\/api\/v1\/class\/([A-Z0-9]+)\/student\/([^/]+)\/brain$/);
+  if (request.method === 'GET' && brainMatch) {
+    return handleStudentBrain(brainMatch[1], brainMatch[2], url, db);
+  }
 
   // Student submits challenge completion (session auth)
   if (session && request.method === 'POST' && url.pathname === '/api/v1/challenge/complete') {
@@ -684,6 +689,28 @@ async function handleClassLeaderboard(classCode, db) {
       challengeTitle: challenge.title,
       totalStudents: totalStudents?.n ?? 0,
     });
+  } catch (err) { return json({ error: err.message }, 500); }
+}
+
+async function handleStudentBrain(classCode, sessionId, url, db) {
+  try {
+    const key = url.searchParams.get('key');
+    const cls = await db.prepare('SELECT teacher_key FROM classes WHERE code=?').bind(classCode).first();
+    if (!cls) return json({ error: 'Class not found' }, 404);
+    if (cls.teacher_key && cls.teacher_key !== key) return json({ error: 'Invalid teacher key' }, 403);
+
+    // Verify the session belongs to this class
+    const sess = await db.prepare('SELECT display_name FROM sessions WHERE id=? AND class_code=?')
+      .bind(sessionId, classCode).first();
+    if (!sess) return json({ error: 'Student not found in this class' }, 404);
+
+    const save = await db.prepare('SELECT data FROM session_saves WHERE session_id=?')
+      .bind(sessionId).first();
+    if (!save) return json({ brain: null, displayName: sess.display_name });
+
+    const saveData = JSON.parse(save.data);
+    const brain = saveData.tileEditor ?? null;
+    return json({ brain, displayName: sess.display_name });
   } catch (err) { return json({ error: err.message }, 500); }
 }
 
