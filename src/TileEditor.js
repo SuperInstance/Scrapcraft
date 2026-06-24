@@ -688,6 +688,13 @@ export class TileEditor {
     return [...names];
   }
 
+  /** True if any condition in the program reads a variable via var: prefix. */
+  _hasVarCond() {
+    let found = false;
+    this._program.walk(n => { if (n.cond?.sensor?.startsWith('var:')) found = true; });
+    return found;
+  }
+
   // ── Drag / drop ───────────────────────────────────────────────────────────
 
   _handleDrop(list, idx) {
@@ -1002,6 +1009,14 @@ export class TileEditor {
     bot.setBrain(this._program, this._game.world, this._game.player, this._game.dayNight);
     this._game.audio?.brainLoad();
     this._game.achievements?.track('program_run', {});
+    // Variable achievement tracking
+    const varNames = this._collectVarNames();
+    if (varNames.length > 0) {
+      this._game.achievements?.track('var_program_run', {
+        varCount: varNames.length,
+        hasCond:  this._hasVarCond(),
+      });
+    }
     // Notify challenge system about which sensors are in use
     const sensorIds = bot._extractSensorIds?.(this._program?.nodes ?? []) ?? new Set();
     this._game.challenge?.onBrainLoaded(sensorIds);
@@ -1016,6 +1031,12 @@ export class TileEditor {
   }
 
   _stop() {
+    // Read variable peak before clearBrain wipes the runtime
+    const rt = this._activeBot()?.makerRuntime;
+    const vars = rt?.vm?.vars ?? {};
+    const peak = Object.values(vars).reduce((m, v) => Math.max(m, Number(v) || 0), 0);
+    if (peak > 0) this._game.achievements?.track('var_peak_value', { value: peak });
+
     this._activeBot()?.clearBrain();
     this._game.audio?.brainStop();
     this._running = false;

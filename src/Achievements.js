@@ -498,6 +498,36 @@ export const ACHIEVEMENT_LIST = [
     desc: 'Discover every item in the Field Guide. The yard has no more secrets. Earl has one. He won\'t say.',
     check: (s) => (s.codexCount ?? 0) >= 40,
   },
+
+  // ── Variables milestones ──
+  {
+    id: 'variable_star',
+    icon: '📊',
+    name: 'Variable Star',
+    desc: "Run a tile program that uses variables. Your bot now has memory. Earl finds this unsettling.",
+    check: (s) => (s.varProgramsRun ?? 0) >= 1,
+  },
+  {
+    id: 'bookkeeper',
+    icon: '📒',
+    name: 'Bookkeeper',
+    desc: 'Run a program tracking 3 or more different variables at once. You basically invented state management.',
+    check: (s) => (s.maxVarsUsed ?? 0) >= 3,
+  },
+  {
+    id: 'var_conditioner',
+    icon: '🔢',
+    name: 'Data-Driven',
+    desc: "Use a variable in an IF condition. That's not guessing — that's logic. Earl is taking notes.",
+    check: (s) => (s.varCondPrograms ?? 0) >= 1,
+  },
+  {
+    id: 'tally_champion',
+    icon: '🏅',
+    name: 'Tally Champion',
+    desc: 'A variable in your running program reaches 10 or higher. Keep counting — robots live on numbers.',
+    check: (s) => (s.varPeakValue ?? 0) >= 10,
+  },
 ];
 
 export class Achievements {
@@ -544,6 +574,10 @@ export class Achievements {
       botNamed:    0,
       botBondMax:  0,
       codexCount:  0,
+      varProgramsRun: 0,
+      maxVarsUsed:    0,
+      varCondPrograms: 0,
+      varPeakValue:   0,
     };
   }
 
@@ -650,6 +684,14 @@ export class Achievements {
         break;
       case 'codex_discover':
         s.codexCount = Math.max(s.codexCount ?? 0, data.count ?? 0);
+        break;
+      case 'var_program_run':
+        s.varProgramsRun = (s.varProgramsRun ?? 0) + 1;
+        s.maxVarsUsed = Math.max(s.maxVarsUsed ?? 0, data.varCount ?? 0);
+        if (data.hasCond) s.varCondPrograms = (s.varCondPrograms ?? 0) + 1;
+        break;
+      case 'var_peak_value':
+        s.varPeakValue = Math.max(s.varPeakValue ?? 0, data.value ?? 0);
         break;
     }
     this._check();
