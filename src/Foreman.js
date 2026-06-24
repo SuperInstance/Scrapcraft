@@ -318,6 +318,16 @@ const QUIPS = {
     "Good efficiency score. Means your bot isn't burning cycles spinning its wheels. Real embedded devs call that tight code. That's the compliment.",
     "Lean program. Fast loop. Low budget. You're thinking like an embedded engineer now. I've met ECE graduates who couldn't do what you just did.",
   ],
+  first_variable_program: [
+    "You used a variable. Your bot now has memory. It remembers something between loop iterations. That's state. Every real program you've ever used runs on state.",
+    "Variables. Named storage. Right there in your scrapyard robot. That's what separates 'reacts to sensors' from 'actually thinks'. Good call, rookie.",
+    "Count, track, remember — that's what variables do. Congratulations, your bot just crossed the line from automation into actual programming.",
+  ],
+  variable_cond_used: [
+    "You just read a variable inside an IF. That's conditional logic based on accumulated state. Congratulations, you've independently reinvented the core of every scoring system in the history of computing.",
+    "Your bot checked a variable in a condition. It evaluated its own memory. That's the difference between a dumb timer and an intelligent agent. You built the intelligent version.",
+    "Condition reads from a variable. That's runtime decision-making based on program state. That pattern runs in everything from a game scoreboard to a satellite guidance system.",
+  ],
 };
 
 // Quests Earl assigns in sequence
@@ -616,6 +626,8 @@ export class Foreman {
       'class_joined':             'class_joined',
       'class_challenge_assigned': 'class_challenge_assigned',
       'class_challenge_complete': 'class_challenge_complete',
+      'first_variable_program':   'first_variable_program',
+      'variable_cond_used':       'variable_cond_used',
     };
     const key = map[event];
     if (key) this.say(key);

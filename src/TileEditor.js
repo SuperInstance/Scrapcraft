@@ -175,6 +175,8 @@ export class TileEditor {
 
     // One-shot callback: fires the first time _run() succeeds (tutorial step 4 hook)
     this.onFirstRun = null;
+    this._earlSaidVar = false;
+    this._earlSaidVarCond = false;
 
     this._buildDOM();
   }
@@ -1128,6 +1130,15 @@ export class TileEditor {
       });
       this._game.challenge?.onVariableProgram?.(varNames.length, hasCond);
       this._game.xpSystem?.trackVariables(varNames);
+      // Earl one-shot reactions
+      if (!this._earlSaidVar) {
+        this._earlSaidVar = true;
+        this._game.foreman?.onEvent('first_variable_program', {});
+      }
+      if (hasCond && !this._earlSaidVarCond) {
+        this._earlSaidVarCond = true;
+        setTimeout(() => this._game.foreman?.onEvent('variable_cond_used', {}), 3000);
+      }
     }
     // Notify challenge system about which sensors are in use
     const sensorIds = bot._extractSensorIds?.(this._program?.nodes ?? []) ?? new Set();
