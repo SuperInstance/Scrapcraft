@@ -381,12 +381,62 @@ export const OFFLINE_RECIPES = [
     keywords: ['repeat until', 'while', 'until', 'keep going', 'run until', 'stop when', 'drive until', 'move until'],
     reply:    "Approach-until built! The bot drives toward a wall and stops the moment it gets close — that's a repeat_until loop: 'keep doing this UNTIL that condition is true'. Your first while loop!",
     program:  new TileProgram({ name: 'Approach Until', brain: 'tin', nodes: [
-      { type: 'repeat_until',
-        cond: { sensor: 'distance_ahead', cmp: 'lt', value: 0.25 },
-        body: [ T.action('drive', { dir: 'forward', speed: 0.5 }) ],
-      },
+      T.repeatUntil(T.cond('distance_ahead', 'lt', 0.25), [
+        T.action('drive', { dir: 'forward', speed: 0.5 }),
+      ]),
       T.action('stop'),
       T.action('beep', { pitch: 'mid' }),
+    ]}),
+  },
+  {
+    keywords: ['break', 'exit loop', 'stop loop', 'stop when', 'escape', 'quit loop'],
+    reply:    "Break-on-bump pattern! The bot drives forever but breaks out of the loop the instant it bumps a wall. That's break — your emergency exit from any loop!",
+    program:  new TileProgram({ name: 'Break on Bump', brain: 'tin', nodes: [
+      T.forever([
+        T.action('drive', { dir: 'forward', speed: 0.5 }),
+        T.if(T.cond('distance_ahead', 'lt', 0.1), [ T.break() ]),
+      ]),
+      T.action('stop'),
+      T.action('led', { state: 'red' }),
+      T.action('beep', { pitch: 'low' }),
+      T.wait(1.5),
+    ]}),
+  },
+  {
+    keywords: ['random', 'surprise', 'dice', 'luck', 'chance', 'different', 'unpredictable'],
+    reply:    "Random roamer! Each loop it rolls a virtual dice to pick how long to drive before turning. Every run is different — that's random numbers doing work!",
+    program:  new TileProgram({ name: 'Random Roamer', brain: 'tin', nodes: [
+      T.setVar('t', 0),
+      T.forever([
+        T.randomVar('t', 3, 12),
+        T.action('led', { state: 'blue' }),
+        T.action('drive', { dir: 'forward', speed: 0.6 }),
+        T.repeat(3, [ T.wait(0.1) ]),
+        T.if(T.cond('distance_ahead', 'lt', 0.25), [
+          T.action('turn', { dir: 'right', speed: 0.6 }),
+          T.wait(0.4),
+        ]),
+        T.action('led', { state: 'off' }),
+      ]),
+    ]}),
+  },
+  {
+    keywords: ['function', 'subroutine', 'define', 'reuse', 'repeat pattern', 'same thing', 'refactor'],
+    reply:    "Subroutine demo! There's a 'beepTurn' function that does a little victory dance. The forever loop calls it whenever the bot gets close to a wall. That's the power of functions — write once, use anywhere!",
+    program:  new TileProgram({ name: 'Sub Demo', brain: 'tin', nodes: [
+      T.forever([
+        T.action('drive', { dir: 'forward', speed: 0.5 }),
+        T.if(T.cond('distance_ahead', 'lt', 0.25), [
+          { type: 'call_sub', name: 'beepTurn' },
+        ]),
+      ]),
+      { type: 'define_sub', name: 'beepTurn', body: [
+        T.action('beep', { pitch: 'high' }),
+        T.action('led', { state: 'red' }),
+        T.action('turn', { dir: 'right', speed: 0.6 }),
+        T.wait(0.4),
+        T.action('led', { state: 'off' }),
+      ]},
     ]}),
   },
 ];
