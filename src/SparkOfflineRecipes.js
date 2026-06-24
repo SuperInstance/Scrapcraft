@@ -292,6 +292,91 @@ export const OFFLINE_RECIPES = [
       ]),
     ]}),
   },
+  {
+    keywords: ['count', 'track', 'tally', 'remember', 'times', 'how many', 'bump counter', 'variable'],
+    reply:    "Bump counter built! It drives forward, counts every wall hit, and flashes red when it hits 5. That's variables in action — storing state between loops!",
+    program:  new TileProgram({ name: 'Bump Counter', brain: 'tin', nodes: [
+      T.setVar('bumps', 0),
+      T.forever([
+        T.action('drive', { dir: 'forward', speed: 0.6 }),
+        T.if(T.is('bumped', true), [
+          T.changeVar('bumps', 1),
+          T.action('beep', { pitch: 'high' }),
+          T.action('turn', { dir: 'right', speed: 0.6 }),
+          T.wait(0.4),
+        ]),
+        T.if(T.varCond('bumps', 'gte', 5), [
+          T.action('stop'),
+          T.action('led', { state: 'red' }),
+          T.action('beep', { pitch: 'low' }),
+          T.wait(2),
+          T.setVar('bumps', 0),
+        ]),
+      ]),
+    ]}),
+  },
+  {
+    keywords: ['lap', 'laps', 'circuit', 'circuits', 'round', 'rounds', 'lap counter', 'loop counter'],
+    reply:    "Lap counter! It drives forward and turns right like it's on a track. After 3 laps it does a victory beep — you can change the lap count in the variable blocks!",
+    program:  new TileProgram({ name: 'Lap Counter', brain: 'tin', nodes: [
+      T.setVar('laps', 0),
+      T.forever([
+        T.action('drive', { dir: 'forward', speed: 0.7 }),
+        T.wait(0.8),
+        T.action('turn', { dir: 'right', speed: 0.6 }),
+        T.wait(0.45),
+        T.changeVar('laps', 1),
+        T.action('led', { state: 'blue' }),
+        T.action('beep', { pitch: 'mid' }),
+        T.wait(0.1),
+        T.action('led', { state: 'off' }),
+        T.if(T.varCond('laps', 'gte', 3), [
+          T.action('stop'),
+          T.action('led', { state: 'green' }),
+          T.action('beep', { pitch: 'high' }), T.wait(0.15),
+          T.action('beep', { pitch: 'high' }), T.wait(0.15),
+          T.action('beep', { pitch: 'high' }), T.wait(1.5),
+          T.setVar('laps', 0),
+        ]),
+      ]),
+    ]}),
+  },
+  {
+    keywords: ['collect', 'pickup', 'gather', 'score', 'points', 'item', 'items', 'collection'],
+    reply:    "Scrap collector! It scoops items and counts them. LED blinks blue each pickup, then goes gold at 4. Every scrap yard needs a point system!",
+    program:  new TileProgram({ name: 'Collector Bot', brain: 'spark', nodes: [
+      T.setVar('score', 0),
+      T.forever([
+        T.ifElse(T.cond('item_nearby', 'gt', 0.5),
+          [
+            T.action('drive', { dir: 'forward', speed: 0.4 }),
+            T.if(T.is('item_collected', true), [
+              T.changeVar('score', 1),
+              T.action('led', { state: 'blue' }),
+              T.action('beep', { pitch: 'high' }),
+              T.wait(0.2),
+              T.action('led', { state: 'off' }),
+            ]),
+          ],
+          [
+            T.action('drive', { dir: 'forward', speed: 0.55 }),
+            T.if(T.cond('distance_ahead', 'lt', 0.15), [
+              T.action('drive', { dir: 'backward', speed: 0.4 }), T.wait(0.3),
+              T.action('turn', { dir: 'right', speed: 0.6 }), T.wait(0.3),
+            ]),
+          ],
+        ),
+        T.if(T.varCond('score', 'gte', 4), [
+          T.action('stop'),
+          T.action('led', { state: 'yellow' }),
+          T.action('beep', { pitch: 'high' }), T.wait(0.1),
+          T.action('beep', { pitch: 'mid' }), T.wait(0.1),
+          T.action('beep', { pitch: 'low' }), T.wait(2),
+          T.setVar('score', 0),
+        ]),
+      ]),
+    ]}),
+  },
 ];
 
 /** Returns best-matching recipe or null if no keyword hits. */
