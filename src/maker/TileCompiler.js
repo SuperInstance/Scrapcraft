@@ -34,6 +34,7 @@
  *    WAIT  {seconds}       set wait timer, yield this tick
  *    LOOP  {count,forever,end}  push loop frame; if exhausted at entry → pc = end
  *    NEXT  {head}          loop back-edge; forever loops yield one pass / tick
+ *    UNTIL {condStart}     repeat_until back-edge; jumps to condStart and yields one tick
  *    HALT                  stop the program
  * ───────────────────────────────────────────────────────────────────────────
  */
@@ -80,6 +81,7 @@ function _checkVarInit(nodes, ctx) {
       if (n.cond?.sensor?.startsWith('var:')) used.add(n.cond.sensor.slice(4));
       if (n.body)     walk(n.body);
       if (n.elseBody) walk(n.elseBody);
+      // repeat_until has a cond (already handled above) and a body (already handled)
     }
   };
   walk(nodes);
@@ -105,8 +107,9 @@ function compileNode(node, ctx) {
     case 'wait':    return void ctx.out.push({ op: 'WAIT', seconds: Math.max(0, Number(node.seconds) || 0) });
     case 'if':      return compileIf(node, ctx, false);
     case 'if_else': return compileIf(node, ctx, true);
-    case 'repeat':  return compileLoop(node, ctx, false);
-    case 'forever': return compileLoop(node, ctx, true);
+    case 'repeat':       return compileLoop(node, ctx, false);
+    case 'forever':      return compileLoop(node, ctx, true);
+    case 'repeat_until': return compileUntil(node, ctx);
     case 'macro':      return compileMacro(node, ctx);
     case 'set_var':    return compileSetVar(node, ctx);
     case 'change_var': return compileChangeVar(node, ctx);
@@ -155,6 +158,29 @@ function compileLoop(node, ctx, forever) {
   ctx.out.push({ op: 'NEXT', head });
 
   patch(ctx, loopIdx, ctx.out.length, 'end');               // LOOP.end → after NEXT
+}
+
+function compileUntil(node, ctx) {
+  // Runs the body repeatedly until the condition becomes true.
+  // Each iteration: evaluate condition → if true exit, else run body → yield → repeat.
+  //
+  //   condStart:
+  //     [condition]       pushes 1 (true) or 0 (false)
+  //     NOT               invert: exit when original was 1
+  //     JZ after          if inverted=0 (cond was true): exit
+  //     [body]
+  //     UNTIL condStart   yield one tick, then jump back to condStart
+  //   after:
+
+  const condStart = ctx.out.length;
+  compileCondition(node.cond, ctx);
+  ctx.out.push({ op: 'NOT' });
+  const jzIdx = emitPlaceholder(ctx, 'JZ');                    // exit when cond is true
+
+  for (const child of node.body ?? []) compileNode(child, ctx);
+  ctx.out.push({ op: 'UNTIL', condStart });
+
+  patch(ctx, jzIdx, ctx.out.length);                           // JZ → after UNTIL
 }
 
 /**

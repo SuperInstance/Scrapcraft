@@ -128,6 +128,11 @@ function emitArduino(nodes, L, depth) {
         emitArduino(node.body, L, depth + 1);
         L.push(pad + '}');
         break;
+      case 'repeat_until':
+        L.push(pad + `while (!(${condArduino(node.cond)})) {`);
+        emitArduino(node.body, L, depth + 1);
+        L.push(pad + '}');
+        break;
       case 'macro':
         emitArduino(expandMacro(node) ?? [], L, depth);
         break;
@@ -220,6 +225,10 @@ function emitPython(nodes, L, depth) {
         break;
       case 'forever':
         L.push(pad + 'while True:');
+        emitPython(node.body, L, depth + 1);
+        break;
+      case 'repeat_until':
+        L.push(pad + `while not (${condPython(node.cond)}):`);
         emitPython(node.body, L, depth + 1);
         break;
       case 'macro':

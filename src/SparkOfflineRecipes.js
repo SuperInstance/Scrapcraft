@@ -377,6 +377,18 @@ export const OFFLINE_RECIPES = [
       ]),
     ]}),
   },
+  {
+    keywords: ['repeat until', 'while', 'until', 'keep going', 'run until', 'stop when', 'drive until', 'move until'],
+    reply:    "Approach-until built! The bot drives toward a wall and stops the moment it gets close — that's a repeat_until loop: 'keep doing this UNTIL that condition is true'. Your first while loop!",
+    program:  new TileProgram({ name: 'Approach Until', brain: 'tin', nodes: [
+      { type: 'repeat_until',
+        cond: { sensor: 'distance_ahead', cmp: 'lt', value: 0.25 },
+        body: [ T.action('drive', { dir: 'forward', speed: 0.5 }) ],
+      },
+      T.action('stop'),
+      T.action('beep', { pitch: 'mid' }),
+    ]}),
+  },
 ];
 
 /** Returns best-matching recipe or null if no keyword hits. */
