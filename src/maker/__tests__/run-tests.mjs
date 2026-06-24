@@ -307,6 +307,16 @@ console.log('\nVariables');
   rtCondFalse.tick(0.016);
   ok('var:x > 5 branch skipped when x=2', !rtCondFalse.drainEvents().some(e => e.kind === 'beep'));
 
+  // Arduino codegen handles variable tiles
+  const arduino = toArduino(EXAMPLE_BUMP_COUNTER);
+  ok('Arduino: declares variable as global int', arduino.includes('int bumps = 0;'));
+  ok('Arduino: change_var renders as +=', arduino.includes('bumps += 1;'));
+  ok('Arduino: var: condition renders correctly', arduino.includes('bumps >= 5'));
+
+  const python = toMicroPython(EXAMPLE_BUMP_COUNTER);
+  ok('MicroPython: declares variable before loop', python.includes('bumps = 0'));
+  ok('MicroPython: change_var renders as +=', python.includes('bumps += 1'));
+
   // EXAMPLE_BUMP_COUNTER compiles cleanly
   const resultBump = compile(EXAMPLE_BUMP_COUNTER);
   ok('EXAMPLE_BUMP_COUNTER compiles ok', resultBump.ok, JSON.stringify(resultBump.errors));
