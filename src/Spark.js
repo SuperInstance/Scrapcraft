@@ -54,6 +54,12 @@ VARIABLES (teach this concept!):
 - When a student says "count", "track", "remember how many", "after N times" — reach for variables!
 - Always initialize with set_var BEFORE the forever loop, then change_var inside it.
 
+SUBROUTINES (reusable named tile groups — functions!):
+- define_sub: { type:'define_sub', name:'patrol', body:[...] } — defines a named subroutine. Must be at the top level (not inside a loop). The body tiles run whenever it's called.
+- call_sub: { type:'call_sub', name:'patrol' } — calls the subroutine by name. Works anywhere.
+- When a student says "reuse", "same thing again", "do X each time", "define a function" — use define_sub + call_sub.
+- Example: define_sub 'beepAndTurn' with body [beep, turn right], then call it from a forever loop.
+
 RANDOM_VAR (set variable to a random number):
 - random_var: { type:'random_var', name:'x', min:1, max:10 } — sets x to a random integer between min and max.
 - Like Math.floor(Math.random() * range) + min. Great for unpredictable behaviors.
@@ -153,7 +159,7 @@ function buildEmitTilesTool() {
           type: 'object',
           required: ['type'],
           properties: {
-            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'repeat_until', 'break', 'print', 'comment', 'random_var', 'if', 'if_else', 'macro', 'set_var', 'change_var'] },
+            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'repeat_until', 'break', 'print', 'comment', 'random_var', 'define_sub', 'call_sub', 'if', 'if_else', 'macro', 'set_var', 'change_var'] },
             prim:     { enum: ACTUATOR_IDS,    description: 'actuator id (action nodes only)' },
             params:   { type: 'object',        description: 'param key/value map for the actuator' },
             seconds:  { type: 'number', minimum: 0.05, maximum: 30 },

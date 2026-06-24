@@ -84,8 +84,18 @@ export function toArduino(program) {
   L.push('}');
   L.push('');
 
+  // Subroutines (forward-declare before loop())
+  const subNodes = program.nodes.filter(n => n.type === 'define_sub');
+  for (const sub of subNodes) {
+    L.push('');
+    L.push(`void ${sub.name || 'sub'}() {`);
+    emitArduino(sub.body ?? [], L, 1);
+    L.push('}');
+  }
+  if (subNodes.length) L.push('');
+
   // loop()
-  const { loopBody, setupExtra } = splitRoots(program.nodes);
+  const { loopBody } = splitRoots(program.nodes.filter(n => n.type !== 'define_sub'));
   L.push('void loop() {');
   emitArduino(loopBody, L, 1);
   L.push('}');
@@ -151,6 +161,12 @@ function emitArduino(nodes, L, depth) {
         L.push(pad + `${n} = random(${lo}, ${Math.max(lo, hi) + 1});`);
         break;
       }
+      case 'define_sub':
+        // Hoisted to top level in toArduino(); skip here if encountered nested
+        break;
+      case 'call_sub':
+        L.push(pad + `${node.name || 'sub'}();`);
+        break;
       case 'macro':
         emitArduino(expandMacro(node) ?? [], L, depth);
         break;
@@ -208,7 +224,15 @@ export function toMicroPython(program) {
   for (const name of varNames) L.push(`${name} = 0`);
   if (varNames.length) L.push('');
 
-  const { loopBody } = splitRoots(program.nodes);
+  // Subroutines as def functions (before main loop)
+  const pySubNodes = program.nodes.filter(n => n.type === 'define_sub');
+  for (const sub of pySubNodes) {
+    L.push(`def ${sub.name || 'sub'}():`);
+    emitPython(sub.body ?? [], L, 1);
+    L.push('');
+  }
+
+  const { loopBody } = splitRoots(program.nodes.filter(n => n.type !== 'define_sub'));
   L.push('while True:');
   emitPython(loopBody, L, 1);
   return L.join('\n');
@@ -264,6 +288,12 @@ function emitPython(nodes, L, depth) {
         L.push(pad + `${n} = random.randint(${lo}, ${Math.max(lo, hi)})`);
         break;
       }
+      case 'define_sub':
+        // Hoisted to top level in toMicroPython(); skip here if nested
+        break;
+      case 'call_sub':
+        L.push(pad + `${node.name || 'sub'}()`);
+        break;
       case 'macro':
         emitPython(expandMacro(node) ?? [], L, depth);
         break;
