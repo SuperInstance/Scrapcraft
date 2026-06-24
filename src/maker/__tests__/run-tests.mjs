@@ -15,6 +15,7 @@ import { toArduino, toMicroPython } from '../FirmwareGen.js';
 import {
   TileProgram, T,
   EXAMPLE_WALL_AVOIDER, EXAMPLE_LIGHT_RUNNER, EXAMPLE_SQUARE,
+  EXAMPLE_BUMP_COUNTER,
 } from '../TileProgram.js';
 
 let pass = 0, fail = 0;
@@ -269,6 +270,55 @@ console.log('\nPhase 2.2 · new actuators');
   rtNeo.tick(0.016);
   ok('neopixel emits "neopixel" event with colour',
      rtNeo.drainEvents().some(e => e.kind === 'neopixel' && e.color === 'cyan'));
+}
+
+// ── 11. Variables (set_var / change_var / var: conditions) ───────────────────
+console.log('\nVariables');
+{
+  // set_var initialises, change_var increments, var: condition reads
+  const progVar = new TileProgram({ nodes: [
+    T.setVar('count', 0),
+    T.changeVar('count', 1),
+    T.changeVar('count', 1),
+    T.changeVar('count', 1),
+  ]});
+  const resultVar = compile(progVar);
+  ok('variable program compiles ok', resultVar.ok, JSON.stringify(resultVar.errors));
+
+  const vmVar = new TileVM(resultVar.bytecode, new VirtualRobot(), new MockWorld());
+  vmVar.step(0.016);
+  ok('set_var + 3 change_var → count=3', vmVar.vars['count'] === 3, `count=${vmVar.vars['count']}`);
+
+  // var: condition — branch taken when var exceeds threshold
+  const progCond = new TileProgram({ nodes: [
+    T.setVar('x', 10),
+    T.if(T.varCond('x', 'gt', 5), [ T.action('beep', { pitch: 'high' }) ]),
+  ]});
+  const rtCond = new MakerRuntime(progCond, {}, new MockWorld());
+  rtCond.tick(0.016);
+  ok('var:x > 5 branch taken when x=10', rtCond.drainEvents().some(e => e.kind === 'beep' && e.pitch === 'high'));
+
+  // var: condition — branch NOT taken when var is below threshold
+  const progCondFalse = new TileProgram({ nodes: [
+    T.setVar('x', 2),
+    T.if(T.varCond('x', 'gt', 5), [ T.action('beep', { pitch: 'high' }) ]),
+  ]});
+  const rtCondFalse = new MakerRuntime(progCondFalse, {}, new MockWorld());
+  rtCondFalse.tick(0.016);
+  ok('var:x > 5 branch skipped when x=2', !rtCondFalse.drainEvents().some(e => e.kind === 'beep'));
+
+  // EXAMPLE_BUMP_COUNTER compiles cleanly
+  const resultBump = compile(EXAMPLE_BUMP_COUNTER);
+  ok('EXAMPLE_BUMP_COUNTER compiles ok', resultBump.ok, JSON.stringify(resultBump.errors));
+  ok('bump counter has SET_VAR opcode', resultBump.bytecode.some(i => i.op === 'SET_VAR'));
+  ok('bump counter has CHANGE_VAR opcode', resultBump.bytecode.some(i => i.op === 'CHANGE_VAR'));
+  ok('bump counter has GET_VAR opcode', resultBump.bytecode.some(i => i.op === 'GET_VAR'));
+
+  // reset() clears variables
+  const vmReset = new TileVM(resultVar.bytecode, new VirtualRobot(), new MockWorld());
+  vmReset.step(0.016);
+  vmReset.reset();
+  ok('reset() clears vars', Object.keys(vmReset.vars).length === 0);
 }
 
 // ── summary ────────────────────────────────────────────────────────────────

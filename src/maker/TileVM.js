@@ -57,6 +57,7 @@ export class TileVM {
     this.steps = 0;         // total instructions executed (telemetry)
     this.sensorReads = 0;   // SENSE ops fired
     this.motorActs   = 0;   // drive/turn ACT ops fired
+    this.vars = {};          // named variables (set_var / change_var tiles)
   }
 
   get isRunning() { return !this.halted; }
@@ -181,6 +182,21 @@ export class TileVM {
         }
         break;
       }
+
+      case 'SET_VAR':
+        this.vars[instr.name] = this.stack.pop() ?? 0;
+        this.pc++;
+        break;
+
+      case 'GET_VAR':
+        this.stack.push(this.vars[instr.name] ?? 0);
+        this.pc++;
+        break;
+
+      case 'CHANGE_VAR':
+        this.vars[instr.name] = (this.vars[instr.name] ?? 0) + (instr.delta ?? 0);
+        this.pc++;
+        break;
 
       case 'HALT':
         this.halted = true;
