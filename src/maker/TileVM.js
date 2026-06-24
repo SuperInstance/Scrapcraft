@@ -210,6 +210,12 @@ export class TileVM {
         break;
       }
 
+      case 'READ_SENSOR':
+        this.vars[instr.name] = this._read(instr.sensor);
+        this.sensorReads++;
+        this.pc++;
+        break;
+
       case 'CALL_SUB':
         this.callStack.push(this.pc + 1);   // return = instruction after CALL_SUB
         this.pc = instr.target;

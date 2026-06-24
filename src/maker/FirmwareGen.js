@@ -161,6 +161,12 @@ function emitArduino(nodes, L, depth) {
         L.push(pad + `${n} = random(${lo}, ${Math.max(lo, hi) + 1});`);
         break;
       }
+      case 'read_sensor': {
+        const rsDef = getSensor(node.sensor);
+        const rsExpr = rsDef?.firmware?.arduino?.() ?? '0';
+        L.push(pad + `${node.name || 'dist'} = ${rsExpr};`);
+        break;
+      }
       case 'define_sub':
         // Hoisted to top level in toArduino(); skip here if encountered nested
         break;
@@ -288,6 +294,12 @@ function emitPython(nodes, L, depth) {
         L.push(pad + `${n} = random.randint(${lo}, ${Math.max(lo, hi)})`);
         break;
       }
+      case 'read_sensor': {
+        const rsDef = getSensor(node.sensor);
+        const rsExpr = rsDef?.firmware?.micropython?.() ?? '0';
+        L.push(pad + `${node.name || 'dist'} = ${rsExpr}`);
+        break;
+      }
       case 'define_sub':
         // Hoisted to top level in toMicroPython(); skip here if nested
         break;
@@ -343,8 +355,8 @@ function _hasPrintNode(nodes) {
   const recur = (list) => {
     for (const n of list) {
       if (n.type === 'print') return true;
-      if (n.body     && recur(n.body))     return true;
-      if (n.elseBody && recur(n.elseBody)) return true;
+      if (Array.isArray(n.body)     && recur(n.body))     return true;
+      if (Array.isArray(n.elseBody) && recur(n.elseBody)) return true;
     }
     return false;
   };
@@ -356,10 +368,10 @@ function collectAllVarNames(nodes) {
   const names = new Set();
   const recur = (list) => {
     for (const n of list) {
-      if (n.type === 'set_var' || n.type === 'change_var' || n.type === 'random_var' || n.type === 'print') names.add(n.name || 'count');
+      if (n.type === 'set_var' || n.type === 'change_var' || n.type === 'random_var' || n.type === 'print' || n.type === 'read_sensor') names.add(n.name || 'count');
       if (n.cond?.sensor?.startsWith('var:')) names.add(n.cond.sensor.slice(4));
-      if (n.body)     recur(n.body);
-      if (n.elseBody) recur(n.elseBody);
+      if (Array.isArray(n.body))     recur(n.body);
+      if (Array.isArray(n.elseBody)) recur(n.elseBody);
     }
   };
   recur(nodes);

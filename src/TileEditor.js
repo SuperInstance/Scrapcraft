@@ -37,6 +37,7 @@ const NODE_META = {
   call_sub:       { icon: '⤴',  label: 'call subroutine',   bg: '#1a0a2a', tip: 'Run a named subroutine. The bot executes all tiles inside it, then returns here.' },
   set_var:        { icon: '=',  label: 'set variable',   bg: '#0e1a28', tip: 'Create a named number and set its starting value. Run this before your forever loop.' },
   change_var:     { icon: '±',  label: 'change variable',bg: '#0e1a28', tip: 'Add (or subtract) a number from a variable. Use it inside loops to count things.' },
+  read_sensor:    { icon: '📡', label: 'read sensor',    bg: '#0e1a28', tip: 'Read the live value of a sensor into a variable. Use it to store a snapshot or drive proportional behavior.' },
 };
 
 const TRAY_GROUPS = [
@@ -69,6 +70,7 @@ const TRAY_GROUPS = [
     { type: 'set_var' },
     { type: 'change_var' },
     { type: 'random_var' },
+    { type: 'read_sensor' },
     { type: 'print' },
   ]},
   { label: 'SUBROUTINES', items: [
@@ -104,6 +106,7 @@ function _instrSummary(instr) {
     case 'RAND_VAR':    return `🎲 ${instr.name} ∈ [${instr.min},${instr.max}]`;
     case 'CALL_SUB':    return `⤴ ${instr.name}()`;
     case 'SUB_RETURN':  return `↩ return`;
+    case 'READ_SENSOR': return `📡 ${instr.name} ← ${instr.sensor}`;
     case 'JZ':    return `? → ${instr.target}`;
     case 'JMP':   return `→ ${instr.target}`;
     case 'HALT':       return '⏹';
@@ -154,6 +157,7 @@ function makeNode(spec) {
       return { type: 'call_sub', id, name: 'patrol' };
     case 'set_var':    return { type: 'set_var',    id, name: 'count', value: 0 };
     case 'change_var': return { type: 'change_var', id, name: 'count', delta: 1 };
+    case 'read_sensor': return { type: 'read_sensor', id, name: 'dist', sensor: 'distance_ahead' };
     default: return null;
   }
 }
@@ -608,6 +612,9 @@ export class TileEditor {
       rows.push(this._numRow('max', node.max, -999, 999, 1, v => { node.max = Math.floor(v); }));
     } else if (node.type === 'define_sub' || node.type === 'call_sub') {
       rows.push(this._textRow('name', node.name, v => { node.name = v.replace(/[^a-z0-9_]/gi, '_') || 'sub'; this._showErrors(); }));
+    } else if (node.type === 'read_sensor') {
+      rows.push(this._textRow('into var', node.name, v => { node.name = v.replace(/[^a-z0-9_]/gi, '_') || 'dist'; this._showErrors(); }));
+      rows.push(this._sensorSelectRow('sensor', node.sensor, v => { node.sensor = v; this._showErrors(); }));
     }
 
     if (!rows.length) return null;
@@ -785,11 +792,32 @@ export class TileEditor {
     return row;
   }
 
-  /** Collect all variable names declared in the program (set_var / change_var tiles). */
+  _sensorSelectRow(key, current, onChange) {
+    const row = document.createElement('div');
+    row.className = 'te-param-row';
+    const lbl = document.createElement('span');
+    lbl.className = 'te-param-key'; lbl.textContent = key;
+    row.appendChild(lbl);
+    const sel = document.createElement('select');
+    sel.className = 'te-select';
+    const brainIdx = BRAIN_ORDER.indexOf(this._program.brain);
+    SENSOR_LIST.filter(s => !s.requiresBrain || BRAIN_ORDER.indexOf(s.requiresBrain) <= brainIdx)
+      .forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.id; o.textContent = s.label;
+        if (s.id === current) o.selected = true;
+        sel.appendChild(o);
+      });
+    sel.addEventListener('change', () => { this._saveHistory(); onChange(sel.value); });
+    row.appendChild(sel);
+    return row;
+  }
+
+  /** Collect all variable names declared in the program (set_var / change_var / read_sensor tiles). */
   _collectVarNames() {
     const names = new Set();
     this._program.walk(n => {
-      if ((n.type === 'set_var' || n.type === 'change_var') && n.name) names.add(n.name);
+      if ((n.type === 'set_var' || n.type === 'change_var' || n.type === 'read_sensor') && n.name) names.add(n.name);
     });
     return [...names];
   }
