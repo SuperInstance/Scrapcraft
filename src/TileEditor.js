@@ -8,6 +8,7 @@ import { SENSORS, ACTUATORS, BRAINS, withDefaults } from './maker/primitives.js'
 import { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG, compile } from './maker/index.js';
 import { WebSerialBridge } from './maker/WebSerialBridge.js';
 import { Spark } from './Spark.js';
+import { BrainGallery } from './BrainGallery.js';
 
 const BRAIN_ORDER = ['tin', 'spark', 'vision'];
 
@@ -124,6 +125,8 @@ export class TileEditor {
     this._wiringEl   = null;
     this._statsEl    = null;
 
+    this._gallery    = null;
+
     // WebSerial hardware bridge
     this._bridge       = null;
     this._flashBtn     = null;
@@ -173,6 +176,7 @@ export class TileEditor {
     this._panel.querySelector('#te-spark-btn')?.addEventListener('click', () => this._toggleSpark());
     this._panel.querySelector('#te-share-btn')?.addEventListener('click', () => this._shareProgram());
     this._panel.querySelector('#te-receipt-btn')?.addEventListener('click', () => this._showFlashReceipt());
+    this._panel.querySelector('#te-gallery-btn')?.addEventListener('click', () => this._gallery?.open());
     this._panel.querySelector('#te-dl').addEventListener('click', () => this._download());
     this._panel.querySelector('#te-dl-wokwi')?.addEventListener('click', () => this._downloadWokwi());
 
@@ -235,6 +239,7 @@ export class TileEditor {
 
     this._buildTray();
     this._buildSparkPanel();
+    this._gallery = new BrainGallery(this);
     this._renderProgram();
   }
 
