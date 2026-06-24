@@ -134,6 +134,12 @@
     display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
   }
   .roster-count { font-size: 10px; color: var(--text-dim); margin-left: auto; }
+  .btn-small {
+    background: none; border: 1px solid var(--border); color: var(--text-dim);
+    font-family: inherit; font-size: 9px; letter-spacing: 0.08em;
+    padding: 3px 8px; border-radius: 2px; cursor: pointer;
+  }
+  .btn-small:hover { border-color: var(--accent); color: var(--accent); }
   table {
     width: 100%; border-collapse: collapse; font-size: 11px;
   }
@@ -284,6 +290,7 @@
       <div class="roster-header">
         <div class="panel-title" style="margin-bottom:0">📋 CLASS ROSTER</div>
         <div class="roster-count" id="roster-count"></div>
+        <button id="btn-csv" class="btn-small" title="Download progress as spreadsheet">⬇ CSV</button>
       </div>
       <table>
         <thead>
@@ -623,6 +630,15 @@ document.getElementById('btn-end-challenge').addEventListener('click', async () 
     toast('Challenge ended.');
     refresh();
   } catch (e) { toast('Network error: ' + e.message); }
+});
+
+document.getElementById('btn-csv').addEventListener('click', () => {
+  if (!classCode || !workerUrl) { toast('Not connected to a class.'); return; }
+  const url = workerUrl + `/api/v1/class/${classCode}/export.csv?key=` + encodeURIComponent(teacherKey);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `scrapcraft_${classCode}.csv`;
+  a.click();
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
