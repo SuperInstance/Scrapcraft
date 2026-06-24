@@ -143,6 +143,9 @@ function emitArduino(nodes, L, depth) {
         L.push(pad + `Serial.println(${vname});`);
         break;
       }
+      case 'comment':
+        L.push(pad + `// ${(node.text || 'note').replace(/\*\//g, '* /')}`);
+        break;
       case 'macro':
         emitArduino(expandMacro(node) ?? [], L, depth);
         break;
@@ -246,6 +249,9 @@ function emitPython(nodes, L, depth) {
         break;
       case 'print':
         L.push(pad + `print(f"${node.name || 'count'} = {${node.name || 'count'}}")`);
+        break;
+      case 'comment':
+        L.push(pad + `# ${node.text || 'note'}`);
         break;
       case 'macro':
         emitPython(expandMacro(node) ?? [], L, depth);

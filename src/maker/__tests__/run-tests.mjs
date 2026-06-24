@@ -571,6 +571,34 @@ console.log('\nprint tile');
   ok('Python codegen emits print(f"...")', py.includes('print(f"'));
 }
 
+// ── 17. comment tile ───────────────────────────────────────────────────────
+console.log('\ncomment tile');
+{
+  const prog = new TileProgram({ nodes: [
+    T.comment('initialize the counter'),
+    T.setVar('x', 5),
+    T.comment('done'),
+  ]});
+  const r = compile(prog);
+  ok('comment compiles ok', r.ok, JSON.stringify(r.errors));
+  ok('comment emits NO bytecode (annotation only)',
+     !r.bytecode.some(i => i.op === 'COMMENT'));
+  // Program still executes: comment tiles are transparent
+  const world = new MockWorld();
+  const rt = new MakerRuntime(prog, {}, world);
+  for (let i = 0; i < 10; i++) rt.tick(0.016);
+  ok('program with comments runs and halts', rt.vm.halted);
+  ok('variable was set despite comment tiles', rt.vm.vars.x === 5, `x=${rt.vm.vars.x}`);
+
+  // Firmware: Arduino emits // comment
+  const fw = toArduino(prog);
+  ok('Arduino codegen emits // comment', fw.includes('// initialize the counter'));
+
+  // Firmware: Python emits # comment
+  const py = toMicroPython(prog);
+  ok('Python codegen emits # comment', py.includes('# initialize the counter'));
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

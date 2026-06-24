@@ -21,6 +21,7 @@
  *    repeat_until { type:'repeat_until', cond, body:[...] }     loop until cond is true (= while !cond)
  *    break        { type:'break' }                               exit the enclosing forever/repeat loop
  *    print        { type:'print', name }                         emit variable value to serial/HUD (console.log)
+ *    comment      { type:'comment', text }                       non-executing annotation (becomes a code comment)
  *    if           { type:'if',   cond, body:[...] }             conditional
  *    if_else      { type:'if_else', cond, body:[...], elseBody:[...] }
  *    macro        { type:'macro', kind, params }            expands at compile time
@@ -69,6 +70,9 @@ export const T = {
 
   // print: emits the current value of a variable to the serial monitor / HUD
   print: (name) => ({ type: 'print', name }),
+
+  // comment: a non-executing annotation tile — pure documentation
+  comment: (text = 'note') => ({ type: 'comment', text }),
 };
 
 /**

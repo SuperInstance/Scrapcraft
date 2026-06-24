@@ -114,6 +114,7 @@ function compileNode(node, ctx) {
     case 'repeat_until': return compileUntil(node, ctx);
     case 'break':        return void ctx.out.push({ op: 'BREAK' });
     case 'print':        return void ctx.out.push({ op: 'PRINT_VAR', name: _sanitizeVarName(node.name) });
+    case 'comment':      return;   // annotation only — no bytecode emitted
     case 'macro':      return compileMacro(node, ctx);
     case 'set_var':    return compileSetVar(node, ctx);
     case 'change_var': return compileChangeVar(node, ctx);
