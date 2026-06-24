@@ -329,6 +329,11 @@
             <option value="efficiency_a_30">⚡ Lean Machine — Grade A for 30 seconds</option>
             <option value="efficiency_aplus_30">⚡ Optimizer — Grade A+ for 30 seconds</option>
           </optgroup>
+          <optgroup label="Variables (programming concept)">
+            <option value="use_variable">📊 Variable Starter — Use at least 1 variable in your bot program</option>
+            <option value="variable_condition">🔢 Data-Driven — Use a variable in an IF condition</option>
+            <option value="variable_survivor">📊 Variable Survivor — Use a variable AND survive 30 seconds without bumping</option>
+          </optgroup>
         </select>
         <button class="btn btn-primary" id="btn-assign">Assign →</button>
         <button class="btn btn-danger"  id="btn-end-challenge" style="display:none">End Challenge</button>
@@ -425,6 +430,21 @@ const CHALLENGE_DEFS = {
     title: 'Optimizer (Grade A+)',
     description: 'The ultimate efficiency challenge — achieve grade A+ for 30 seconds. Fewest steps wins!',
     criteria: { type: 'efficiency_runner', durationSec: 30, targetGrade: 'A+' },
+  },
+  use_variable: {
+    title: 'Variable Starter',
+    description: 'Run a bot program that uses at least one variable (set variable tile + change variable tile). Teaches state and memory!',
+    criteria: { type: 'use_variable' },
+  },
+  variable_condition: {
+    title: 'Data-Driven',
+    description: 'Write a program that reads a variable inside an IF condition. Teaches conditional logic on accumulated state!',
+    criteria: { type: 'variable_condition' },
+  },
+  variable_survivor: {
+    title: 'Variable Survivor',
+    description: 'Use at least one variable AND survive 30 seconds without hitting a wall. Combines programming and control!',
+    criteria: { type: 'variable_survivor', durationSec: 30 },
   },
 };
 

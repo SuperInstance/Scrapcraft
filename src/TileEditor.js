@@ -1129,6 +1129,7 @@ export class TileEditor {
         hasCond,
       });
       this._game.challenge?.onVariableProgram?.(varNames.length, hasCond);
+      this._game.challengeSystem?.onVariableProgramRun?.(varNames.length > 0, hasCond);
       this._game.xpSystem?.trackVariables(varNames);
       // Earl one-shot reactions
       if (!this._earlSaidVar) {
