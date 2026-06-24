@@ -200,7 +200,8 @@ function condArduino(cond) {
   if (!cond?.sensor) return 'false';
   if (cond.sensor.startsWith('var:')) {
     const name = cond.sensor.slice(4);
-    const out = `${name} ${cmpSym(cond.cmp)} ${Number(cond.value) || 0}`;
+    const rhs = cond.varValue ? cond.varValue : `${Number(cond.value) || 0}`;
+    const out = `${name} ${cmpSym(cond.cmp)} ${rhs}`;
     return cond.not ? `!(${out})` : out;
   }
   const def = getSensor(cond.sensor);
@@ -338,7 +339,8 @@ function condPython(cond) {
   if (!cond?.sensor) return 'False';
   if (cond.sensor.startsWith('var:')) {
     const name = cond.sensor.slice(4);
-    const out = `${name} ${cmpSym(cond.cmp)} ${Number(cond.value) || 0}`;
+    const rhs = cond.varValue ? cond.varValue : `${Number(cond.value) || 0}`;
+    const out = `${name} ${cmpSym(cond.cmp)} ${rhs}`;
     return cond.not ? `not (${out})` : out;
   }
   const def = getSensor(cond.sensor);

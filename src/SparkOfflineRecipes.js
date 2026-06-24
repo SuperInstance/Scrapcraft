@@ -509,6 +509,30 @@ export const OFFLINE_RECIPES = [
       ]),
     ]}),
   },
+  {
+    keywords: ['compare variables', 'variable vs variable', 'adaptive threshold', 'two variables', 'var comparison'],
+    reply:    "Adaptive threshold! The bot compares its bump counter to a 'limit' variable. When bumps exceed the limit, it flashes red and resets. Change 'limit' to make the bot more or less patient — that's the power of var-vs-var conditions!",
+    program:  new TileProgram({ name: 'Adaptive Bumper', brain: 'tin', nodes: [
+      T.setVar('bumps', 0),
+      T.setVar('limit', 3),
+      T.forever([
+        T.action('drive', { dir: 'forward', speed: 0.5 }),
+        T.if(T.is('bumped', true), [
+          T.changeVar('bumps', 1),
+          T.action('beep', { pitch: 'mid' }),
+          T.action('turn', { dir: 'right', speed: 0.6 }),
+          T.wait(0.3),
+        ]),
+        T.if(T.varVsCond('bumps', 'gte', 'limit'), [
+          T.action('led', { state: 'red' }),
+          T.action('beep', { pitch: 'low' }),
+          T.wait(0.5),
+          T.setVar('bumps', 0),
+          T.action('led', { state: 'off' }),
+        ]),
+      ]),
+    ]}),
+  },
 ];
 
 /** Returns best-matching recipe or null if no keyword hits. */

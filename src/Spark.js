@@ -49,7 +49,8 @@ ROBOTICS RULES:
 VARIABLES (teach this concept!):
 - set_var: { type:'set_var', name:'count', value:0 } — sets a named variable to a number.
 - change_var: { type:'change_var', name:'count', delta:1 } — adds delta to a variable (use negative delta to subtract).
-- To compare a variable in a condition: sensor='var:count', cmp='gte', value:5 → true when count >= 5.
+- To compare a variable to a constant: sensor='var:count', cmp='gte', value:5 → true when count >= 5.
+- To compare two variables: sensor='var:count', cmp='gt', varValue:'threshold' → true when count > threshold.
 - Variables are great for counting things (bumps, laps, items collected).
 - When a student says "count", "track", "remember how many", "after N times" — reach for variables!
 - Always initialize with set_var BEFORE the forever loop, then change_var inside it.

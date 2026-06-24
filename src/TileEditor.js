@@ -719,15 +719,50 @@ export class TileEditor {
       });
       vsel.addEventListener('change', () => { this._saveHistory(); node.cond.value = vsel.value === 'true'; this._showErrors(); });
       div.appendChild(vsel);
+    } else if (isVarSensor) {
+      // "vs var" toggle button — switches between constant and variable comparison
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'te-cond-not' + (cond.varValue ? ' active' : '');
+      toggleBtn.textContent = 'var';
+      toggleBtn.title = 'Compare to another variable (toggle)';
+      toggleBtn.addEventListener('click', () => {
+        this._saveHistory();
+        if (cond.varValue) {
+          delete node.cond.varValue;
+        } else {
+          const names = this._collectVarNames();
+          node.cond.varValue = names[0] || 'count';
+        }
+        this._renderProgram();
+      });
+      div.appendChild(toggleBtn);
+
+      if (cond.varValue) {
+        // RHS is another variable
+        const rhsSel = document.createElement('select');
+        rhsSel.className = 'te-select';
+        this._collectVarNames().forEach(name => {
+          const o = document.createElement('option');
+          o.value = name; o.textContent = name;
+          if (name === cond.varValue) o.selected = true;
+          rhsSel.appendChild(o);
+        });
+        rhsSel.addEventListener('change', () => { this._saveHistory(); node.cond.varValue = rhsSel.value; this._showErrors(); });
+        div.appendChild(rhsSel);
+      } else {
+        const inp = document.createElement('input');
+        inp.type = 'number'; inp.className = 'te-num-inp';
+        inp.min = -9999; inp.max = 9999; inp.step = 1;
+        inp.value = cond.value ?? 0;
+        inp.style.width = '60px';
+        inp.addEventListener('change', () => { this._saveHistory(); node.cond.value = Number(inp.value); this._showErrors(); });
+        div.appendChild(inp);
+      }
     } else {
       const inp = document.createElement('input');
       inp.type = 'number'; inp.className = 'te-num-inp';
-      if (isVarSensor) {
-        inp.min = -9999; inp.max = 9999; inp.step = 1;
-      } else {
-        inp.min = 0; inp.max = 1; inp.step = 0.05;
-      }
-      inp.value = cond.value ?? (isVarSensor ? 0 : 0.5);
+      inp.min = 0; inp.max = 1; inp.step = 0.05;
+      inp.value = cond.value ?? 0.5;
       inp.style.width = '60px';
       inp.addEventListener('change', () => { this._saveHistory(); node.cond.value = Number(inp.value); this._showErrors(); });
       div.appendChild(inp);
