@@ -824,6 +824,80 @@ console.log('\nadd_score');
   ok('Python codegen includes score +=', py.includes('score += 5'));
 }
 
+// ── 23. var-vs-var conditions ──────────────────────────────────────────────
+console.log('\nvar-vs-var conditions');
+{
+  // Program: set a=10, threshold=7; if var:a > var:threshold → beep high; else beep low
+  const prog = new TileProgram({ name: 'VarVsVar', brain: 'tin', nodes: [
+    T.setVar('a', 10),
+    T.setVar('threshold', 7),
+    T.ifElse(
+      T.varVsCond('a', 'gt', 'threshold'),
+      [ T.action('beep', { pitch: 'high' }) ],
+      [ T.action('beep', { pitch: 'low' }) ],
+    ),
+  ]});
+
+  const res = compile(prog);
+  ok('var-vs-var program compiles ok', res.ok, res.errors.join(', '));
+  // Should emit two GET_VAR opcodes (one for 'a', one for 'threshold')
+  const getVarOps = res.bytecode.filter(i => i.op === 'GET_VAR');
+  ok('emits two GET_VAR opcodes', getVarOps.length === 2, `count=${getVarOps.length}`);
+  ok('first GET_VAR is for a', getVarOps[0]?.name === 'a', `name=${getVarOps[0]?.name}`);
+  ok('second GET_VAR is for threshold', getVarOps[1]?.name === 'threshold', `name=${getVarOps[1]?.name}`);
+
+  // VM: a=10, threshold=7 → 10 > 7 → THEN branch (high beep)
+  {
+    const world = new MockWorld();
+    const vm = new TileVM(res.bytecode, res.sourceMap);
+    const events = [];
+    const robot = new VirtualRobot(world);
+    robot.emit = (kind, data) => { events.push({ kind, ...data }); };
+    vm.robot = robot; vm.world = world;
+    while (!vm.halted) vm.step(0.016);
+    const beep = events.find(e => e.kind === 'beep');
+    ok('a > threshold → high beep', beep?.pitch === 'high', `pitch=${beep?.pitch}`);
+  }
+
+  // VM: a=5, threshold=7 → 5 > 7 false → ELSE branch (low beep)
+  {
+    const prog2 = new TileProgram({ name: 'VarVsVar2', brain: 'tin', nodes: [
+      T.setVar('a', 5),
+      T.setVar('threshold', 7),
+      T.ifElse(T.varVsCond('a', 'gt', 'threshold'),
+        [ T.action('beep', { pitch: 'high' }) ],
+        [ T.action('beep', { pitch: 'low' }) ],
+      ),
+    ]});
+    const r2 = compile(prog2);
+    const world = new MockWorld();
+    const vm = new TileVM(r2.bytecode, r2.sourceMap);
+    const events = [];
+    const robot = new VirtualRobot(world);
+    robot.emit = (kind, data) => { events.push({ kind, ...data }); };
+    vm.robot = robot; vm.world = world;
+    while (!vm.halted) vm.step(0.016);
+    const beep = events.find(e => e.kind === 'beep');
+    ok('a < threshold → low beep', beep?.pitch === 'low', `pitch=${beep?.pitch}`);
+  }
+
+  // Firmware: Arduino var-vs-var condition
+  const fw = toArduino(prog);
+  ok('Arduino codegen renders var-vs-var condition', fw.includes('a > threshold'));
+
+  // Firmware: Python var-vs-var condition
+  const py = toMicroPython(prog);
+  ok('Python codegen renders var-vs-var condition', py.includes('a > threshold'));
+
+  // _checkVarInit warns when varValue var is uninitialised
+  const warnProg = new TileProgram({ nodes: [
+    T.setVar('a', 10),
+    T.if(T.varVsCond('a', 'gt', 'limit'), [ T.action('stop') ]),
+  ]});
+  const warnRes = compile(warnProg);
+  ok('warns when varValue var is uninitialised', warnRes.warnings.some(w => w.includes('"limit"')));
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

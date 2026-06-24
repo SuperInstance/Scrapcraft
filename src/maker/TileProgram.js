@@ -64,6 +64,7 @@ export const T = {
   setVar:    (name, value = 0)         => ({ type: 'set_var',      name, value }),
   changeVar: (name, delta = 1)         => ({ type: 'change_var',   name, delta }),
   varCond:   (name, cmp, value)        => ({ sensor: `var:${name}`, cmp, value }),
+  varVsCond: (name, cmp, otherName)    => ({ sensor: `var:${name}`, cmp, varValue: otherName }),
 
   // repeat_until: runs body until condition becomes true (= while !cond)
   repeatUntil: (cond, body = []) => ({ type: 'repeat_until', cond, body }),

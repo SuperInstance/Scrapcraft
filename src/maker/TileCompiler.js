@@ -111,6 +111,7 @@ function _checkVarInit(nodes, ctx) {
       if ((n.type === 'set_var' || n.type === 'read_sensor') && n.name) declared.add(n.name);
       if ((n.type === 'change_var' || n.type === 'math_var') && n.name) used.add(n.name);
       if (n.cond?.sensor?.startsWith('var:')) used.add(n.cond.sensor.slice(4));
+      if (n.cond?.varValue) used.add(n.cond.varValue);
       if (Array.isArray(n.body))     walk(n.body);
       if (Array.isArray(n.elseBody)) walk(n.elseBody);
       // repeat_until has a cond (already handled above) and a body (already handled)
@@ -331,12 +332,17 @@ function compileCondition(cond, ctx) {
     return;
   }
 
-  // Variable read: "var:count > 5" → GET_VAR + CONST + CMP
+  // Variable read: "var:count > 5" or "var:count > var:threshold"
   if (cond.sensor.startsWith('var:')) {
     const varName = _sanitizeVarName(cond.sensor.slice(4));
     const cmp = CMP_OPS.has(cond.cmp) ? cond.cmp : 'gt';
     ctx.out.push({ op: 'GET_VAR', name: varName });
-    ctx.out.push({ op: 'CONST', value: Number(cond.value) || 0 });
+    if (cond.varValue) {
+      // compare var vs var
+      ctx.out.push({ op: 'GET_VAR', name: _sanitizeVarName(cond.varValue) });
+    } else {
+      ctx.out.push({ op: 'CONST', value: Number(cond.value) || 0 });
+    }
     ctx.out.push({ op: 'CMP', cmp });
     if (cond.not) ctx.out.push({ op: 'NOT' });
     return;
