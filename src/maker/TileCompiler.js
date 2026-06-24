@@ -55,6 +55,9 @@ export function compile(program) {
     sourceMap: [],   // [{ pc, nodeId }] — maps bytecode offset to tile node id
   };
 
+  // Pre-pass: warn about variables used but never initialized with set_var
+  _checkVarInit(nodes, ctx);
+
   for (const node of nodes) compileNode(node, ctx);
   ctx.out.push({ op: 'HALT' });
 
@@ -65,6 +68,26 @@ export function compile(program) {
     warnings: ctx.warnings,
     sourceMap: ctx.sourceMap,
   };
+}
+
+function _checkVarInit(nodes, ctx) {
+  const declared = new Set();
+  const used     = new Set();
+  const walk = (list) => {
+    for (const n of list) {
+      if (n.type === 'set_var' && n.name) declared.add(n.name);
+      if (n.type === 'change_var' && n.name) used.add(n.name);
+      if (n.cond?.sensor?.startsWith('var:')) used.add(n.cond.sensor.slice(4));
+      if (n.body)     walk(n.body);
+      if (n.elseBody) walk(n.elseBody);
+    }
+  };
+  walk(nodes);
+  for (const name of used) {
+    if (!declared.has(name)) {
+      ctx.warnings.push(`Variable "${name}" is used but never initialized — add a "set variable" tile to set its starting value.`);
+    }
+  }
 }
 
 // ── Node compilation ───────────────────────────────────────────────────────
