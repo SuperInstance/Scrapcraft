@@ -90,6 +90,16 @@ const POOL = [
     label: 'Complete a lap of the test circuit with your bot', icon: '🏟',
     reward: { xp: 120, item: 'crystal_fragment', qty: 1 },
   },
+  {
+    type: 'bot_variable', need: 1,
+    label: 'Run a bot program that uses at least 1 variable', icon: '📊',
+    reward: { xp: 90, item: 'circuit_board', qty: 1 },
+  },
+  {
+    type: 'bot_variable_cond', need: 1,
+    label: 'Run a bot that reads a variable in an IF condition', icon: '🔢',
+    reward: { xp: 110, item: 'ir_module', qty: 1 },
+  },
 ];
 
 export class Challenge {
@@ -138,6 +148,12 @@ export class Challenge {
   onBrainLoaded(sensorIds) {
     if (this._completed || !this._current) return;
     if (this._current.type === 'bot_sensor' && sensorIds.size > 0) this._advance(1);
+  }
+
+  onVariableProgram(varCount, hasCond) {
+    if (this._completed || !this._current) return;
+    if (this._current.type === 'bot_variable' && varCount > 0) this._advance(1);
+    if (this._current.type === 'bot_variable_cond' && hasCond) this._advance(1);
   }
 
   tick(dt) {
