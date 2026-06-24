@@ -449,6 +449,13 @@ export class TileEditor {
       head.appendChild(help);
     }
 
+    const dup = document.createElement('button');
+    dup.className = 'te-dup';
+    dup.textContent = '⧉';
+    dup.title = 'Duplicate tile';
+    dup.addEventListener('click', e => { e.stopPropagation(); this._duplicateNode(node.id); });
+    head.appendChild(dup);
+
     const del = document.createElement('button');
     del.className = 'te-del';
     del.textContent = '✕';
@@ -815,6 +822,26 @@ export class TileEditor {
   _deleteNode(id) {
     const found = this._findNode(id);
     if (found) { this._saveHistory(); found.list.splice(found.idx, 1); this._renderProgram(); }
+  }
+
+  _duplicateNode(id) {
+    const found = this._findNode(id);
+    if (!found) return;
+    this._saveHistory();
+    const clone = JSON.parse(JSON.stringify(found.node));
+    this._freshIds([clone]);
+    found.list.splice(found.idx + 1, 0, clone);
+    this._renderProgram();
+    this._game?.saveSystem?.markDirty();
+  }
+
+  /** Forcibly assign new UUIDs to every node in the tree (for cloning). */
+  _freshIds(nodes) {
+    for (const n of nodes) {
+      n.id = crypto.randomUUID();
+      if (n.body)     this._freshIds(n.body);
+      if (n.elseBody) this._freshIds(n.elseBody);
+    }
   }
 
   // ── Errors / code ─────────────────────────────────────────────────────────
