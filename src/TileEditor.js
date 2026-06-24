@@ -15,21 +15,21 @@ const BRAIN_ORDER = ['tin', 'spark', 'vision'];
 // ── Tile appearance ──────────────────────────────────────────────────────────
 
 const NODE_META = {
-  drive:          { icon: '▶',  label: 'drive',          bg: '#0c2016' },
-  turn:           { icon: '↻',  label: 'turn',           bg: '#0c2016' },
-  stop:           { icon: '■',  label: 'stop',           bg: '#280e0e' },
-  beep:           { icon: '♪',  label: 'beep',           bg: '#0c0c28' },
-  led:            { icon: '●',  label: 'set light',      bg: '#0c0c28' },
-  grab:           { icon: '✋', label: 'arm',            bg: '#0c0c28' },
-  wait:           { icon: '⏱', label: 'wait',           bg: '#202010' },
-  forever:        { icon: '∞',  label: 'forever',        bg: '#18102a' },
-  repeat:         { icon: '↺',  label: 'repeat',         bg: '#18102a' },
-  if:             { icon: '?',  label: 'if',             bg: '#281a0a' },
-  if_else:        { icon: '⟨⟩', label: 'if / else',     bg: '#281a0a' },
-  turn_angle:     { icon: '⤾',  label: 'turn angle',    bg: '#1a0c1a' },
-  drive_distance: { icon: '→|', label: 'drive distance', bg: '#1a0c1a' },
-  set_var:        { icon: '=',  label: 'set variable',   bg: '#0e1a28' },
-  change_var:     { icon: '±',  label: 'change variable',bg: '#0e1a28' },
+  drive:          { icon: '▶',  label: 'drive',          bg: '#0c2016', tip: 'Move the robot forward or backward. Set the speed from 0 (stopped) to 1 (full speed).' },
+  turn:           { icon: '↻',  label: 'turn',           bg: '#0c2016', tip: 'Spin the robot left or right in place. Higher speed = faster spin.' },
+  stop:           { icon: '■',  label: 'stop',           bg: '#280e0e', tip: 'Cut the motors and come to a halt immediately.' },
+  beep:           { icon: '♪',  label: 'beep',           bg: '#0c0c28', tip: 'Play a short beep. Choose high, mid, or low pitch to signal different events.' },
+  led:            { icon: '●',  label: 'set light',      bg: '#0c0c28', tip: 'Change the status LED color. Use red for danger, green for all-clear, off to save power.' },
+  grab:           { icon: '✋', label: 'arm',            bg: '#0c0c28', tip: 'Open or close the robot arm to pick up or release an item.' },
+  wait:           { icon: '⏱', label: 'wait',           bg: '#202010', tip: 'Pause for a set number of seconds before running the next tile. Great for timed moves.' },
+  forever:        { icon: '∞',  label: 'forever',        bg: '#18102a', tip: 'Repeat the tiles inside endlessly. Every real robot program has a forever loop at its core.' },
+  repeat:         { icon: '↺',  label: 'repeat',         bg: '#18102a', tip: 'Run the tiles inside a fixed number of times, then continue to the next tile.' },
+  if:             { icon: '?',  label: 'if',             bg: '#281a0a', tip: 'Check a sensor. If the condition is true, run the tiles inside — otherwise skip them.' },
+  if_else:        { icon: '⟨⟩', label: 'if / else',     bg: '#281a0a', tip: 'Check a sensor. Run THEN tiles if true, ELSE tiles if false. Always does one or the other.' },
+  turn_angle:     { icon: '⤾',  label: 'turn angle',    bg: '#1a0c1a', tip: 'Turn an exact number of degrees (e.g. 90° for a square corner). A macro — expands to turn + wait.' },
+  drive_distance: { icon: '→|', label: 'drive distance', bg: '#1a0c1a', tip: 'Drive an exact distance in world units. A macro — expands to drive + timed wait.' },
+  set_var:        { icon: '=',  label: 'set variable',   bg: '#0e1a28', tip: 'Create a named number and set its starting value. Run this before your forever loop.' },
+  change_var:     { icon: '±',  label: 'change variable',bg: '#0e1a28', tip: 'Add (or subtract) a number from a variable. Use it inside loops to count things.' },
 };
 
 const TRAY_GROUPS = [
@@ -405,8 +405,28 @@ export class TileEditor {
     // Header
     const head = document.createElement('div');
     head.className = 'te-node-head';
+    if (meta.tip) head.title = meta.tip;
     head.innerHTML = `<span class="te-nicon">${meta.icon ?? '?'}</span>`
       + `<span class="te-nlbl">${meta.label ?? key}</span>`;
+
+    // Help chip
+    if (meta.tip) {
+      const help = document.createElement('button');
+      help.className = 'te-help-btn';
+      help.textContent = '?';
+      help.title = 'What does this tile do?';
+      help.addEventListener('click', e => {
+        e.stopPropagation();
+        let tip = el.querySelector('.te-tip-popup');
+        if (tip) { tip.remove(); return; }
+        tip = document.createElement('div');
+        tip.className = 'te-tip-popup';
+        tip.textContent = meta.tip;
+        el.appendChild(tip);
+      });
+      head.appendChild(help);
+    }
+
     const del = document.createElement('button');
     del.className = 'te-del';
     del.textContent = '✕';
