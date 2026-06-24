@@ -788,6 +788,42 @@ console.log('\nmath_var');
   ok('Python codegen emits *=', py.includes('x *= 2'));
 }
 
+// ── 22. add_score ─────────────────────────────────────────────────────────
+console.log('\nadd_score');
+{
+  const prog = new TileProgram({ name: 'ScoreTest', brain: 'tin', nodes: [
+    T.action('add_score', { amount: 5 }),
+    T.action('add_score', { amount: 3 }),
+  ]});
+
+  const res = compile(prog);
+  ok('add_score program compiles ok', res.ok, res.errors.join(', '));
+  ok('emits ACT opcode for add_score', res.bytecode.some(i => i.op === 'ACT' && i.action === 'add_score'));
+  const instr = res.bytecode.find(i => i.op === 'ACT' && i.action === 'add_score');
+  ok('ACT carries amount param', instr?.params?.amount === 5, `amount=${instr?.params?.amount}`);
+
+  // VM: score events emitted
+  {
+    const world = new MockWorld();
+    const vm = new TileVM(res.bytecode, res.sourceMap);
+    const events = [];
+    const robot = new VirtualRobot(world);
+    robot.emit = (kind, data) => { events.push({ kind, ...data }); };
+    vm.robot = robot; vm.world = world;
+    while (!vm.halted) vm.step(0.016);
+    const scoreEvents = events.filter(e => e.kind === 'score');
+    ok('two score events emitted', scoreEvents.length === 2, `count=${scoreEvents.length}`);
+    ok('first event delta=5', scoreEvents[0]?.delta === 5, `delta=${scoreEvents[0]?.delta}`);
+    ok('second event delta=3', scoreEvents[1]?.delta === 3, `delta=${scoreEvents[1]?.delta}`);
+  }
+
+  // Firmware
+  const fw = toArduino(prog);
+  ok('Arduino codegen includes score +=', fw.includes('score += 5'));
+  const py = toMicroPython(prog);
+  ok('Python codegen includes score +=', py.includes('score += 5'));
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

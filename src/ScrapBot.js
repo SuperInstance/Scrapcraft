@@ -68,6 +68,9 @@ export class ScrapBot {
     // Battery system
     this.battery    = 100;  // 0–100%
 
+    // Tile program score counter — resets on each brain load
+    this._score = 0;
+
     // Eye material refs for LED / neopixel colour changes
     this._eyeMat  = null;
     this._bodyMat = null;  // for neopixel body glow tint
@@ -186,6 +189,7 @@ export class ScrapBot {
     this._adapter   = adapter;  // exposed so Game.js can update .waypoint live
     this._runtime   = new MakerRuntime(program, spawn, adapter);
     this._brainMode = true;
+    this._score     = 0;       // reset score on each brain load
 
     // Award XP and track achievements for each distinct sensor type used
     if (this._game) {
@@ -460,6 +464,10 @@ export class ScrapBot {
         break;
       case 'print':
         this._game?.tileEditor?._showPrintOutput?.(ev.name, ev.value);
+        break;
+      case 'score':
+        this._score += ev.delta ?? 1;
+        this._game?.tileEditor?._showScore?.(this._score, ev.delta ?? 1);
         break;
     }
   }

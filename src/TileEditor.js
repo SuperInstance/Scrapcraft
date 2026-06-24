@@ -39,6 +39,7 @@ const NODE_META = {
   change_var:     { icon: '±',  label: 'change variable',bg: '#0e1a28', tip: 'Add (or subtract) a number from a variable. Use it inside loops to count things.' },
   read_sensor:    { icon: '📡', label: 'read sensor',    bg: '#0e1a28', tip: 'Read the live value of a sensor into a variable. Use it to store a snapshot or drive proportional behavior.' },
   math_var:       { icon: '🔢', label: 'math variable',  bg: '#0e1a28', tip: 'Do math on a variable: multiply, divide, add, or subtract a number. Great for scaling sensor values.' },
+  add_score:      { icon: '⭐', label: 'add score',      bg: '#1a1500', tip: 'Add points to the bot\'s running score total. Score shows in the Maker Lab monitor. Resets each time you hit Run.' },
 };
 
 const TRAY_GROUPS = [
@@ -81,6 +82,9 @@ const TRAY_GROUPS = [
   ]},
   { label: 'NOTES', items: [
     { type: 'comment' },
+  ]},
+  { label: 'GAME', items: [
+    { type: 'action', prim: 'add_score' },
   ]},
 ];
 
@@ -1103,6 +1107,13 @@ export class TileEditor {
     }
     const disp = typeof value === 'number' ? (Number.isInteger(value) ? value : value.toFixed(3)) : value;
     this._appendSerial(`${name} = ${disp}`);
+  }
+
+  _showScore(total, delta) {
+    if (this._serialEl && this._serialEl.style.display === 'none') {
+      this._serialEl.style.display = 'flex';
+    }
+    this._appendSerial(`⭐ +${delta}  (score: ${total})`);
   }
 
   _appendSerial(line) {

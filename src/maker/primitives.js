@@ -603,6 +603,21 @@ export const ACTUATORS = {
     },
   },
 
+  add_score: {
+    id: 'add_score',
+    category: 'act',
+    label: 'add score',
+    blurb: 'add points to the bot\'s running score total — shows in the Maker Lab monitor',
+    params: {
+      amount: { type: 'number', min: 1, max: 100, step: 1, default: 1 },
+    },
+    exec: (robot, p) => { robot.emit('score', { delta: Math.max(1, Math.floor(Number(p.amount) || 1)) }); },
+    firmware: {
+      arduino: (p) => `score += ${Math.max(1, Math.floor(Number(p.amount) || 1))}; Serial.print("Score: "); Serial.println(score);`,
+      micropython: (p) => `score += ${Math.max(1, Math.floor(Number(p.amount) || 1))}\nprint(f"Score: {score}")`,
+    },
+  },
+
   neopixel: {
     id: 'neopixel',
     category: 'act',
