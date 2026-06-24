@@ -68,6 +68,11 @@ export function toArduino(program) {
   for (const h of helpers) L.push(h);
   if (helpers.size) L.push('');
 
+  // Global variable declarations
+  const varNames = collectAllVarNames(program.nodes);
+  for (const name of varNames) L.push(`int ${name} = 0;`);
+  if (varNames.length) L.push('');
+
   // setup()
   L.push('void setup() {');
   for (const id of [...used.actuators, ...used.sensors]) {
@@ -126,12 +131,26 @@ function emitArduino(nodes, L, depth) {
       case 'macro':
         emitArduino(expandMacro(node) ?? [], L, depth);
         break;
+      case 'set_var':
+        L.push(pad + `${node.name || 'count'} = ${Number(node.value) || 0};`);
+        break;
+      case 'change_var': {
+        const delta = Number(node.delta) || 0;
+        const op = delta >= 0 ? '+=' : '-=';
+        L.push(pad + `${node.name || 'count'} ${op} ${Math.abs(delta)};`);
+        break;
+      }
     }
   }
 }
 
 function condArduino(cond) {
   if (!cond?.sensor) return 'false';
+  if (cond.sensor.startsWith('var:')) {
+    const name = cond.sensor.slice(4);
+    const out = `${name} ${cmpSym(cond.cmp)} ${Number(cond.value) || 0}`;
+    return cond.not ? `!(${out})` : out;
+  }
   const def = getSensor(cond.sensor);
   const expr = def?.firmware?.arduino?.() ?? 'false';
   let out;
@@ -160,6 +179,11 @@ export function toMicroPython(program) {
   const helpers = new Set();
   for (const id of [...used.actuators, ...used.sensors]) if (PY_HELPERS[id]) helpers.add(PY_HELPERS[id]);
   for (const h of helpers) { L.push(h); L.push(''); }
+
+  // Global variable declarations (before the main loop)
+  const varNames = collectAllVarNames(program.nodes);
+  for (const name of varNames) L.push(`${name} = 0`);
+  if (varNames.length) L.push('');
 
   const { loopBody } = splitRoots(program.nodes);
   L.push('while True:');
@@ -201,12 +225,25 @@ function emitPython(nodes, L, depth) {
       case 'macro':
         emitPython(expandMacro(node) ?? [], L, depth);
         break;
+      case 'set_var':
+        L.push(pad + `${node.name || 'count'} = ${Number(node.value) || 0}`);
+        break;
+      case 'change_var': {
+        const delta = Number(node.delta) || 0;
+        L.push(pad + `${node.name || 'count'} += ${delta}`);
+        break;
+      }
     }
   }
 }
 
 function condPython(cond) {
   if (!cond?.sensor) return 'False';
+  if (cond.sensor.startsWith('var:')) {
+    const name = cond.sensor.slice(4);
+    const out = `${name} ${cmpSym(cond.cmp)} ${Number(cond.value) || 0}`;
+    return cond.not ? `not (${out})` : out;
+  }
   const def = getSensor(cond.sensor);
   const expr = def?.firmware?.micropython?.() ?? 'False';
   let out;
@@ -227,6 +264,21 @@ function splitRoots(nodes) {
     return { loopBody: nodes[0].body, setupExtra: [] };
   }
   return { loopBody: nodes, setupExtra: [] };
+}
+
+/** Collect all variable names referenced anywhere in the tile tree. */
+function collectAllVarNames(nodes) {
+  const names = new Set();
+  const recur = (list) => {
+    for (const n of list) {
+      if (n.type === 'set_var' || n.type === 'change_var') names.add(n.name || 'count');
+      if (n.cond?.sensor?.startsWith('var:')) names.add(n.cond.sensor.slice(4));
+      if (n.body)     recur(n.body);
+      if (n.elseBody) recur(n.elseBody);
+    }
+  };
+  recur(nodes);
+  return [...names];
 }
 
 // ── Wokwi diagram export ──────────────────────────────────────────────────────
