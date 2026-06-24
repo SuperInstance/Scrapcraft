@@ -3,7 +3,7 @@
  * Opens over the game with [T], wires into ScrapBot.setBrain() for live testing.
  */
 
-import { TileProgram, EXAMPLE_WALL_AVOIDER, EXAMPLE_LIGHT_RUNNER, EXAMPLE_SQUARE, EXAMPLE_LINE_FOLLOWER, EXAMPLE_WAYPOINT_NAV, EXAMPLE_ORE_HUNTER, EXAMPLE_BATTERY_SAVER } from './maker/TileProgram.js';
+import { TileProgram, EXAMPLE_WALL_AVOIDER, EXAMPLE_LIGHT_RUNNER, EXAMPLE_SQUARE, EXAMPLE_LINE_FOLLOWER, EXAMPLE_WAYPOINT_NAV, EXAMPLE_ORE_HUNTER, EXAMPLE_BATTERY_SAVER, EXAMPLE_BUMP_COUNTER } from './maker/TileProgram.js';
 import { SENSORS, ACTUATORS, BRAINS, withDefaults } from './maker/primitives.js';
 import { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG, compile, TileVM, VirtualRobot } from './maker/index.js';
 import { WebSerialBridge } from './maker/WebSerialBridge.js';
@@ -28,6 +28,8 @@ const NODE_META = {
   if_else:        { icon: '⟨⟩', label: 'if / else',     bg: '#281a0a' },
   turn_angle:     { icon: '⤾',  label: 'turn angle',    bg: '#1a0c1a' },
   drive_distance: { icon: '→|', label: 'drive distance', bg: '#1a0c1a' },
+  set_var:        { icon: '=',  label: 'set variable',   bg: '#0e1a28' },
+  change_var:     { icon: '±',  label: 'change variable',bg: '#0e1a28' },
 };
 
 const TRAY_GROUPS = [
@@ -54,6 +56,10 @@ const TRAY_GROUPS = [
     { type: 'macro', kind: 'turn_angle' },
     { type: 'macro', kind: 'drive_distance' },
   ]},
+  { label: 'VARIABLES', items: [
+    { type: 'set_var' },
+    { type: 'change_var' },
+  ]},
 ];
 
 const SENSOR_LIST = Object.values(SENSORS);
@@ -76,8 +82,11 @@ function _instrSummary(instr) {
     case 'NEXT':  return '↩ next';
     case 'JZ':    return `? → ${instr.target}`;
     case 'JMP':   return `→ ${instr.target}`;
-    case 'HALT':  return '⏹';
-    default:      return '';
+    case 'HALT':       return '⏹';
+    case 'SET_VAR':    return `${instr.name} = 0`;
+    case 'GET_VAR':    return `← var:${instr.name}`;
+    case 'CHANGE_VAR': return `${instr.name} ${(instr.delta ?? 0) >= 0 ? '+' : ''}${instr.delta}`;
+    default:           return '';
   }
 }
 
@@ -105,6 +114,8 @@ function makeNode(spec) {
           ? { dir: 'right', degrees: 90 }
           : { dir: 'forward', blocks: 3 },
       };
+    case 'set_var':    return { type: 'set_var',    id, name: 'count', value: 0 };
+    case 'change_var': return { type: 'change_var', id, name: 'count', delta: 1 };
     default: return null;
   }
 }
@@ -245,6 +256,7 @@ export class TileEditor {
           waypoint_nav:    EXAMPLE_WAYPOINT_NAV,
           ore_hunter:      EXAMPLE_ORE_HUNTER,
           battery_saver:   EXAMPLE_BATTERY_SAVER,
+          bump_counter:    EXAMPLE_BUMP_COUNTER,
         };
         const prog = PRESETS[this._presetSel.value];
         if (prog) { this.loadProgram(prog); this._game.ui?.notify(`📋 Loaded: ${prog.name}`); }
@@ -488,6 +500,12 @@ export class TileEditor {
         rows.push(this._enumRow('dir', ['forward', 'backward'], node.params.dir, v => { node.params.dir = v; }));
         rows.push(this._numRow('blocks', node.params.blocks, 0.5, 20, 0.5, v => { node.params.blocks = v; }));
       }
+    } else if (node.type === 'set_var') {
+      rows.push(this._textRow('name', node.name, v => { node.name = v.replace(/[^a-z0-9_]/gi, '_') || 'count'; this._showErrors(); }));
+      rows.push(this._numRow('value', node.value, -999, 999, 1, v => { node.value = v; }));
+    } else if (node.type === 'change_var') {
+      rows.push(this._textRow('name', node.name, v => { node.name = v.replace(/[^a-z0-9_]/gi, '_') || 'count'; this._showErrors(); }));
+      rows.push(this._numRow('by', node.delta, -100, 100, 1, v => { node.delta = v; }));
     }
 
     if (!rows.length) return null;
@@ -514,7 +532,7 @@ export class TileEditor {
     });
     div.appendChild(notBtn);
 
-    // Sensor select — filter to what the selected brain tier supports
+    // Sensor select — filter to what the selected brain tier supports, plus declared variables
     const ssel = document.createElement('select');
     ssel.className = 'te-select';
     const brainIdx = BRAIN_ORDER.indexOf(this._program.brain);
@@ -525,21 +543,35 @@ export class TileEditor {
         if (s.id === cond.sensor) o.selected = true;
         ssel.appendChild(o);
       });
+    // Add variable group
+    const varNames = this._collectVarNames();
+    if (varNames.length) {
+      const grp = document.createElement('optgroup');
+      grp.label = 'VARIABLES';
+      varNames.forEach(name => {
+        const o = document.createElement('option');
+        o.value = `var:${name}`; o.textContent = `var: ${name}`;
+        if (cond.sensor === `var:${name}`) o.selected = true;
+        grp.appendChild(o);
+      });
+      ssel.appendChild(grp);
+    }
     ssel.addEventListener('change', () => {
       node.cond.sensor = ssel.value;
+      const isVar = ssel.value.startsWith('var:');
       const s = SENSORS[ssel.value];
-      node.cond.cmp   = s?.kind === 'digital' ? 'is' : 'gt';
-      node.cond.value = s?.kind === 'digital' ? true : 0.5;
-      // Re-render this node (cmp/value widgets depend on sensor kind)
+      node.cond.cmp   = (!isVar && s?.kind === 'digital') ? 'is' : 'gt';
+      node.cond.value = (!isVar && s?.kind === 'digital') ? true : (isVar ? 0 : 0.5);
       this._renderProgram();
     });
     div.appendChild(ssel);
 
     // CMP select
-    const sensor = SENSORS[cond.sensor];
+    const isVarSensor = cond.sensor?.startsWith('var:');
+    const sensor = isVarSensor ? null : SENSORS[cond.sensor];
     const csel   = document.createElement('select');
     csel.className = 'te-select';
-    const ops = sensor?.kind === 'digital' ? ['is'] : CMP_OPS.filter(c => c !== 'is');
+    const ops = (!isVarSensor && sensor?.kind === 'digital') ? ['is'] : CMP_OPS.filter(c => c !== 'is');
     ops.forEach(op => {
       const o = document.createElement('option');
       o.value = op; o.textContent = CMP_LABELS[op] ?? op;
@@ -550,7 +582,7 @@ export class TileEditor {
     div.appendChild(csel);
 
     // Value widget
-    if (sensor?.kind === 'digital' || cond.cmp === 'is') {
+    if (!isVarSensor && (sensor?.kind === 'digital' || cond.cmp === 'is')) {
       const vsel = document.createElement('select');
       vsel.className = 'te-select';
       ['true', 'false'].forEach(v => {
@@ -564,8 +596,12 @@ export class TileEditor {
     } else {
       const inp = document.createElement('input');
       inp.type = 'number'; inp.className = 'te-num-inp';
-      inp.min = 0; inp.max = 1; inp.step = 0.05;
-      inp.value = cond.value ?? 0.5;
+      if (isVarSensor) {
+        inp.min = -9999; inp.max = 9999; inp.step = 1;
+      } else {
+        inp.min = 0; inp.max = 1; inp.step = 0.05;
+      }
+      inp.value = cond.value ?? (isVarSensor ? 0 : 0.5);
       inp.style.width = '60px';
       inp.addEventListener('change', () => { node.cond.value = Number(inp.value); this._showErrors(); });
       div.appendChild(inp);
@@ -628,6 +664,28 @@ export class TileEditor {
     row.appendChild(slider);
     row.appendChild(num);
     return row;
+  }
+
+  _textRow(key, current, onChange) {
+    const row = document.createElement('div');
+    row.className = 'te-param-row';
+    const lbl = document.createElement('span');
+    lbl.className = 'te-param-key'; lbl.textContent = key;
+    row.appendChild(lbl);
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.className = 'te-param-text'; inp.value = current;
+    inp.addEventListener('change', () => onChange(inp.value));
+    row.appendChild(inp);
+    return row;
+  }
+
+  /** Collect all variable names declared in the program (set_var / change_var tiles). */
+  _collectVarNames() {
+    const names = new Set();
+    this._program.walk(n => {
+      if ((n.type === 'set_var' || n.type === 'change_var') && n.name) names.add(n.name);
+    });
+    return [...names];
   }
 
   // ── Drag / drop ───────────────────────────────────────────────────────────

@@ -1022,6 +1022,12 @@
       padding:2px 4px; border-radius:2px; font-family:inherit; font-size:10px;
       width:52px; text-align:right; outline:none;
     }
+    .te-param-text {
+      background:#0a0a0a; border:1px solid #222; color:#88aaff;
+      padding:2px 6px; border-radius:2px; font-family:inherit; font-size:10px;
+      width:80px; outline:none;
+    }
+    .te-param-text:focus { border-color:#334466; }
 
     /* Condition row */
     .te-cond {
@@ -1634,6 +1640,7 @@
           <option value="waypoint_nav">Waypoint Navigator</option>
           <option value="ore_hunter">Ore Hunter</option>
           <option value="battery_saver">Battery Saver Patrol</option>
+          <option value="bump_counter">Bump Counter (variables)</option>
         </select>
         <select id="te-bot-sel" class="te-brain-select" title="Target bot">
           <option value="1">BOT 1</option>

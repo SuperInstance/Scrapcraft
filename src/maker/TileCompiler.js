@@ -84,7 +84,9 @@ function compileNode(node, ctx) {
     case 'if_else': return compileIf(node, ctx, true);
     case 'repeat':  return compileLoop(node, ctx, false);
     case 'forever': return compileLoop(node, ctx, true);
-    case 'macro':   return compileMacro(node, ctx);
+    case 'macro':      return compileMacro(node, ctx);
+    case 'set_var':    return compileSetVar(node, ctx);
+    case 'change_var': return compileChangeVar(node, ctx);
     default:
       ctx.errors.push(`Unknown tile type "${node.type}" — skipped.`);
   }
@@ -177,6 +179,23 @@ export function expandMacro(node, ctx) {
   }
 }
 
+function compileSetVar(node, ctx) {
+  const name  = _sanitizeVarName(node.name);
+  const value = Number(node.value) || 0;
+  ctx.out.push({ op: 'CONST', value });
+  ctx.out.push({ op: 'SET_VAR', name });
+}
+
+function compileChangeVar(node, ctx) {
+  const name  = _sanitizeVarName(node.name);
+  const delta = Number(node.delta) || 0;
+  ctx.out.push({ op: 'CHANGE_VAR', name, delta });
+}
+
+function _sanitizeVarName(raw) {
+  return String(raw || 'count').replace(/[^a-z0-9_]/gi, '_') || 'count';
+}
+
 // ── Condition compilation ────────────────────────────────────────────────────
 
 function compileCondition(cond, ctx) {
@@ -185,6 +204,18 @@ function compileCondition(cond, ctx) {
     ctx.out.push({ op: 'CONST', value: 0 });
     return;
   }
+
+  // Variable read: "var:count > 5" → GET_VAR + CONST + CMP
+  if (cond.sensor.startsWith('var:')) {
+    const varName = _sanitizeVarName(cond.sensor.slice(4));
+    const cmp = CMP_OPS.has(cond.cmp) ? cond.cmp : 'gt';
+    ctx.out.push({ op: 'GET_VAR', name: varName });
+    ctx.out.push({ op: 'CONST', value: Number(cond.value) || 0 });
+    ctx.out.push({ op: 'CMP', cmp });
+    if (cond.not) ctx.out.push({ op: 'NOT' });
+    return;
+  }
+
   const def = getSensor(cond.sensor);
   if (!def) {
     ctx.errors.push(`No such sensor "${cond.sensor}" — this does not map to real hardware, treated as "false".`);

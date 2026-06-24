@@ -49,9 +49,14 @@ export const T = {
   macro:  (kind, params = {}) => ({ type: 'macro', kind, params }),
 
   // condition builders
-  cond:   (sensor, cmp, value)   => ({ sensor, cmp, value }),
-  is:     (sensor, value = true) => ({ sensor, cmp: 'is', value }),
-  not:    (c)                    => ({ ...c, not: !c.not }),
+  cond:    (sensor, cmp, value)   => ({ sensor, cmp, value }),
+  is:      (sensor, value = true) => ({ sensor, cmp: 'is', value }),
+  not:     (c)                    => ({ ...c, not: !c.not }),
+
+  // variable tiles
+  setVar:  (name, value = 0)  => ({ type: 'set_var',    name, value }),
+  changeVar:(name, delta = 1) => ({ type: 'change_var', name, delta }),
+  varCond: (name, cmp, value) => ({ sensor: `var:${name}`, cmp, value }),
 };
 
 /**
@@ -304,6 +309,32 @@ export const EXAMPLE_WAYPOINT_NAV = new TileProgram({
           ),
         ],
       ),
+    ]),
+  ],
+});
+
+// Bump counter — counts wall collisions; stops and flashes red after 5.
+// Teaches: variables, change_var, reading a variable in a condition.
+export const EXAMPLE_BUMP_COUNTER = new TileProgram({
+  name: 'Bump Counter',
+  brain: 'tin',
+  nodes: [
+    T.setVar('bumps', 0),                         // initialize counter
+    T.forever([
+      T.action('drive', { dir: 'forward', speed: 0.6 }),
+      T.if(T.is('bumped', true), [
+        T.changeVar('bumps', 1),                  // bumps += 1
+        T.action('beep', { pitch: 'high' }),
+        T.action('turn', { dir: 'right', speed: 0.6 }),
+        T.wait(0.4),
+      ]),
+      T.if(T.varCond('bumps', 'gte', 5), [        // if bumps >= 5 → stop
+        T.action('stop'),
+        T.action('led', { state: 'red' }),
+        T.action('beep', { pitch: 'low' }),
+        T.wait(2),
+        T.setVar('bumps', 0),                     // reset counter
+      ]),
     ]),
   ],
 });
