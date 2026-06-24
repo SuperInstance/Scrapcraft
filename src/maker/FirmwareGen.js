@@ -167,6 +167,13 @@ function emitArduino(nodes, L, depth) {
         L.push(pad + `${node.name || 'dist'} = ${rsExpr};`);
         break;
       }
+      case 'math_var': {
+        const mv = node.name || 'x', mop = node.op || 'mul', mo = Number(node.operand) || 0;
+        const opStr = { add: '+=', sub: '-=', mul: '*=', div: '/=' }[mop] ?? '+=';
+        if (mop === 'div' && mo === 0) L.push(pad + `// division by zero skipped`);
+        else L.push(pad + `${mv} ${opStr} ${mo};`);
+        break;
+      }
       case 'define_sub':
         // Hoisted to top level in toArduino(); skip here if encountered nested
         break;
@@ -300,6 +307,12 @@ function emitPython(nodes, L, depth) {
         L.push(pad + `${node.name || 'dist'} = ${rsExpr}`);
         break;
       }
+      case 'math_var': {
+        const mv = node.name || 'x', mop = node.op || 'mul', mo = Number(node.operand) || 0;
+        if (mop === 'div' && mo === 0) L.push(pad + `# division by zero skipped`);
+        else L.push(pad + `${mv} ${mop === 'add' ? '+' : mop === 'sub' ? '-' : mop === 'mul' ? '*' : '/'}= ${mo}`);
+        break;
+      }
       case 'define_sub':
         // Hoisted to top level in toMicroPython(); skip here if nested
         break;
@@ -368,7 +381,7 @@ function collectAllVarNames(nodes) {
   const names = new Set();
   const recur = (list) => {
     for (const n of list) {
-      if (n.type === 'set_var' || n.type === 'change_var' || n.type === 'random_var' || n.type === 'print' || n.type === 'read_sensor') names.add(n.name || 'count');
+      if (n.type === 'set_var' || n.type === 'change_var' || n.type === 'math_var' || n.type === 'random_var' || n.type === 'print' || n.type === 'read_sensor') names.add(n.name || 'count');
       if (n.cond?.sensor?.startsWith('var:')) names.add(n.cond.sensor.slice(4));
       if (Array.isArray(n.body))     recur(n.body);
       if (Array.isArray(n.elseBody)) recur(n.elseBody);

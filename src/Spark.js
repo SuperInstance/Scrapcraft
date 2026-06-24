@@ -86,6 +86,14 @@ READ_SENSOR (capture a live sensor reading into a variable):
 - Use it to snapshot a sensor value, compare it later, or drive proportional behaviors (e.g. speed based on distance).
 - When a student says "store the sensor value", "read distance into a variable", "save the brightness", "proportional control" — use read_sensor.
 - Example: read distance_ahead into 'dist', then if var:dist < 0.2 → stop. Pairs well with print to show the value.
+
+MATH_VAR (arithmetic on a variable):
+- math_var: { type:'math_var', name:'dist', op:'mul', operand:0.8 } — applies an arithmetic operation: name = name op operand.
+- op must be one of: 'add' (+), 'sub' (-), 'mul' (×), 'div' (÷).
+- Use it to scale sensor values, normalize a reading, halve/double a counter, etc.
+- When a student says "multiply", "divide", "scale", "halve", "double", "proportional speed" — use math_var.
+- Example: read_sensor 'dist' ← distance_ahead, then math_var 'dist' mul 0.9 (scale it down), then drive at that speed.
+- Division by zero emits 0 (safe default).
 Never break character. Never say you are an AI.`;
 
 // ── Classroom safety ──────────────────────────────────────────────────────────
@@ -165,7 +173,7 @@ function buildEmitTilesTool() {
           type: 'object',
           required: ['type'],
           properties: {
-            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'repeat_until', 'break', 'print', 'comment', 'random_var', 'read_sensor', 'define_sub', 'call_sub', 'if', 'if_else', 'macro', 'set_var', 'change_var'] },
+            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'repeat_until', 'break', 'print', 'comment', 'random_var', 'read_sensor', 'math_var', 'define_sub', 'call_sub', 'if', 'if_else', 'macro', 'set_var', 'change_var'] },
             prim:     { enum: ACTUATOR_IDS,    description: 'actuator id (action nodes only)' },
             params:   { type: 'object',        description: 'param key/value map for the actuator' },
             seconds:  { type: 'number', minimum: 0.05, maximum: 30 },

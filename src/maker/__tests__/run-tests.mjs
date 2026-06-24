@@ -732,6 +732,62 @@ console.log('\nread_sensor');
   ok('Python codegen emits sensor read', py.includes('dist = read_distance()'));
 }
 
+// ── 21. math_var ─────────────────────────────────────────────────────────
+console.log('\nmath_var');
+{
+  const prog = new TileProgram({ name: 'MathTest', brain: 'tin', nodes: [
+    T.setVar('x', 10),
+    T.mathVar('x', 'mul', 2),
+    T.mathVar('x', 'add', 5),
+    T.mathVar('x', 'sub', 3),
+    T.mathVar('x', 'div', 4),
+  ]});
+
+  const res = compile(prog);
+  ok('math_var program compiles ok', res.ok, res.errors.join(', '));
+  ok('emits MATH_VAR opcode', res.bytecode.some(i => i.op === 'MATH_VAR'));
+  const mv = res.bytecode.find(i => i.op === 'MATH_VAR' && i.mathOp === 'mul');
+  ok('MATH_VAR carries mathOp', mv?.mathOp === 'mul', `mathOp=${mv?.mathOp}`);
+  ok('MATH_VAR carries operand', mv?.operand === 2, `operand=${mv?.operand}`);
+
+  // VM: (10 * 2 + 5 - 3) / 4 = 22 / 4 = 5.5
+  {
+    const world = new MockWorld();
+    const vm = new TileVM(res.bytecode, res.sourceMap);
+    vm.robot = new VirtualRobot(world); vm.world = world;
+    while (!vm.halted) vm.step(0.016);
+    const xVal = vm.vars['x'];
+    ok('VM math chain: (10 * 2 + 5 - 3) / 4 = 5.5', Math.abs(xVal - 5.5) < 0.001, `x=${xVal}`);
+  }
+
+  // division by zero → 0
+  {
+    const dz = new TileProgram({ nodes: [ T.setVar('y', 9), T.mathVar('y', 'div', 0) ] });
+    const dzRes = compile(dz);
+    const world = new MockWorld();
+    const vm = new TileVM(dzRes.bytecode, dzRes.sourceMap);
+    vm.robot = new VirtualRobot(world); vm.world = world;
+    while (!vm.halted) vm.step(0.016);
+    ok('division by zero → 0 (no crash)', vm.vars['y'] === 0, `y=${vm.vars['y']}`);
+  }
+
+  // warns when used before set_var
+  const warnProg = new TileProgram({ nodes: [ T.mathVar('z', 'mul', 2) ] });
+  const warnRes = compile(warnProg);
+  ok('warns: math_var without set_var', warnRes.warnings.some(w => w.includes('"z"')));
+
+  // Arduino codegen
+  const fw = toArduino(prog);
+  ok('Arduino codegen emits *=', fw.includes('x *= 2'));
+  ok('Arduino codegen emits +=', fw.includes('x += 5'));
+  ok('Arduino codegen emits -=', fw.includes('x -= 3'));
+  ok('Arduino codegen emits /=', fw.includes('x /= 4'));
+
+  // Python codegen
+  const py = toMicroPython(prog);
+  ok('Python codegen emits *=', py.includes('x *= 2'));
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
