@@ -78,7 +78,7 @@ export function compile(program) {
     const name = (sub.name ?? 'sub').trim() || 'sub';
     ctx.subs[name] = ctx.out.length;
     if (sub.id) ctx.sourceMap.push({ pc: ctx.out.length, nodeId: sub.id });
-    for (const child of sub.body ?? []) compileNode(child, ctx);
+    for (const child of Array.isArray(sub.body) ? sub.body : []) compileNode(child, ctx);
     ctx.out.push({ op: 'SUB_RETURN' });
   }
 
@@ -109,8 +109,8 @@ function _checkVarInit(nodes, ctx) {
       if (n.type === 'set_var' && n.name) declared.add(n.name);
       if (n.type === 'change_var' && n.name) used.add(n.name);
       if (n.cond?.sensor?.startsWith('var:')) used.add(n.cond.sensor.slice(4));
-      if (n.body)     walk(n.body);
-      if (n.elseBody) walk(n.elseBody);
+      if (Array.isArray(n.body))     walk(n.body);
+      if (Array.isArray(n.elseBody)) walk(n.elseBody);
       // repeat_until has a cond (already handled above) and a body (already handled)
     }
   };
@@ -176,12 +176,12 @@ function compileIf(node, ctx, hasElse) {
 
   // JZ over the THEN body
   const jzIdx = emitPlaceholder(ctx, 'JZ');
-  for (const child of node.body ?? []) compileNode(child, ctx);
+  for (const child of Array.isArray(node.body) ? node.body : []) compileNode(child, ctx);
 
   if (hasElse) {
     const jmpIdx = emitPlaceholder(ctx, 'JMP');   // THEN falls through past ELSE
     patch(ctx, jzIdx, ctx.out.length);            // JZ → start of ELSE
-    for (const child of node.elseBody ?? []) compileNode(child, ctx);
+    for (const child of Array.isArray(node.elseBody) ? node.elseBody : []) compileNode(child, ctx);
     patch(ctx, jmpIdx, ctx.out.length);           // JMP → after ELSE
   } else {
     patch(ctx, jzIdx, ctx.out.length);            // JZ → after THEN
@@ -194,7 +194,7 @@ function compileLoop(node, ctx, forever) {
   ctx.out.push({ op: 'LOOP', count, forever, end: -1 });   // end patched below
 
   const head = ctx.out.length;                              // first body instruction
-  for (const child of node.body ?? []) compileNode(child, ctx);
+  for (const child of Array.isArray(node.body) ? node.body : []) compileNode(child, ctx);
   ctx.out.push({ op: 'NEXT', head });
 
   patch(ctx, loopIdx, ctx.out.length, 'end');               // LOOP.end → after NEXT
@@ -217,7 +217,7 @@ function compileUntil(node, ctx) {
   ctx.out.push({ op: 'NOT' });
   const jzIdx = emitPlaceholder(ctx, 'JZ');                    // exit when cond is true
 
-  for (const child of node.body ?? []) compileNode(child, ctx);
+  for (const child of Array.isArray(node.body) ? node.body : []) compileNode(child, ctx);
   ctx.out.push({ op: 'UNTIL', condStart });
 
   patch(ctx, jzIdx, ctx.out.length);                           // JZ → after UNTIL
