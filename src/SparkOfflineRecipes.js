@@ -486,6 +486,29 @@ export const OFFLINE_RECIPES = [
       ]),
     ]}),
   },
+  {
+    keywords: ['score', 'points', 'add score', 'earn points', 'tallying', 'scoring', 'leaderboard'],
+    reply:    "Score keeper bot! It drives around and earns a point every time it bumps a wall. LED turns gold when score hits 5. Watch the Maker Lab monitor to see the score climb!",
+    program:  new TileProgram({ name: 'Score Keeper', brain: 'tin', nodes: [
+      T.setVar('hits', 0),
+      T.forever([
+        T.action('drive', { dir: 'forward', speed: 0.6 }),
+        T.if(T.is('bumped', true), [
+          T.changeVar('hits', 1),
+          T.action('add_score', { amount: 1 }),
+          T.action('beep', { pitch: 'high' }),
+          T.action('turn', { dir: 'right', speed: 0.6 }),
+          T.wait(0.4),
+        ]),
+        T.if(T.varCond('hits', 'gte', 5), [
+          T.action('led', { state: 'green' }),
+          T.action('beep', { pitch: 'high' }),
+          T.wait(0.2),
+          T.action('beep', { pitch: 'high' }),
+        ]),
+      ]),
+    ]}),
+  },
 ];
 
 /** Returns best-matching recipe or null if no keyword hits. */
