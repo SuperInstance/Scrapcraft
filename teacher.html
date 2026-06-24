@@ -261,9 +261,19 @@
       <div class="challenge-row" style="margin-top:12px">
         <select class="challenge-select" id="challenge-select">
           <option value="">— Select a challenge to assign —</option>
-          <option value="wall_avoider_30">🤖 Wall Avoider — Survive 30 seconds without bumping</option>
-          <option value="wall_avoider_60">🤖 Wall Avoider — Survive 60 seconds without bumping</option>
-          <option value="wall_avoider_120">🤖 Speed Run — Survive 2 minutes without bumping</option>
+          <optgroup label="Wall Avoider (no bumping)">
+            <option value="wall_avoider_30">🤖 Wall Avoider — Survive 30 seconds</option>
+            <option value="wall_avoider_60">🤖 Wall Avoider — Survive 60 seconds</option>
+            <option value="wall_avoider_120">🤖 Speed Run — Survive 2 minutes</option>
+          </optgroup>
+          <optgroup label="Exploration (beginner)">
+            <option value="exploration_20">🚀 Keep It Running — Run bot for 20 seconds</option>
+            <option value="exploration_45">🚀 Endurance Run — Run bot for 45 seconds</option>
+          </optgroup>
+          <optgroup label="Efficiency (advanced)">
+            <option value="efficiency_a_30">⚡ Lean Machine — Grade A for 30 seconds</option>
+            <option value="efficiency_aplus_30">⚡ Optimizer — Grade A+ for 30 seconds</option>
+          </optgroup>
         </select>
         <button class="btn btn-primary" id="btn-assign">Assign →</button>
         <button class="btn btn-danger"  id="btn-end-challenge" style="display:none">End Challenge</button>
@@ -329,6 +339,26 @@ const CHALLENGE_DEFS = {
     title: 'Speed Run (2 min)',
     description: 'Run your robot for 2 full minutes without any bumps. Efficiency matters!',
     criteria: { type: 'wall_avoider', durationSec: 120 },
+  },
+  exploration_20: {
+    title: 'Keep It Running (20s)',
+    description: 'Write any program and keep your robot moving for 20 seconds. Great for beginners!',
+    criteria: { type: 'exploration', durationSec: 20 },
+  },
+  exploration_45: {
+    title: 'Endurance Run (45s)',
+    description: 'Keep your robot running continuously for 45 seconds. Any program counts!',
+    criteria: { type: 'exploration', durationSec: 45 },
+  },
+  efficiency_a_30: {
+    title: 'Lean Machine (Grade A)',
+    description: 'Write an efficient program — achieve grade A or better while running for 30 seconds!',
+    criteria: { type: 'efficiency_runner', durationSec: 30, targetGrade: 'A' },
+  },
+  efficiency_aplus_30: {
+    title: 'Optimizer (Grade A+)',
+    description: 'The ultimate efficiency challenge — achieve grade A+ for 30 seconds. Fewest steps wins!',
+    criteria: { type: 'efficiency_runner', durationSec: 30, targetGrade: 'A+' },
   },
 };
 
