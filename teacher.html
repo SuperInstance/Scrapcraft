@@ -140,6 +140,55 @@
     padding: 3px 8px; border-radius: 2px; cursor: pointer;
   }
   .btn-small:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Brain viewer button */
+  .view-brain-btn {
+    background: none; border: 1px solid #223; color: #446;
+    font-family: inherit; font-size: 8px; padding: 1px 5px;
+    border-radius: 2px; cursor: pointer; vertical-align: middle;
+  }
+  .view-brain-btn:hover { border-color: #44aaff; color: #44aaff; }
+
+  /* Brain viewer modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-box {
+    background: #0d0d0d; border: 1px solid #222;
+    border-radius: 4px; width: 480px; max-width: 95vw;
+    max-height: 80vh; display: flex; flex-direction: column;
+    font-family: 'Courier New', monospace;
+  }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border-bottom: 1px solid #1a1a1a;
+    font-size: 11px; letter-spacing: 0.1em; color: var(--accent);
+  }
+  .modal-close {
+    background: none; border: none; color: #444; cursor: pointer;
+    font-size: 14px; line-height: 1;
+  }
+  .modal-close:hover { color: #fff; }
+  .modal-body {
+    padding: 12px 14px; overflow-y: auto; flex: 1;
+    font-size: 11px; line-height: 1.8;
+  }
+  .bm-prog-name { color: var(--accent); margin-bottom: 8px; }
+  .bm-brain-badge {
+    font-size: 8px; border: 1px solid #333; color: #555;
+    padding: 1px 5px; border-radius: 2px; vertical-align: middle;
+  }
+  .bm-tile { color: #aaa; }
+  .bm-action { color: #66cc88; }
+  .bm-wait   { color: #ccaa44; }
+  .bm-loop   { color: #8877cc; }
+  .bm-if     { color: #cc8844; }
+  .bm-macro  { color: #aa66cc; }
+  .bm-var    { color: #88aaff; }
+  .bm-label  { font-size: 8px; letter-spacing: 0.1em; color: #333; margin: 2px 0; }
   table {
     width: 100%; border-collapse: collapse; font-size: 11px;
   }
@@ -309,6 +358,16 @@
       <div class="refresh-bar"><div class="refresh-fill" id="refresh-fill" style="width:0%"></div></div>
     </div>
 
+  </div>
+</div>
+
+<div class="modal-overlay" id="brain-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span id="bm-title">Brain</span>
+      <button class="modal-close" id="bm-close">✕</button>
+    </div>
+    <div class="modal-body" id="bm-body"></div>
   </div>
 </div>
 
@@ -525,8 +584,11 @@ function renderRoster(data) {
     } else if (!currentChallenge) {
       gradeBadge = '<span class="pending-grade" style="color:#333">no challenge</span>';
     }
+    const brainLink = s.has_save
+      ? `<button class="view-brain-btn" data-session="${s.id}" data-name="${esc(s.display_name)}">👁 Brain</button>`
+      : '';
     return `<tr>
-      <td class="student-name">${esc(s.display_name)}</td>
+      <td class="student-name">${esc(s.display_name)} ${brainLink}</td>
       <td class="last-seen">${lastSeen}</td>
       <td>${saveBadge}</td>
       <td>${gradeBadge}</td>
@@ -631,6 +693,93 @@ document.getElementById('btn-end-challenge').addEventListener('click', async () 
     refresh();
   } catch (e) { toast('Network error: ' + e.message); }
 });
+
+// Brain modal close
+document.getElementById('bm-close').addEventListener('click', () => {
+  document.getElementById('brain-modal').classList.remove('show');
+});
+document.getElementById('brain-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
+});
+
+// Brain viewer — event delegation on the roster table
+document.getElementById('roster-body').addEventListener('click', e => {
+  const btn = e.target.closest('.view-brain-btn');
+  if (!btn) return;
+  const sessionId = btn.dataset.session;
+  const name = btn.dataset.name;
+  showStudentBrain(sessionId, name);
+});
+
+async function showStudentBrain(sessionId, displayName) {
+  const modal = document.getElementById('brain-modal');
+  const title = document.getElementById('bm-title');
+  const body  = document.getElementById('bm-body');
+  title.textContent = `${displayName}'s Brain`;
+  body.textContent = 'Loading…';
+  modal.classList.add('show');
+
+  try {
+    const url = workerUrl + `/api/v1/class/${classCode}/student/${encodeURIComponent(sessionId)}/brain?key=` + encodeURIComponent(teacherKey);
+    const r = await fetch(url);
+    if (!r.ok) { body.textContent = 'Failed to load brain data.'; return; }
+    const { brain } = await r.json();
+    if (!brain || !brain.nodes?.length) {
+      body.textContent = 'No tile program found in this student\'s save.';
+      return;
+    }
+    body.innerHTML = `<div class="bm-prog-name">${esc(brain.name ?? 'Untitled')} <span class="bm-brain-badge">${esc(brain.brain ?? 'tin')}</span></div>`
+      + brainToHtml(brain.nodes, 0);
+  } catch (e) {
+    body.textContent = 'Network error: ' + e.message;
+  }
+}
+
+function brainToHtml(nodes, depth) {
+  const pad = depth * 16;
+  return nodes.map(n => {
+    const s = `style="margin-left:${pad}px"`;
+    switch (n.type) {
+      case 'action':    return `<div class="bm-tile bm-action" ${s}>▶ ${esc(n.prim)} ${paramStr(n.params)}</div>`;
+      case 'wait':      return `<div class="bm-tile bm-wait"   ${s}>⏱ wait ${n.seconds}s</div>`;
+      case 'set_var':   return `<div class="bm-tile bm-var"    ${s}>= ${esc(n.name)} = ${n.value}</div>`;
+      case 'change_var':return `<div class="bm-tile bm-var"    ${s}>± ${esc(n.name)} += ${n.delta}</div>`;
+      case 'macro':
+        if (n.kind === 'turn_angle')    return `<div class="bm-tile bm-macro" ${s}>⤾ turn ${n.params?.dir} ${n.params?.degrees}°</div>`;
+        if (n.kind === 'drive_distance') return `<div class="bm-tile bm-macro" ${s}>→| drive ${n.params?.dir} ${n.params?.blocks} blocks</div>`;
+        return `<div class="bm-tile bm-macro" ${s}>⤾ ${esc(n.kind)}</div>`;
+      case 'forever':
+        return `<div class="bm-tile bm-loop"   ${s}>∞ forever</div>` + brainToHtml(n.body ?? [], depth + 1);
+      case 'repeat':
+        return `<div class="bm-tile bm-loop"   ${s}>↺ repeat ×${n.count}</div>` + brainToHtml(n.body ?? [], depth + 1);
+      case 'if':
+        return `<div class="bm-tile bm-if"     ${s}>? if ${condStr(n.cond)}</div>`
+          + `<div class="bm-label" style="margin-left:${pad + 8}px">THEN</div>`
+          + brainToHtml(n.body ?? [], depth + 1);
+      case 'if_else':
+        return `<div class="bm-tile bm-if"     ${s}>? if ${condStr(n.cond)}</div>`
+          + `<div class="bm-label" style="margin-left:${pad + 8}px">THEN</div>`
+          + brainToHtml(n.body ?? [], depth + 1)
+          + `<div class="bm-label" style="margin-left:${pad + 8}px">ELSE</div>`
+          + brainToHtml(n.elseBody ?? [], depth + 1);
+      default:
+        return `<div class="bm-tile" ${s}>${esc(n.type)}</div>`;
+    }
+  }).join('');
+}
+
+function condStr(cond) {
+  if (!cond) return '?';
+  const cmpMap = { gt: '>', lt: '<', gte: '≥', lte: '≤', eq: '=', neq: '≠', is: 'is' };
+  const sensor = cond.sensor?.startsWith('var:') ? `var:${cond.sensor.slice(4)}` : cond.sensor;
+  const prefix = cond.not ? 'NOT ' : '';
+  return `${prefix}${esc(sensor)} ${cmpMap[cond.cmp] ?? cond.cmp} ${cond.value}`;
+}
+
+function paramStr(params) {
+  if (!params || typeof params !== 'object') return '';
+  return Object.entries(params).map(([k, v]) => `${k}:${v}`).join(' ');
+}
 
 document.getElementById('btn-csv').addEventListener('click', () => {
   if (!classCode || !workerUrl) { toast('Not connected to a class.'); return; }
