@@ -14,6 +14,7 @@
  *
  *    • WAIT            — non-blocking timer; resumes after `seconds` elapse
  *    • forever NEXT    — one pass of an endless loop per tick (mirrors loop())
+ *    • UNTIL           — repeat_until back-edge; yields one tick then re-checks condition
  *    • instruction budget exhausted — hard safety net against pathological
  *                        tight loops (e.g. a counted repeat of 1e9)
  *
@@ -182,6 +183,12 @@ export class TileVM {
         }
         break;
       }
+
+      case 'UNTIL':
+        // repeat_until back-edge: jump to condStart and yield one tick (like forever NEXT)
+        this.pc = instr.condStart;
+        this._yield = true;
+        break;
 
       case 'SET_VAR':
         this.vars[instr.name] = this.stack.pop() ?? 0;

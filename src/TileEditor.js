@@ -28,6 +28,7 @@ const NODE_META = {
   if_else:        { icon: '⟨⟩', label: 'if / else',     bg: '#281a0a', tip: 'Check a sensor. Run THEN tiles if true, ELSE tiles if false. Always does one or the other.' },
   turn_angle:     { icon: '⤾',  label: 'turn angle',    bg: '#1a0c1a', tip: 'Turn an exact number of degrees (e.g. 90° for a square corner). A macro — expands to turn + wait.' },
   drive_distance: { icon: '→|', label: 'drive distance', bg: '#1a0c1a', tip: 'Drive an exact distance in world units. A macro — expands to drive + timed wait.' },
+  repeat_until:   { icon: '↻?', label: 'repeat until',   bg: '#18102a', tip: 'Keep running the tiles inside until the condition becomes true — like a while loop. Pairs perfectly with variables.' },
   set_var:        { icon: '=',  label: 'set variable',   bg: '#0e1a28', tip: 'Create a named number and set its starting value. Run this before your forever loop.' },
   change_var:     { icon: '±',  label: 'change variable',bg: '#0e1a28', tip: 'Add (or subtract) a number from a variable. Use it inside loops to count things.' },
 };
@@ -49,6 +50,7 @@ const TRAY_GROUPS = [
   { label: 'FLOW', items: [
     { type: 'forever' },
     { type: 'repeat' },
+    { type: 'repeat_until' },
     { type: 'if' },
     { type: 'if_else' },
   ]},
@@ -80,6 +82,7 @@ function _instrSummary(instr) {
     case 'WAIT':  return `⏱ ${instr.seconds}s`;
     case 'LOOP':  return instr.forever ? '∞ forever' : `↺ ×${instr.count}`;
     case 'NEXT':  return '↩ next';
+    case 'UNTIL': return '↩ until';
     case 'JZ':    return `? → ${instr.target}`;
     case 'JMP':   return `→ ${instr.target}`;
     case 'HALT':       return '⏹';
@@ -114,6 +117,8 @@ function makeNode(spec) {
           ? { dir: 'right', degrees: 90 }
           : { dir: 'forward', blocks: 3 },
       };
+    case 'repeat_until':
+      return { type: 'repeat_until', id, cond: { sensor: 'distance_ahead', cmp: 'lt', value: 0.25 }, body: [] };
     case 'set_var':    return { type: 'set_var',    id, name: 'count', value: 0 };
     case 'change_var': return { type: 'change_var', id, name: 'count', delta: 1 };
     default: return null;
@@ -470,13 +475,16 @@ export class TileEditor {
     const pDiv = this._renderParams(node);
     if (pDiv) el.appendChild(pDiv);
 
-    // Condition row (if / if_else)
-    if (node.type === 'if' || node.type === 'if_else') {
+    // Condition row (if / if_else / repeat_until)
+    if (node.type === 'if' || node.type === 'if_else' || node.type === 'repeat_until') {
       el.appendChild(this._renderCond(node));
     }
 
     // Body regions
     if (node.type === 'forever' || node.type === 'repeat') {
+      el.appendChild(this._renderBody(node.body, 'DO'));
+    }
+    if (node.type === 'repeat_until') {
       el.appendChild(this._renderBody(node.body, 'DO'));
     }
     if (node.type === 'if' || node.type === 'if_else') {

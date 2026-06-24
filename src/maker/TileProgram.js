@@ -16,9 +16,10 @@
  *  ──────────
  *    action       { type:'action', prim, params }          do one actuator op
  *    wait         { type:'wait',   seconds }                pause (non-blocking)
- *    repeat       { type:'repeat', count, body:[...] }      loop N times
- *    forever      { type:'forever', body:[...] }            loop endlessly (= loop())
- *    if           { type:'if',   cond, body:[...] }         conditional
+ *    repeat       { type:'repeat', count, body:[...] }          loop N times
+ *    forever      { type:'forever', body:[...] }                loop endlessly (= loop())
+ *    repeat_until { type:'repeat_until', cond, body:[...] }     loop until cond is true (= while !cond)
+ *    if           { type:'if',   cond, body:[...] }             conditional
  *    if_else      { type:'if_else', cond, body:[...], elseBody:[...] }
  *    macro        { type:'macro', kind, params }            expands at compile time
  *                                                            (Layer-1 "intent" tiles)
@@ -54,9 +55,12 @@ export const T = {
   not:     (c)                    => ({ ...c, not: !c.not }),
 
   // variable tiles
-  setVar:  (name, value = 0)  => ({ type: 'set_var',    name, value }),
-  changeVar:(name, delta = 1) => ({ type: 'change_var', name, delta }),
-  varCond: (name, cmp, value) => ({ sensor: `var:${name}`, cmp, value }),
+  setVar:    (name, value = 0)         => ({ type: 'set_var',      name, value }),
+  changeVar: (name, delta = 1)         => ({ type: 'change_var',   name, delta }),
+  varCond:   (name, cmp, value)        => ({ sensor: `var:${name}`, cmp, value }),
+
+  // repeat_until: runs body until condition becomes true (= while !cond)
+  repeatUntil: (cond, body = []) => ({ type: 'repeat_until', cond, body }),
 };
 
 /**

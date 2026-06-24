@@ -415,6 +415,78 @@ console.log('\nAchievement — variable tracking');
   ok('tally_champion NOT unlocked at peak 5', !unlocked2.includes('tally_champion'));
 }
 
+// ── 14. repeat_until tile ──────────────────────────────────────────────────
+console.log('\nrepeat_until tile');
+{
+  // Basic compile: repeat_until emits NOT + JZ + UNTIL opcodes
+  const prog = new TileProgram({ nodes: [
+    T.repeatUntil(T.cond('distance_ahead', 'lt', 0.25), [
+      T.action('drive', { dir: 'forward', speed: 0.5 }),
+    ]),
+    T.action('stop'),
+  ]});
+  const r = compile(prog);
+  ok('repeat_until compiles without errors', r.ok, JSON.stringify(r.errors));
+  ok('emits NOT opcode (condition inversion)', r.bytecode.some(i => i.op === 'NOT'));
+  ok('emits UNTIL opcode (loop back-edge)', r.bytecode.some(i => i.op === 'UNTIL'));
+  ok('emits HALT terminator', r.bytecode.at(-1).op === 'HALT');
+
+  // VM behaviour: loop runs until condition becomes true
+  {
+    const world = new MockWorld();
+    world.dist = 1.0;    // clear ahead
+    const rt = new MakerRuntime(prog, { x: 0, z: 0, heading: 0 }, world);
+
+    // Run a few ticks — condition false (dist=1.0 is not < 0.25) → body runs
+    rt.tick(0.016);
+    rt.tick(0.016);
+    ok('body runs while condition is false', rt.robot.drivePower > 0,
+       `drivePower=${rt.robot.drivePower}`);
+
+    // Set world dist to trigger exit (dist < 0.25 → condition true → loop exits)
+    world.dist = 0.1;
+    rt.tick(0.016);   // this tick re-checks condition → exits loop → runs stop
+    rt.tick(0.016);   // executes stop, then HALT
+    ok('loop exits when condition becomes true', rt.vm.halted || rt.robot.drivePower === 0,
+       `halted=${rt.vm.halted} drivePower=${rt.robot.drivePower}`);
+  }
+
+  // repeat_until with var: condition
+  const varProg = new TileProgram({ nodes: [
+    T.setVar('n', 0),
+    T.repeatUntil(T.varCond('n', 'gte', 3), [
+      T.changeVar('n', 1),
+    ]),
+    T.action('beep', { pitch: 'high' }),
+  ]});
+  const vr = compile(varProg);
+  ok('repeat_until with var condition compiles ok', vr.ok, JSON.stringify(vr.errors));
+  {
+    const world2 = new MockWorld();
+    const rt2 = new MakerRuntime(varProg, {}, world2);
+    // Tick enough to run: set_var, then repeat_until body 3 times, then beep, then halt
+    for (let i = 0; i < 30; i++) rt2.tick(0.016);
+    ok('var n incremented to 3 by repeat_until', rt2.vm.vars.n === 3, `n=${rt2.vm.vars.n}`);
+    ok('program halted after repeat_until exits', rt2.vm.halted);
+  }
+
+  // Firmware codegen: Arduino generates while (!(cond)) { ... }
+  const fw = toArduino(prog);
+  ok('Arduino codegen emits while(!(...))', fw.includes('while (!('));
+
+  // Firmware codegen: Python generates while not (...)
+  const py = toMicroPython(prog);
+  ok('Python codegen emits while not (...)', py.includes('while not'));
+
+  // _checkVarInit: var used in repeat_until condition warns if not initialized
+  const uninitProg = new TileProgram({ nodes: [
+    T.repeatUntil(T.varCond('counter', 'gte', 5), [ T.action('stop') ]),
+  ]});
+  const ur = compile(uninitProg);
+  ok('warns when var in repeat_until cond is never initialized',
+     ur.warnings.some(w => w.includes('"counter"')));
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
