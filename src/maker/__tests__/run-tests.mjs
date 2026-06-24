@@ -599,6 +599,33 @@ console.log('\ncomment tile');
   ok('Python codegen emits # comment', py.includes('# initialize the counter'));
 }
 
+// ── 18. random_var tile ────────────────────────────────────────────────────
+console.log('\nrandom_var tile');
+{
+  const prog = new TileProgram({ nodes: [
+    { type: 'random_var', name: 'roll', min: 1, max: 6 },
+  ]});
+  const r = compile(prog);
+  ok('random_var compiles ok', r.ok, JSON.stringify(r.errors));
+  ok('emits RAND_VAR opcode', r.bytecode.some(i => i.op === 'RAND_VAR'));
+  ok('RAND_VAR carries min/max', r.bytecode.some(i => i.op === 'RAND_VAR' && i.min === 1 && i.max === 6));
+
+  // VM: variable is set to a value within [min, max]
+  const rt = new MakerRuntime(prog, {}, new MockWorld());
+  for (let i = 0; i < 20; i++) rt.tick(0.016);
+  const roll = rt.vm.vars.roll;
+  ok('random result is within [1, 6]', roll >= 1 && roll <= 6, `roll=${roll}`);
+  ok('program halts after random_var', rt.vm.halted);
+
+  // Firmware: Arduino uses random()
+  const fw = toArduino(prog);
+  ok('Arduino codegen emits random()', fw.includes('random('));
+
+  // Firmware: Python uses random.randint
+  const py = toMicroPython(prog);
+  ok('Python codegen emits random.randint', py.includes('random.randint'));
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
