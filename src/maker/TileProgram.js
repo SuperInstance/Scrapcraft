@@ -23,6 +23,7 @@
  *    print        { type:'print', name }                         emit variable value to serial/HUD (console.log)
  *    comment      { type:'comment', text }                       non-executing annotation (becomes a code comment)
  *    random_var   { type:'random_var', name, min, max }          set variable to random integer in [min, max]
+ *    read_sensor  { type:'read_sensor', name, sensor }           read live sensor value into a variable
  *    if           { type:'if',   cond, body:[...] }             conditional
  *    if_else      { type:'if_else', cond, body:[...], elseBody:[...] }
  *    macro        { type:'macro', kind, params }            expands at compile time
@@ -77,6 +78,9 @@ export const T = {
 
   // random_var: set a variable to a random integer in [min, max]
   randomVar: (name, min = 1, max = 10) => ({ type: 'random_var', name, min, max }),
+
+  // read_sensor: capture the live numeric value of a sensor into a variable
+  readSensor: (name, sensor = 'distance_ahead') => ({ type: 'read_sensor', name, sensor }),
 };
 
 /**
@@ -124,8 +128,8 @@ export class TileProgram {
     const recur = (list, depth) => {
       for (const node of list) {
         cb(node, depth, list);
-        if (node.body) recur(node.body, depth + 1);
-        if (node.elseBody) recur(node.elseBody, depth + 1);
+        if (Array.isArray(node.body)) recur(node.body, depth + 1);
+        if (Array.isArray(node.elseBody)) recur(node.elseBody, depth + 1);
       }
     };
     recur(this.nodes, 0);
@@ -137,6 +141,7 @@ export class TileProgram {
     this.walk((n) => {
       if (n.type === 'action') acts.add(n.prim);
       if (n.cond?.sensor) sensors.add(n.cond.sensor);
+      if (n.type === 'read_sensor' && n.sensor) sensors.add(n.sensor);
     });
     return { actuators: [...acts], sensors: [...sensors] };
   }

@@ -40,6 +40,7 @@
  *    RAND_VAR  {name,min,max}  set vars[name] to a random integer in [min, max]
  *    CALL_SUB  {name,target}  push return address, jump to sub start
  *    SUB_RETURN               pop return address and resume
+ *    READ_SENSOR {name,sensor}  read live sensor into vars[name] (numeric, not boolean)
  *    HALT                  stop the program
  * ───────────────────────────────────────────────────────────────────────────
  */
@@ -106,7 +107,7 @@ function _checkVarInit(nodes, ctx) {
   const used     = new Set();
   const walk = (list) => {
     for (const n of list) {
-      if (n.type === 'set_var' && n.name) declared.add(n.name);
+      if ((n.type === 'set_var' || n.type === 'read_sensor') && n.name) declared.add(n.name);
       if (n.type === 'change_var' && n.name) used.add(n.name);
       if (n.cond?.sensor?.startsWith('var:')) used.add(n.cond.sensor.slice(4));
       if (Array.isArray(n.body))     walk(n.body);
@@ -150,6 +151,7 @@ function compileNode(node, ctx) {
       // nested (e.g. inside forever), warn and skip rather than crash.
       ctx.warnings.push(`"define subroutine" tile "${node.name || 'sub'}" must be at the top level — move it out of loops and conditions.`);
       return;
+    case 'read_sensor': return compileReadSensor(node, ctx);
     case 'macro':      return compileMacro(node, ctx);
     case 'set_var':    return compileSetVar(node, ctx);
     case 'change_var': return compileChangeVar(node, ctx);
@@ -294,6 +296,15 @@ function compileCallSub(node, ctx) {
   ctx.out.push({ op: 'CALL_SUB', name, target: -1 });
   if (!ctx.callPatches[name]) ctx.callPatches[name] = [];
   ctx.callPatches[name].push(idx);
+}
+
+function compileReadSensor(node, ctx) {
+  const name = _sanitizeVarName(node.name);
+  const sensor = node.sensor;
+  if (!getSensor(sensor)) {
+    ctx.errors.push(`No such sensor "${sensor}" — this does not map to real hardware, treated as 0.`);
+  }
+  ctx.out.push({ op: 'READ_SENSOR', name, sensor });
 }
 
 function _sanitizeVarName(raw) {

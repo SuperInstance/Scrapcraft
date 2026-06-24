@@ -439,6 +439,29 @@ export const OFFLINE_RECIPES = [
       ]},
     ]}),
   },
+  {
+    keywords: ['read sensor', 'sensor variable', 'store sensor', 'sensor value', 'capture distance', 'proportional', 'snapshot', 'save reading'],
+    reply:    "Sensor snapshot! Every loop the bot reads the distance sensor into the 'dist' variable, prints it to the serial monitor, and slows down when close to a wall. That's proportional-ish control — no magic, just math on real data!",
+    program:  new TileProgram({ name: 'Sensor Logger', brain: 'spark', nodes: [
+      T.setVar('dist', 0),
+      T.forever([
+        T.readSensor('dist', 'distance_ahead'),
+        T.print('dist'),
+        T.ifElse(
+          T.varCond('dist', 'lt', 0.3),
+          [
+            T.action('led', { state: 'red' }),
+            T.action('drive', { dir: 'forward', speed: 0.2 }),
+          ],
+          [
+            T.action('led', { state: 'green' }),
+            T.action('drive', { dir: 'forward', speed: 0.7 }),
+          ],
+        ),
+        T.wait(0.1),
+      ]),
+    ]}),
+  },
 ];
 
 /** Returns best-matching recipe or null if no keyword hits. */

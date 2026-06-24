@@ -80,6 +80,12 @@ REPEAT_UNTIL (loop until condition is true):
 - This is the "while loop" concept: "keep going until wall < 0.25", "keep counting until score >= 10".
 - When a student says "keep doing X until Y", "run until", "stop when" — use repeat_until.
 - Example: drive forward until wall is close → repeat_until with cond distance_ahead < 0.25, body has drive action.
+
+READ_SENSOR (capture a live sensor reading into a variable):
+- read_sensor: { type:'read_sensor', name:'dist', sensor:'distance_ahead' } — reads the sensor's current numeric value (0.0–1.0) and stores it in the named variable.
+- Use it to snapshot a sensor value, compare it later, or drive proportional behaviors (e.g. speed based on distance).
+- When a student says "store the sensor value", "read distance into a variable", "save the brightness", "proportional control" — use read_sensor.
+- Example: read distance_ahead into 'dist', then if var:dist < 0.2 → stop. Pairs well with print to show the value.
 Never break character. Never say you are an AI.`;
 
 // ── Classroom safety ──────────────────────────────────────────────────────────
@@ -159,7 +165,7 @@ function buildEmitTilesTool() {
           type: 'object',
           required: ['type'],
           properties: {
-            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'repeat_until', 'break', 'print', 'comment', 'random_var', 'define_sub', 'call_sub', 'if', 'if_else', 'macro', 'set_var', 'change_var'] },
+            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'repeat_until', 'break', 'print', 'comment', 'random_var', 'read_sensor', 'define_sub', 'call_sub', 'if', 'if_else', 'macro', 'set_var', 'change_var'] },
             prim:     { enum: ACTUATOR_IDS,    description: 'actuator id (action nodes only)' },
             params:   { type: 'object',        description: 'param key/value map for the actuator' },
             seconds:  { type: 'number', minimum: 0.05, maximum: 30 },

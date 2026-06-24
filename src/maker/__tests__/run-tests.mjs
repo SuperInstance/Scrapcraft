@@ -682,6 +682,56 @@ console.log('\nsubroutines');
   ok('Python codegen emits function call', py.includes('ping()'));
 }
 
+// ── 20. read_sensor ───────────────────────────────────────────────────────
+console.log('\nread_sensor');
+{
+  const prog = new TileProgram({ name: 'SensorLogger', brain: 'spark', nodes: [
+    T.setVar('dist', 0),
+    T.readSensor('dist', 'distance_ahead'),
+    T.print('dist'),
+  ]});
+
+  const res = compile(prog);
+  ok('read_sensor program compiles ok', res.ok, res.errors.join(', '));
+  ok('emits READ_SENSOR opcode', res.bytecode.some(i => i.op === 'READ_SENSOR'));
+  const rsInstr = res.bytecode.find(i => i.op === 'READ_SENSOR');
+  ok('READ_SENSOR has var name', rsInstr?.name === 'dist', `name=${rsInstr?.name}`);
+  ok('READ_SENSOR has sensor id', rsInstr?.sensor === 'distance_ahead', `sensor=${rsInstr?.sensor}`);
+
+  // VM: sensor value written to vars
+  {
+    const world = new MockWorld();
+    world.dist = 0.42;
+    const vm = new TileVM(res.bytecode, res.sourceMap);
+    const robot = new VirtualRobot(world);
+    vm.robot = robot; vm.world = world;
+    while (!vm.halted) vm.step(0.016);
+    const distVal = vm.vars['dist'];
+    ok('VM stores sensor reading in vars.dist', Math.abs(distVal - 0.42) < 0.01, `dist=${distVal}`);
+  }
+
+  // Error for unknown sensor
+  const badProg = new TileProgram({ nodes: [ T.readSensor('x', 'no_such_sensor') ] });
+  const badRes = compile(badProg);
+  ok('error for unknown sensor', !badRes.ok && badRes.errors.some(e => e.includes('no_such_sensor')));
+
+  // read_sensor counts as initializing the variable (no "uninitialized" warning)
+  const warnProg = new TileProgram({ nodes: [
+    T.readSensor('dist', 'distance_ahead'),
+    T.if(T.varCond('dist', 'lt', 0.3), [T.action('stop')]),
+  ]});
+  const warnRes = compile(warnProg);
+  ok('no uninitialized warning for read_sensor var', !warnRes.warnings.some(w => w.includes('"dist"')));
+
+  // Firmware: Arduino
+  const fw = toArduino(prog);
+  ok('Arduino codegen emits sensor read', fw.includes('dist = readDistance()'));
+
+  // Firmware: Python
+  const py = toMicroPython(prog);
+  ok('Python codegen emits sensor read', py.includes('dist = read_distance()'));
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
