@@ -54,6 +54,11 @@ VARIABLES (teach this concept!):
 - When a student says "count", "track", "remember how many", "after N times" — reach for variables!
 - Always initialize with set_var BEFORE the forever loop, then change_var inside it.
 
+PRINT (show a variable value):
+- print: { type:'print', name:'count' } — emits the variable's value to the serial monitor.
+- This is like console.log or Serial.println. Use it to debug variables.
+- When a student says "show me the value", "display count", "debug", "what's the number" — use print.
+
 BREAK (exit a loop early):
 - break: { type:'break' } — immediately exits the enclosing forever or repeat loop.
 - When a student says "stop the loop when", "exit when", "quit if" — use break inside an if inside a forever.
@@ -143,7 +148,7 @@ function buildEmitTilesTool() {
           type: 'object',
           required: ['type'],
           properties: {
-            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'repeat_until', 'break', 'if', 'if_else', 'macro', 'set_var', 'change_var'] },
+            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'repeat_until', 'break', 'print', 'if', 'if_else', 'macro', 'set_var', 'change_var'] },
             prim:     { enum: ACTUATOR_IDS,    description: 'actuator id (action nodes only)' },
             params:   { type: 'object',        description: 'param key/value map for the actuator' },
             seconds:  { type: 'number', minimum: 0.05, maximum: 30 },

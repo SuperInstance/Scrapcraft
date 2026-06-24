@@ -458,6 +458,9 @@ export class ScrapBot {
       case 'neopixel':
         this._setNeopixelColor(ev.color);
         break;
+      case 'print':
+        this._game?.tileEditor?._showPrintOutput?.(ev.name, ev.value);
+        break;
     }
   }
 

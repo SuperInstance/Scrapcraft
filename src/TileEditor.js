@@ -30,6 +30,7 @@ const NODE_META = {
   drive_distance: { icon: '→|', label: 'drive distance', bg: '#1a0c1a', tip: 'Drive an exact distance in world units. A macro — expands to drive + timed wait.' },
   repeat_until:   { icon: '↻?', label: 'repeat until',   bg: '#18102a', tip: 'Keep running the tiles inside until the condition becomes true — like a while loop. Pairs perfectly with variables.' },
   break:          { icon: '⛔', label: 'break',           bg: '#280e0e', tip: 'Exit the current forever or repeat loop immediately. Great for "stop when something happens" inside a forever loop.' },
+  print:          { icon: '📤', label: 'print variable',  bg: '#0e1a28', tip: 'Show the current value of a variable in the serial monitor. Like console.log — great for debugging!' },
   set_var:        { icon: '=',  label: 'set variable',   bg: '#0e1a28', tip: 'Create a named number and set its starting value. Run this before your forever loop.' },
   change_var:     { icon: '±',  label: 'change variable',bg: '#0e1a28', tip: 'Add (or subtract) a number from a variable. Use it inside loops to count things.' },
 };
@@ -63,6 +64,7 @@ const TRAY_GROUPS = [
   { label: 'VARIABLES', items: [
     { type: 'set_var' },
     { type: 'change_var' },
+    { type: 'print' },
   ]},
 ];
 
@@ -85,7 +87,8 @@ function _instrSummary(instr) {
     case 'LOOP':  return instr.forever ? '∞ forever' : `↺ ×${instr.count}`;
     case 'NEXT':  return '↩ next';
     case 'UNTIL': return '↩ until';
-    case 'BREAK': return '⛔ break';
+    case 'BREAK':     return '⛔ break';
+    case 'PRINT_VAR': return `📤 ${instr.name}`;
     case 'JZ':    return `? → ${instr.target}`;
     case 'JMP':   return `→ ${instr.target}`;
     case 'HALT':       return '⏹';
@@ -124,6 +127,8 @@ function makeNode(spec) {
       return { type: 'repeat_until', id, cond: { sensor: 'distance_ahead', cmp: 'lt', value: 0.25 }, body: [] };
     case 'break':
       return { type: 'break', id };
+    case 'print':
+      return { type: 'print', id, name: 'count' };
     case 'set_var':    return { type: 'set_var',    id, name: 'count', value: 0 };
     case 'change_var': return { type: 'change_var', id, name: 'count', delta: 1 };
     default: return null;
@@ -570,6 +575,8 @@ export class TileEditor {
     } else if (node.type === 'change_var') {
       rows.push(this._textRow('name', node.name, v => { node.name = v.replace(/[^a-z0-9_]/gi, '_') || 'count'; this._showErrors(); }));
       rows.push(this._numRow('by', node.delta, -100, 100, 1, v => { node.delta = v; }));
+    } else if (node.type === 'print') {
+      rows.push(this._textRow('variable', node.name, v => { node.name = v.replace(/[^a-z0-9_]/gi, '_') || 'count'; }));
     }
 
     if (!rows.length) return null;
@@ -1017,6 +1024,15 @@ export class TileEditor {
       indicator.textContent = STATUS_LABEL[status] ?? '● ' + status;
       indicator.dataset.status = status;
     }
+  }
+
+  _showPrintOutput(name, value) {
+    // Show the serial monitor panel for virtual-run print output, then append line
+    if (this._serialEl && this._serialEl.style.display === 'none') {
+      this._serialEl.style.display = 'flex';
+    }
+    const disp = typeof value === 'number' ? (Number.isInteger(value) ? value : value.toFixed(3)) : value;
+    this._appendSerial(`${name} = ${disp}`);
   }
 
   _appendSerial(line) {

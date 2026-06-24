@@ -197,6 +197,11 @@ export class TileVM {
         break;
       }
 
+      case 'PRINT_VAR':
+        this.robot?.emit?.('print', { name: instr.name, value: this.vars[instr.name] ?? 0 });
+        this.pc++;
+        break;
+
       case 'SET_VAR':
         this.vars[instr.name] = this.stack.pop() ?? 0;
         this.pc++;
