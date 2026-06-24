@@ -585,6 +585,9 @@ export class Achievements {
       case 'hardware_flash':
         s.hardwareFlashes = (s.hardwareFlashes ?? 0) + 1;
         break;
+      case 'receipt_view':
+        s.receiptViews = (s.receiptViews ?? 0) + 1;
+        break;
       case 'bot_upgrade':
         s.botUpgradesInstalled = (s.botUpgradesInstalled ?? 0) + 1;
         break;

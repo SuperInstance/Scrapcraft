@@ -132,6 +132,9 @@ export class TileEditor {
     this._serialLog    = [];   // [{ts, text}]
     this._flashStatus  = 'disconnected'; // disconnected|connecting|connected|flashing|running|error
 
+    // One-shot callback: fires the first time _run() succeeds (tutorial step 4 hook)
+    this.onFirstRun = null;
+
     this._buildDOM();
   }
 
@@ -169,8 +172,21 @@ export class TileEditor {
     this._panel.querySelector('#te-upgrades-btn')?.addEventListener('click', () => this._game._toggleBotUpgradePanel?.());
     this._panel.querySelector('#te-spark-btn')?.addEventListener('click', () => this._toggleSpark());
     this._panel.querySelector('#te-share-btn')?.addEventListener('click', () => this._shareProgram());
+    this._panel.querySelector('#te-receipt-btn')?.addEventListener('click', () => this._showFlashReceipt());
     this._panel.querySelector('#te-dl').addEventListener('click', () => this._download());
     this._panel.querySelector('#te-dl-wokwi')?.addEventListener('click', () => this._downloadWokwi());
+
+    // Flash Receipt modal wiring (persistent DOM, wired once)
+    const fr = document.getElementById('flash-receipt');
+    if (fr && !fr.dataset.wired) {
+      fr.dataset.wired = '1';
+      const close = () => fr.classList.remove('show');
+      document.getElementById('fr-close')?.addEventListener('click', close);
+      document.getElementById('fr-close-btn2')?.addEventListener('click', close);
+      fr.addEventListener('click', e => { if (e.target === fr) close(); });
+      document.getElementById('fr-share-btn')?.addEventListener('click', () => this._shareProgram());
+      document.getElementById('fr-wokwi-dl-btn')?.addEventListener('click', () => this._downloadWokwi());
+    }
 
     // WebSerial flash button
     this._flashBtn     = this._panel.querySelector('#te-flash');
@@ -746,6 +762,7 @@ export class TileEditor {
       this._game.xpSystem?.gain(30);
       this._game.ui?.notify('⚡ Flashed to device! Check your serial monitor.');
       this._game.foreman?.say('hardware_flash');
+      this._showFlashReceipt();
     } catch (e) {
       this._appendSerial(`⚠ Flash failed: ${e.message}`);
       this._setFlashStatus('error');
@@ -823,6 +840,60 @@ export class TileEditor {
     }
   }
 
+  _showFlashReceipt() {
+    const fr = document.getElementById('flash-receipt');
+    if (!fr) return;
+
+    const prog = this._program;
+    const bot  = this._activeBot();
+    const rt   = bot?._runtime;
+    const vm   = rt?.vm;
+
+    // Program identity
+    document.getElementById('fr-prog-name').textContent = prog.name || 'My Brain';
+    document.getElementById('fr-brain-badge').textContent =
+      ({ tin: 'TIN BRAIN', spark: 'SPARK BRAIN', vision: 'VISION BRAIN' }[prog.brain] ?? prog.brain.toUpperCase()) + ' ▲';
+
+    // Efficiency grade from budgetPct
+    const budget = rt?.budgetPct ?? 0;
+    const gradeEl = document.getElementById('fr-grade-badge');
+    let grade = 'D', gradeColor = '#f44336', gradeBg = '#180808';
+    if      (budget < 5)  { grade = 'A+'; gradeColor = '#44ffaa'; gradeBg = '#041808'; }
+    else if (budget < 20) { grade = 'A';  gradeColor = '#44ee88'; gradeBg = '#041408'; }
+    else if (budget < 50) { grade = 'B';  gradeColor = '#aadd44'; gradeBg = '#0c1404'; }
+    else if (budget < 80) { grade = 'C';  gradeColor = '#f0b429'; gradeBg = '#181002'; }
+    gradeEl.textContent = grade;
+    gradeEl.style.color = gradeColor;
+    gradeEl.style.background = gradeBg;
+    gradeEl.style.border = `1px solid ${gradeColor}44`;
+
+    // Stats row
+    let tileCount = 0;
+    prog.walk?.(() => tileCount++);
+    const { actuators, sensors } = prog.usedPrimitives();
+    const statsEl = document.getElementById('fr-stats-row');
+    const stat = (val, lbl) =>
+      `<div class="fr-stat"><div class="fr-stat-val">${val}</div><div class="fr-stat-lbl">${lbl}</div></div>`;
+    statsEl.innerHTML =
+      stat(tileCount,        'TILES') +
+      stat(sensors.length,   'SENSORS') +
+      stat(actuators.length, 'ACTUATORS') +
+      stat(vm ? `${budget}%` : '—', 'BUDGET') +
+      stat(grade,            'GRADE');
+
+    // Generated code preview (first 24 lines)
+    const arduino = toArduino(prog);
+    const lines   = arduino.split('\n').slice(0, 24);
+    const codeEl  = document.getElementById('fr-code');
+    codeEl.innerHTML = lines.map(l =>
+      l.startsWith('//') ? `<span class="fr-comment">${l.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`
+                         : l.replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    ).join('\n') + (arduino.split('\n').length > 24 ? '\n<span class="fr-comment">// … (see full code in &lt;/&gt; CODE view)</span>' : '');
+
+    fr.classList.add('show');
+    this._game.achievements?.track('receipt_view', {});
+  }
+
   // ── Runtime ───────────────────────────────────────────────────────────────
 
   _activeBot() {
@@ -850,6 +921,9 @@ export class TileEditor {
     this._btnStop.disabled = false;
     this._running = true;
     if (!this._rafId) this._rafId = requestAnimationFrame(() => this._tickHL());
+
+    // One-shot tutorial callback
+    if (this.onFirstRun) { this.onFirstRun(); this.onFirstRun = null; }
   }
 
   _stop() {

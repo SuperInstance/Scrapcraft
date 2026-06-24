@@ -94,6 +94,23 @@ export async function ensureTables(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_laptimes_time ON lap_times(timeMs);
     CREATE INDEX IF NOT EXISTS idx_brains_tag ON brains(tag);
+    CREATE TABLE IF NOT EXISTS classes (
+      code TEXT PRIMARY KEY,
+      teacher_name TEXT NOT NULL,
+      created TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      class_code TEXT NOT NULL REFERENCES classes(code),
+      display_name TEXT NOT NULL,
+      last_seen TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS session_saves (
+      session_id TEXT PRIMARY KEY REFERENCES sessions(id),
+      data TEXT NOT NULL,
+      updated TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_sessions_class ON sessions(class_code);
   `);
 }
 
@@ -106,12 +123,41 @@ export default async function handleGameApi(request, env, ctx) {
 
   await ensureTables(db);
 
-  // ── Save game state ───────────────────────────────────────────
+  // ── Session-based cloud save (from SaveBackend.js) ────────────
+  const session = request.headers.get('X-Scrapcraft-Session');
+  if (session) {
+    if (request.method === 'PUT' && url.pathname === '/api/v1/save') {
+      return handleSessionSave(request, session, db);
+    }
+    if (request.method === 'GET' && url.pathname === '/api/v1/save') {
+      return handleSessionLoad(session, db);
+    }
+    if (request.method === 'GET' && url.pathname === '/api/v1/save/check') {
+      return handleSessionCheck(session, db);
+    }
+    if (request.method === 'DELETE' && url.pathname === '/api/v1/save') {
+      return handleSessionDelete(session, db);
+    }
+  }
+
+  // ── Classroom ──────────────────────────────────────────────────
+  if (request.method === 'POST' && url.pathname === '/api/v1/class/join') {
+    return handleClassJoin(request, db);
+  }
+  if (request.method === 'POST' && url.pathname === '/api/v1/class/create') {
+    return handleClassCreate(request, db);
+  }
+  const rosterMatch = url.pathname.match(/^\/api\/v1\/class\/([A-Z0-9]+)\/roster$/);
+  if (request.method === 'GET' && rosterMatch) {
+    return handleClassRoster(rosterMatch[1], db);
+  }
+
+  // ── Legacy save game state (by explicit playerId) ─────────────
   if (request.method === 'POST' && url.pathname === '/api/v1/save') {
     return handleSave(request, db);
   }
 
-  // ── Load game state ───────────────────────────────────────────
+  // ── Load game state (legacy) ──────────────────────────────────
   const loadMatch = url.pathname.match(/^\/api\/v1\/load\/([^/]+)$/);
   if (request.method === 'GET' && loadMatch) {
     return handleLoad(loadMatch[1], db);
@@ -357,6 +403,103 @@ async function handleGetBrain(id, db) {
   } catch (err) {
     return json({ error: err.message }, 500);
   }
+}
+
+// ── Session-based save handlers (classroom cloud saves) ───────────
+
+async function handleSessionSave(request, sessionId, db) {
+  try {
+    const body = await request.text();
+    await db.prepare(
+      `INSERT INTO session_saves (session_id, data, updated)
+       VALUES (?, ?, datetime('now'))
+       ON CONFLICT(session_id) DO UPDATE SET data=excluded.data, updated=excluded.updated`
+    ).bind(sessionId, body).run();
+    // Update last_seen on the session row
+    await db.prepare(`UPDATE sessions SET last_seen=datetime('now') WHERE id=?`).bind(sessionId).run();
+    return json({ ok: true });
+  } catch (err) { return json({ error: err.message }, 500); }
+}
+
+async function handleSessionLoad(sessionId, db) {
+  try {
+    const row = await db.prepare(
+      'SELECT data, updated FROM session_saves WHERE session_id=?'
+    ).bind(sessionId).first();
+    if (!row) return json({ error: 'No save found' }, 404);
+    return json({ data: JSON.parse(row.data), updated: row.updated });
+  } catch (err) { return json({ error: err.message }, 500); }
+}
+
+async function handleSessionCheck(sessionId, db) {
+  try {
+    const row = await db.prepare(
+      'SELECT 1 FROM session_saves WHERE session_id=?'
+    ).bind(sessionId).first();
+    return json({ exists: !!row });
+  } catch (err) { return json({ error: err.message }, 500); }
+}
+
+async function handleSessionDelete(sessionId, db) {
+  try {
+    await db.prepare('DELETE FROM session_saves WHERE session_id=?').bind(sessionId).run();
+    return json({ ok: true });
+  } catch (err) { return json({ error: err.message }, 500); }
+}
+
+// ── Classroom handlers ────────────────────────────────────────────
+
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+async function handleClassCreate(request, db) {
+  try {
+    const { teacherName } = await request.json();
+    if (!teacherName?.trim()) return json({ error: 'teacherName required' }, 400);
+    let classCode, tries = 0;
+    do {
+      classCode = genCode();
+      tries++;
+    } while (tries < 10 &&
+      await db.prepare('SELECT 1 FROM classes WHERE code=?').bind(classCode).first());
+    await db.prepare(
+      `INSERT INTO classes (code, teacher_name) VALUES (?, ?)`
+    ).bind(classCode, teacherName.trim()).run();
+    return json({ classCode, teacherName: teacherName.trim() });
+  } catch (err) { return json({ error: err.message }, 500); }
+}
+
+async function handleClassJoin(request, db) {
+  try {
+    const { classCode, displayName } = await request.json();
+    if (!classCode || !displayName?.trim()) return json({ error: 'classCode and displayName required' }, 400);
+    const code = classCode.toUpperCase().trim();
+    const cls = await db.prepare('SELECT code FROM classes WHERE code=?').bind(code).first();
+    if (!cls) return json({ error: 'Class not found. Check the code.' }, 404);
+    const sessionId = crypto.randomUUID();
+    await db.prepare(
+      `INSERT INTO sessions (id, class_code, display_name) VALUES (?, ?, ?)`
+    ).bind(sessionId, code, displayName.trim()).run();
+    return json({ sessionId, classCode: code, displayName: displayName.trim() });
+  } catch (err) { return json({ error: err.message }, 500); }
+}
+
+async function handleClassRoster(classCode, db) {
+  try {
+    const rows = await db.prepare(
+      `SELECT s.id, s.display_name, s.last_seen,
+              CASE WHEN ss.session_id IS NOT NULL THEN 1 ELSE 0 END AS has_save
+       FROM sessions s
+       LEFT JOIN session_saves ss ON ss.session_id = s.id
+       WHERE s.class_code = ?
+       ORDER BY s.last_seen DESC`
+    ).bind(classCode).all();
+    return json({ classCode, students: rows.results ?? [] });
+  } catch (err) { return json({ error: err.message }, 500); }
 }
 
 // ── Helper ────────────────────────────────────────────────────────
