@@ -487,6 +487,56 @@ console.log('\nrepeat_until tile');
      ur.warnings.some(w => w.includes('"counter"')));
 }
 
+// ── 15. break tile ─────────────────────────────────────────────────────────
+console.log('\nbreak tile');
+{
+  // break inside repeat — exits after first iteration
+  const prog = new TileProgram({ nodes: [
+    T.repeat(5, [
+      T.action('beep', { pitch: 'high' }),
+      T.break(),
+    ]),
+    T.action('stop'),
+  ]});
+  const r = compile(prog);
+  ok('break inside repeat compiles ok', r.ok, JSON.stringify(r.errors));
+  ok('emits BREAK opcode', r.bytecode.some(i => i.op === 'BREAK'));
+  {
+    const rt = new MakerRuntime(prog, {}, new MockWorld());
+    for (let i = 0; i < 20; i++) rt.tick(0.016);
+    const beeps = rt.drainEvents().filter(e => e.kind === 'beep').length;
+    ok('break exits repeat after 1 iteration (1 beep not 5)', beeps === 1, `beeps=${beeps}`);
+    ok('program halts after break exits repeat', rt.vm.halted);
+  }
+
+  // break inside forever — exits on first condition hit
+  const foreverBreak = new TileProgram({ nodes: [
+    T.forever([
+      T.action('drive', { dir: 'forward', speed: 0.5 }),
+      T.if(T.cond('distance_ahead', 'lt', 0.25), [ T.break() ]),
+    ]),
+    T.action('stop'),
+  ]});
+  const r2 = compile(foreverBreak);
+  ok('break inside forever compiles ok', r2.ok, JSON.stringify(r2.errors));
+  {
+    const world = new MockWorld();
+    world.dist = 0.1;   // wall right away → if condition true → break on first tick
+    const rt2 = new MakerRuntime(foreverBreak, {}, world);
+    for (let i = 0; i < 10; i++) rt2.tick(0.016);
+    ok('forever exits when break is hit', rt2.vm.halted || rt2.robot.drivePower === 0,
+       `halted=${rt2.vm.halted}`);
+  }
+
+  // Firmware: Arduino emits break;
+  const fw = toArduino(prog);
+  ok('Arduino codegen emits break;', fw.includes('break;'));
+
+  // Firmware: Python emits break
+  const py = toMicroPython(prog);
+  ok('Python codegen emits break', py.includes('break'));
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

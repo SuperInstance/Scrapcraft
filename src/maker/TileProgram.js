@@ -19,6 +19,7 @@
  *    repeat       { type:'repeat', count, body:[...] }          loop N times
  *    forever      { type:'forever', body:[...] }                loop endlessly (= loop())
  *    repeat_until { type:'repeat_until', cond, body:[...] }     loop until cond is true (= while !cond)
+ *    break        { type:'break' }                               exit the enclosing forever/repeat loop
  *    if           { type:'if',   cond, body:[...] }             conditional
  *    if_else      { type:'if_else', cond, body:[...], elseBody:[...] }
  *    macro        { type:'macro', kind, params }            expands at compile time
@@ -61,6 +62,9 @@ export const T = {
 
   // repeat_until: runs body until condition becomes true (= while !cond)
   repeatUntil: (cond, body = []) => ({ type: 'repeat_until', cond, body }),
+
+  // break: immediately exits the enclosing forever or repeat loop
+  break: () => ({ type: 'break' }),
 };
 
 /**

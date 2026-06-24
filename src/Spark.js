@@ -54,6 +54,11 @@ VARIABLES (teach this concept!):
 - When a student says "count", "track", "remember how many", "after N times" — reach for variables!
 - Always initialize with set_var BEFORE the forever loop, then change_var inside it.
 
+BREAK (exit a loop early):
+- break: { type:'break' } — immediately exits the enclosing forever or repeat loop.
+- When a student says "stop the loop when", "exit when", "quit if" — use break inside an if inside a forever.
+- Example: forever [ if bumped → break, drive forward ] — stops the loop on first bump.
+
 REPEAT_UNTIL (loop until condition is true):
 - repeat_until: { type:'repeat_until', cond:{...}, body:[...] } — runs body until condition becomes true.
 - This is the "while loop" concept: "keep going until wall < 0.25", "keep counting until score >= 10".
@@ -138,7 +143,7 @@ function buildEmitTilesTool() {
           type: 'object',
           required: ['type'],
           properties: {
-            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'repeat_until', 'if', 'if_else', 'macro', 'set_var', 'change_var'] },
+            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'repeat_until', 'break', 'if', 'if_else', 'macro', 'set_var', 'change_var'] },
             prim:     { enum: ACTUATOR_IDS,    description: 'actuator id (action nodes only)' },
             params:   { type: 'object',        description: 'param key/value map for the actuator' },
             seconds:  { type: 'number', minimum: 0.05, maximum: 30 },

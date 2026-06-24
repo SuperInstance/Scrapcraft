@@ -190,6 +190,13 @@ export class TileVM {
         this._yield = true;
         break;
 
+      case 'BREAK': {
+        const frame = this.loops.pop();
+        if (!frame) { this.pc++; break; }   // defensive: break outside loop → skip
+        this.pc = frame.end;
+        break;
+      }
+
       case 'SET_VAR':
         this.vars[instr.name] = this.stack.pop() ?? 0;
         this.pc++;

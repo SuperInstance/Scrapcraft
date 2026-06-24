@@ -35,6 +35,7 @@
  *    LOOP  {count,forever,end}  push loop frame; if exhausted at entry → pc = end
  *    NEXT  {head}          loop back-edge; forever loops yield one pass / tick
  *    UNTIL {condStart}     repeat_until back-edge; jumps to condStart and yields one tick
+ *    BREAK                 pop the innermost loop frame and jump to its end address
  *    HALT                  stop the program
  * ───────────────────────────────────────────────────────────────────────────
  */
@@ -110,6 +111,7 @@ function compileNode(node, ctx) {
     case 'repeat':       return compileLoop(node, ctx, false);
     case 'forever':      return compileLoop(node, ctx, true);
     case 'repeat_until': return compileUntil(node, ctx);
+    case 'break':        return void ctx.out.push({ op: 'BREAK' });
     case 'macro':      return compileMacro(node, ctx);
     case 'set_var':    return compileSetVar(node, ctx);
     case 'change_var': return compileChangeVar(node, ctx);
