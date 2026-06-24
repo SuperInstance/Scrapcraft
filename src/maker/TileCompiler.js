@@ -37,6 +37,7 @@
  *    UNTIL {condStart}     repeat_until back-edge; jumps to condStart and yields one tick
  *    BREAK                 pop the innermost loop frame and jump to its end address
  *    PRINT_VAR {name}      read vars[name] and emit a 'print' event via robot
+ *    RAND_VAR  {name,min,max}  set vars[name] to a random integer in [min, max]
  *    HALT                  stop the program
  * ───────────────────────────────────────────────────────────────────────────
  */
@@ -115,6 +116,7 @@ function compileNode(node, ctx) {
     case 'break':        return void ctx.out.push({ op: 'BREAK' });
     case 'print':        return void ctx.out.push({ op: 'PRINT_VAR', name: _sanitizeVarName(node.name) });
     case 'comment':      return;   // annotation only — no bytecode emitted
+    case 'random_var':   return compileRandomVar(node, ctx);
     case 'macro':      return compileMacro(node, ctx);
     case 'set_var':    return compileSetVar(node, ctx);
     case 'change_var': return compileChangeVar(node, ctx);
@@ -244,6 +246,13 @@ function compileChangeVar(node, ctx) {
   const name  = _sanitizeVarName(node.name);
   const delta = Number(node.delta) || 0;
   ctx.out.push({ op: 'CHANGE_VAR', name, delta });
+}
+
+function compileRandomVar(node, ctx) {
+  const name = _sanitizeVarName(node.name);
+  const min  = Math.floor(Number(node.min) || 1);
+  const max  = Math.floor(Number(node.max) || 10);
+  ctx.out.push({ op: 'RAND_VAR', name, min, max: Math.max(min, max) });
 }
 
 function _sanitizeVarName(raw) {

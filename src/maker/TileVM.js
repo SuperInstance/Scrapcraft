@@ -202,6 +202,13 @@ export class TileVM {
         this.pc++;
         break;
 
+      case 'RAND_VAR': {
+        const lo = instr.min ?? 1, hi = instr.max ?? 10;
+        this.vars[instr.name] = Math.floor(Math.random() * (hi - lo + 1)) + lo;
+        this.pc++;
+        break;
+      }
+
       case 'SET_VAR':
         this.vars[instr.name] = this.stack.pop() ?? 0;
         this.pc++;

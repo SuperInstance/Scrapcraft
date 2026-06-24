@@ -22,6 +22,7 @@
  *    break        { type:'break' }                               exit the enclosing forever/repeat loop
  *    print        { type:'print', name }                         emit variable value to serial/HUD (console.log)
  *    comment      { type:'comment', text }                       non-executing annotation (becomes a code comment)
+ *    random_var   { type:'random_var', name, min, max }          set variable to random integer in [min, max]
  *    if           { type:'if',   cond, body:[...] }             conditional
  *    if_else      { type:'if_else', cond, body:[...], elseBody:[...] }
  *    macro        { type:'macro', kind, params }            expands at compile time
@@ -73,6 +74,9 @@ export const T = {
 
   // comment: a non-executing annotation tile — pure documentation
   comment: (text = 'note') => ({ type: 'comment', text }),
+
+  // random_var: set a variable to a random integer in [min, max]
+  randomVar: (name, min = 1, max = 10) => ({ type: 'random_var', name, min, max }),
 };
 
 /**

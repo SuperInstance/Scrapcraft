@@ -32,6 +32,7 @@ const NODE_META = {
   break:          { icon: '⛔', label: 'break',           bg: '#280e0e', tip: 'Exit the current forever or repeat loop immediately. Great for "stop when something happens" inside a forever loop.' },
   print:          { icon: '📤', label: 'print variable',  bg: '#0e1a28', tip: 'Show the current value of a variable in the serial monitor. Like console.log — great for debugging!' },
   comment:        { icon: '💬', label: 'comment',          bg: '#111111', tip: 'A note for humans — does nothing when the program runs. Use it to label sections of your program.' },
+  random_var:     { icon: '🎲', label: 'random variable', bg: '#0e1a28', tip: 'Set a variable to a random number between min and max. Makes your bot unpredictable and fun!' },
   set_var:        { icon: '=',  label: 'set variable',   bg: '#0e1a28', tip: 'Create a named number and set its starting value. Run this before your forever loop.' },
   change_var:     { icon: '±',  label: 'change variable',bg: '#0e1a28', tip: 'Add (or subtract) a number from a variable. Use it inside loops to count things.' },
 };
@@ -65,6 +66,7 @@ const TRAY_GROUPS = [
   { label: 'VARIABLES', items: [
     { type: 'set_var' },
     { type: 'change_var' },
+    { type: 'random_var' },
     { type: 'print' },
   ]},
   { label: 'NOTES', items: [
@@ -93,6 +95,7 @@ function _instrSummary(instr) {
     case 'UNTIL': return '↩ until';
     case 'BREAK':     return '⛔ break';
     case 'PRINT_VAR': return `📤 ${instr.name}`;
+    case 'RAND_VAR':  return `🎲 ${instr.name} ∈ [${instr.min},${instr.max}]`;
     case 'JZ':    return `? → ${instr.target}`;
     case 'JMP':   return `→ ${instr.target}`;
     case 'HALT':       return '⏹';
@@ -135,6 +138,8 @@ function makeNode(spec) {
       return { type: 'print', id, name: 'count' };
     case 'comment':
       return { type: 'comment', id, text: 'note' };
+    case 'random_var':
+      return { type: 'random_var', id, name: 'x', min: 1, max: 10 };
     case 'set_var':    return { type: 'set_var',    id, name: 'count', value: 0 };
     case 'change_var': return { type: 'change_var', id, name: 'count', delta: 1 };
     default: return null;
@@ -585,6 +590,10 @@ export class TileEditor {
       rows.push(this._textRow('variable', node.name, v => { node.name = v.replace(/[^a-z0-9_]/gi, '_') || 'count'; }));
     } else if (node.type === 'comment') {
       rows.push(this._textRow('note', node.text, v => { node.text = v || 'note'; }));
+    } else if (node.type === 'random_var') {
+      rows.push(this._textRow('name', node.name, v => { node.name = v.replace(/[^a-z0-9_]/gi, '_') || 'x'; }));
+      rows.push(this._numRow('min', node.min, -999, 999, 1, v => { node.min = Math.floor(v); }));
+      rows.push(this._numRow('max', node.max, -999, 999, 1, v => { node.max = Math.floor(v); }));
     }
 
     if (!rows.length) return null;

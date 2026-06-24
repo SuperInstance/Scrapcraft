@@ -54,6 +54,11 @@ VARIABLES (teach this concept!):
 - When a student says "count", "track", "remember how many", "after N times" — reach for variables!
 - Always initialize with set_var BEFORE the forever loop, then change_var inside it.
 
+RANDOM_VAR (set variable to a random number):
+- random_var: { type:'random_var', name:'x', min:1, max:10 } — sets x to a random integer between min and max.
+- Like Math.floor(Math.random() * range) + min. Great for unpredictable behaviors.
+- When a student says "random", "surprise", "different each time", "dice roll" — use random_var.
+
 PRINT (show a variable value):
 - print: { type:'print', name:'count' } — emits the variable's value to the serial monitor.
 - This is like console.log or Serial.println. Use it to debug variables.
@@ -148,7 +153,7 @@ function buildEmitTilesTool() {
           type: 'object',
           required: ['type'],
           properties: {
-            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'repeat_until', 'break', 'print', 'if', 'if_else', 'macro', 'set_var', 'change_var'] },
+            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'repeat_until', 'break', 'print', 'comment', 'random_var', 'if', 'if_else', 'macro', 'set_var', 'change_var'] },
             prim:     { enum: ACTUATOR_IDS,    description: 'actuator id (action nodes only)' },
             params:   { type: 'object',        description: 'param key/value map for the actuator' },
             seconds:  { type: 'number', minimum: 0.05, maximum: 30 },

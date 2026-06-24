@@ -146,6 +146,11 @@ function emitArduino(nodes, L, depth) {
       case 'comment':
         L.push(pad + `// ${(node.text || 'note').replace(/\*\//g, '* /')}`);
         break;
+      case 'random_var': {
+        const n = node.name || 'x', lo = Math.floor(Number(node.min) || 1), hi = Math.floor(Number(node.max) || 10);
+        L.push(pad + `${n} = random(${lo}, ${Math.max(lo, hi) + 1});`);
+        break;
+      }
       case 'macro':
         emitArduino(expandMacro(node) ?? [], L, depth);
         break;
@@ -253,6 +258,12 @@ function emitPython(nodes, L, depth) {
       case 'comment':
         L.push(pad + `# ${node.text || 'note'}`);
         break;
+      case 'random_var': {
+        const n = node.name || 'x', lo = Math.floor(Number(node.min) || 1), hi = Math.floor(Number(node.max) || 10);
+        L.push(pad + `import random`);
+        L.push(pad + `${n} = random.randint(${lo}, ${Math.max(lo, hi)})`);
+        break;
+      }
       case 'macro':
         emitPython(expandMacro(node) ?? [], L, depth);
         break;
@@ -315,7 +326,7 @@ function collectAllVarNames(nodes) {
   const names = new Set();
   const recur = (list) => {
     for (const n of list) {
-      if (n.type === 'set_var' || n.type === 'change_var') names.add(n.name || 'count');
+      if (n.type === 'set_var' || n.type === 'change_var' || n.type === 'random_var' || n.type === 'print') names.add(n.name || 'count');
       if (n.cond?.sensor?.startsWith('var:')) names.add(n.cond.sensor.slice(4));
       if (n.body)     recur(n.body);
       if (n.elseBody) recur(n.elseBody);
