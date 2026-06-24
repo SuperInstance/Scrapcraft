@@ -331,6 +331,40 @@ console.log('\nVariables');
   ok('reset() clears vars', Object.keys(vmReset.vars).length === 0);
 }
 
+// ── 12. Achievement stats for variables ─────────────────────────────────────
+console.log('\nAchievement — variable tracking');
+{
+  // Import dynamically so Node resolves the path without a browser DOM
+  const { Achievements } = await import('../../Achievements.js');
+
+  const ach = new Achievements();
+  let unlocked = [];
+  ach.on('unlock', id => unlocked.push(id));
+
+  // variable_star: first var program run
+  ach.track('var_program_run', { varCount: 1, hasCond: false });
+  ok('variable_star unlocked on first var program', unlocked.includes('variable_star'));
+
+  // bookkeeper: 3+ distinct vars
+  ach.track('var_program_run', { varCount: 3, hasCond: false });
+  ok('bookkeeper unlocked at 3 vars', unlocked.includes('bookkeeper'));
+
+  // var_conditioner: hasCond flag
+  ach.track('var_program_run', { varCount: 1, hasCond: true });
+  ok('var_conditioner unlocked when hasCond=true', unlocked.includes('var_conditioner'));
+
+  // tally_champion: peak value ≥ 10
+  ach.track('var_peak_value', { value: 10 });
+  ok('tally_champion unlocked at peak value 10', unlocked.includes('tally_champion'));
+
+  // peak value below threshold does NOT unlock
+  const ach2 = new Achievements();
+  let unlocked2 = [];
+  ach2.on('unlock', id => unlocked2.push(id));
+  ach2.track('var_peak_value', { value: 5 });
+  ok('tally_champion NOT unlocked at peak 5', !unlocked2.includes('tally_champion'));
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
