@@ -38,6 +38,8 @@
  *    BREAK                 pop the innermost loop frame and jump to its end address
  *    PRINT_VAR {name}      read vars[name] and emit a 'print' event via robot
  *    RAND_VAR  {name,min,max}  set vars[name] to a random integer in [min, max]
+ *    CALL_SUB  {name,target}  push return address, jump to sub start
+ *    SUB_RETURN               pop return address and resume
  *    HALT                  stop the program
  * ───────────────────────────────────────────────────────────────────────────
  */
@@ -56,14 +58,39 @@ export function compile(program) {
     errors: [],
     warnings: [],
     brainTier: BRAIN_TIER[brain] ?? 0,
-    sourceMap: [],   // [{ pc, nodeId }] — maps bytecode offset to tile node id
+    sourceMap: [],    // [{ pc, nodeId }] — maps bytecode offset to tile node id
+    subs: {},         // name → start PC (filled when subroutines are emitted)
+    callPatches: {},  // name → [bytecode index of CALL_SUB] — resolved after sub emission
   };
 
   // Pre-pass: warn about variables used but never initialized with set_var
   _checkVarInit(nodes, ctx);
 
-  for (const node of nodes) compileNode(node, ctx);
+  // Hoist define_sub to end; compile the rest as the main body
+  const mainNodes = nodes.filter(n => n.type !== 'define_sub');
+  const subNodes  = nodes.filter(n => n.type === 'define_sub');
+
+  for (const node of mainNodes) compileNode(node, ctx);
   ctx.out.push({ op: 'HALT' });
+
+  // Subroutine bodies — appended after HALT (never reached sequentially)
+  for (const sub of subNodes) {
+    const name = (sub.name ?? 'sub').trim() || 'sub';
+    ctx.subs[name] = ctx.out.length;
+    if (sub.id) ctx.sourceMap.push({ pc: ctx.out.length, nodeId: sub.id });
+    for (const child of sub.body ?? []) compileNode(child, ctx);
+    ctx.out.push({ op: 'SUB_RETURN' });
+  }
+
+  // Patch all CALL_SUB placeholders now that sub addresses are known
+  for (const [name, indices] of Object.entries(ctx.callPatches)) {
+    const target = ctx.subs[name];
+    if (target === undefined) {
+      ctx.errors.push(`Subroutine "${name}" is called but never defined — add a "define subroutine" tile named "${name}".`);
+    } else {
+      for (const idx of indices) ctx.out[idx].target = target;
+    }
+  }
 
   return {
     ok: ctx.errors.length === 0,
@@ -117,6 +144,12 @@ function compileNode(node, ctx) {
     case 'print':        return void ctx.out.push({ op: 'PRINT_VAR', name: _sanitizeVarName(node.name) });
     case 'comment':      return;   // annotation only — no bytecode emitted
     case 'random_var':   return compileRandomVar(node, ctx);
+    case 'call_sub':     return compileCallSub(node, ctx);
+    case 'define_sub':
+      // define_sub is hoisted out of the main body in compile() — if one appears
+      // nested (e.g. inside forever), warn and skip rather than crash.
+      ctx.warnings.push(`"define subroutine" tile "${node.name || 'sub'}" must be at the top level — move it out of loops and conditions.`);
+      return;
     case 'macro':      return compileMacro(node, ctx);
     case 'set_var':    return compileSetVar(node, ctx);
     case 'change_var': return compileChangeVar(node, ctx);
@@ -253,6 +286,14 @@ function compileRandomVar(node, ctx) {
   const min  = Math.floor(Number(node.min) || 1);
   const max  = Math.floor(Number(node.max) || 10);
   ctx.out.push({ op: 'RAND_VAR', name, min, max: Math.max(min, max) });
+}
+
+function compileCallSub(node, ctx) {
+  const name = (node.name ?? 'sub').trim() || 'sub';
+  const idx  = ctx.out.length;
+  ctx.out.push({ op: 'CALL_SUB', name, target: -1 });
+  if (!ctx.callPatches[name]) ctx.callPatches[name] = [];
+  ctx.callPatches[name].push(idx);
 }
 
 function _sanitizeVarName(raw) {

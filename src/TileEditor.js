@@ -33,6 +33,8 @@ const NODE_META = {
   print:          { icon: '📤', label: 'print variable',  bg: '#0e1a28', tip: 'Show the current value of a variable in the serial monitor. Like console.log — great for debugging!' },
   comment:        { icon: '💬', label: 'comment',          bg: '#111111', tip: 'A note for humans — does nothing when the program runs. Use it to label sections of your program.' },
   random_var:     { icon: '🎲', label: 'random variable', bg: '#0e1a28', tip: 'Set a variable to a random number between min and max. Makes your bot unpredictable and fun!' },
+  define_sub:     { icon: '⎈',  label: 'define subroutine', bg: '#1a0a2a', tip: 'Name a group of tiles as a reusable subroutine. Call it by name from anywhere in your program — like defining a function.' },
+  call_sub:       { icon: '⤴',  label: 'call subroutine',   bg: '#1a0a2a', tip: 'Run a named subroutine. The bot executes all tiles inside it, then returns here.' },
   set_var:        { icon: '=',  label: 'set variable',   bg: '#0e1a28', tip: 'Create a named number and set its starting value. Run this before your forever loop.' },
   change_var:     { icon: '±',  label: 'change variable',bg: '#0e1a28', tip: 'Add (or subtract) a number from a variable. Use it inside loops to count things.' },
 };
@@ -69,6 +71,10 @@ const TRAY_GROUPS = [
     { type: 'random_var' },
     { type: 'print' },
   ]},
+  { label: 'SUBROUTINES', items: [
+    { type: 'define_sub' },
+    { type: 'call_sub' },
+  ]},
   { label: 'NOTES', items: [
     { type: 'comment' },
   ]},
@@ -95,7 +101,9 @@ function _instrSummary(instr) {
     case 'UNTIL': return '↩ until';
     case 'BREAK':     return '⛔ break';
     case 'PRINT_VAR': return `📤 ${instr.name}`;
-    case 'RAND_VAR':  return `🎲 ${instr.name} ∈ [${instr.min},${instr.max}]`;
+    case 'RAND_VAR':    return `🎲 ${instr.name} ∈ [${instr.min},${instr.max}]`;
+    case 'CALL_SUB':    return `⤴ ${instr.name}()`;
+    case 'SUB_RETURN':  return `↩ return`;
     case 'JZ':    return `? → ${instr.target}`;
     case 'JMP':   return `→ ${instr.target}`;
     case 'HALT':       return '⏹';
@@ -140,6 +148,10 @@ function makeNode(spec) {
       return { type: 'comment', id, text: 'note' };
     case 'random_var':
       return { type: 'random_var', id, name: 'x', min: 1, max: 10 };
+    case 'define_sub':
+      return { type: 'define_sub', id, name: 'patrol', body: [] };
+    case 'call_sub':
+      return { type: 'call_sub', id, name: 'patrol' };
     case 'set_var':    return { type: 'set_var',    id, name: 'count', value: 0 };
     case 'change_var': return { type: 'change_var', id, name: 'count', delta: 1 };
     default: return null;
@@ -505,7 +517,7 @@ export class TileEditor {
     if (node.type === 'forever' || node.type === 'repeat') {
       el.appendChild(this._renderBody(node.body, 'DO'));
     }
-    if (node.type === 'repeat_until') {
+    if (node.type === 'repeat_until' || node.type === 'define_sub') {
       el.appendChild(this._renderBody(node.body, 'DO'));
     }
     if (node.type === 'if' || node.type === 'if_else') {
@@ -594,6 +606,8 @@ export class TileEditor {
       rows.push(this._textRow('name', node.name, v => { node.name = v.replace(/[^a-z0-9_]/gi, '_') || 'x'; }));
       rows.push(this._numRow('min', node.min, -999, 999, 1, v => { node.min = Math.floor(v); }));
       rows.push(this._numRow('max', node.max, -999, 999, 1, v => { node.max = Math.floor(v); }));
+    } else if (node.type === 'define_sub' || node.type === 'call_sub') {
+      rows.push(this._textRow('name', node.name, v => { node.name = v.replace(/[^a-z0-9_]/gi, '_') || 'sub'; this._showErrors(); }));
     }
 
     if (!rows.length) return null;

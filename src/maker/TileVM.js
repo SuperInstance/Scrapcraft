@@ -52,6 +52,7 @@ export class TileVM {
     this.pc = 0;
     this.stack = [];
     this.loops = [];        // [{ remaining, forever, head }]
+    this.callStack = [];    // [return PC] for subroutine call/return
     this.waitRemaining = 0; // seconds left on a WAIT
     this.halted = false;
     this._yield = false;
@@ -206,6 +207,18 @@ export class TileVM {
         const lo = instr.min ?? 1, hi = instr.max ?? 10;
         this.vars[instr.name] = Math.floor(Math.random() * (hi - lo + 1)) + lo;
         this.pc++;
+        break;
+      }
+
+      case 'CALL_SUB':
+        this.callStack.push(this.pc + 1);   // return = instruction after CALL_SUB
+        this.pc = instr.target;
+        break;
+
+      case 'SUB_RETURN': {
+        const retPc = this.callStack.pop();
+        if (retPc === undefined) { this.halted = true; break; }  // defensive
+        this.pc = retPc;
         break;
       }
 

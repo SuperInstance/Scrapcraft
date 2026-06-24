@@ -626,6 +626,62 @@ console.log('\nrandom_var tile');
   ok('Python codegen emits random.randint', py.includes('random.randint'));
 }
 
+// ── 19. subroutines (define_sub / call_sub) ────────────────────────────────
+console.log('\nsubroutines');
+{
+  // Basic call: define a sub, call it once
+  const prog = new TileProgram({ nodes: [
+    { type: 'call_sub', name: 'ping' },
+    { type: 'define_sub', name: 'ping', body: [
+      T.action('beep', { pitch: 'high' }),
+    ]},
+  ]});
+  const r = compile(prog);
+  ok('subroutine program compiles ok', r.ok, JSON.stringify(r.errors));
+  ok('emits CALL_SUB opcode', r.bytecode.some(i => i.op === 'CALL_SUB'));
+  ok('emits SUB_RETURN opcode', r.bytecode.some(i => i.op === 'SUB_RETURN'));
+  ok('CALL_SUB has resolved target (not -1)', r.bytecode.some(i => i.op === 'CALL_SUB' && i.target !== -1));
+
+  // VM: sub body actually runs
+  const rt = new MakerRuntime(prog, {}, new MockWorld());
+  for (let i = 0; i < 20; i++) rt.tick(0.016);
+  const beeps = rt.drainEvents().filter(e => e.kind === 'beep').length;
+  ok('subroutine body ran (got 1 beep)', beeps === 1, `beeps=${beeps}`);
+  ok('program halted after returning from sub', rt.vm.halted);
+
+  // Error: call_sub with no matching define_sub
+  const undefinedCall = new TileProgram({ nodes: [
+    { type: 'call_sub', name: 'missing' },
+  ]});
+  const ur = compile(undefinedCall);
+  ok('error when calling undefined sub', !ur.ok && ur.errors.some(e => e.includes('"missing"')));
+
+  // Multiple calls to same sub
+  const multiCall = new TileProgram({ nodes: [
+    { type: 'call_sub', name: 'beepSub' },
+    { type: 'call_sub', name: 'beepSub' },
+    { type: 'define_sub', name: 'beepSub', body: [ T.action('beep', { pitch: 'mid' }) ]},
+  ]});
+  const mr = compile(multiCall);
+  ok('multiple calls to same sub compile ok', mr.ok, JSON.stringify(mr.errors));
+  {
+    const rt2 = new MakerRuntime(multiCall, {}, new MockWorld());
+    for (let i = 0; i < 30; i++) rt2.tick(0.016);
+    const b2 = rt2.drainEvents().filter(e => e.kind === 'beep').length;
+    ok('two calls produce 2 beeps', b2 === 2, `beeps=${b2}`);
+  }
+
+  // Firmware: Arduino emits void function + call
+  const fw = toArduino(prog);
+  ok('Arduino codegen emits void function', fw.includes('void ping()'));
+  ok('Arduino codegen emits function call', fw.includes('ping();'));
+
+  // Firmware: Python emits def function + call
+  const py = toMicroPython(prog);
+  ok('Python codegen emits def function', py.includes('def ping():'));
+  ok('Python codegen emits function call', py.includes('ping()'));
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
