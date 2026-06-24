@@ -133,8 +133,9 @@ export async function ensureTables(db) {
     CREATE INDEX IF NOT EXISTS idx_challenges_class ON challenges(class_code, active);
     CREATE INDEX IF NOT EXISTS idx_completions_challenge ON challenge_completions(challenge_id);
   `);
-  // Migrate teacher_key column — silently ignored if it already exists
+  // Migrate columns — silently ignored if they already exist
   try { await db.exec('ALTER TABLE classes ADD COLUMN teacher_key TEXT'); } catch { /* already present */ }
+  try { await db.exec('ALTER TABLE classes ADD COLUMN spark_enabled INTEGER DEFAULT 1'); } catch { /* already present */ }
 }
 
 // ── Router ────────────────────────────────────────────────────────
@@ -170,13 +171,15 @@ export default async function handleGameApi(request, env, ctx) {
   if (request.method === 'POST' && url.pathname === '/api/v1/class/create') {
     return handleClassCreate(request, db);
   }
-  const classPathMatch = url.pathname.match(/^\/api\/v1\/class\/([A-Z0-9]+)\/([a-z]+)$/);
+  const classPathMatch = url.pathname.match(/^\/api\/v1\/class\/([A-Z0-9]+)\/([a-z_-]+)$/);
   if (classPathMatch) {
     const [, code, sub] = classPathMatch;
-    if (request.method === 'GET'    && sub === 'roster')    return handleClassRoster(code, url, db);
-    if (request.method === 'GET'    && sub === 'challenge') return handleGetChallenge(code, db);
-    if (request.method === 'POST'   && sub === 'challenge') return handleAssignChallenge(code, request, url, db);
-    if (request.method === 'DELETE' && sub === 'challenge') return handleEndChallenge(code, url, db);
+    if (request.method === 'GET'    && sub === 'roster')       return handleClassRoster(code, url, db);
+    if (request.method === 'GET'    && sub === 'challenge')    return handleGetChallenge(code, db);
+    if (request.method === 'POST'   && sub === 'challenge')    return handleAssignChallenge(code, request, url, db);
+    if (request.method === 'DELETE' && sub === 'challenge')    return handleEndChallenge(code, url, db);
+    if (request.method === 'GET'    && sub === 'spark-config') return handleGetSparkConfig(code, db);
+    if (request.method === 'POST'   && sub === 'spark-config') return handleSetSparkConfig(code, request, url, db);
   }
 
   // Student submits challenge completion (session auth)
@@ -616,6 +619,29 @@ async function handleChallengeComplete(request, sessionId, db) {
     ).bind(challengeId, sessionId, grade ?? 'C', budgetPct ?? 50).run();
 
     return json({ ok: true });
+  } catch (err) { return json({ error: err.message }, 500); }
+}
+
+// ── Spark config handlers ─────────────────────────────────────────
+
+async function handleGetSparkConfig(classCode, db) {
+  try {
+    const row = await db.prepare('SELECT spark_enabled FROM classes WHERE code=?').bind(classCode).first();
+    if (!row) return json({ error: 'Class not found' }, 404);
+    return json({ sparkEnabled: row.spark_enabled !== 0 });
+  } catch (err) { return json({ error: err.message }, 500); }
+}
+
+async function handleSetSparkConfig(classCode, request, url, db) {
+  try {
+    const key = url.searchParams.get('key');
+    const cls = await db.prepare('SELECT teacher_key FROM classes WHERE code=?').bind(classCode).first();
+    if (!cls) return json({ error: 'Class not found' }, 404);
+    if (cls.teacher_key !== key) return json({ error: 'Invalid teacher key' }, 403);
+    const { sparkEnabled } = await request.json();
+    await db.prepare('UPDATE classes SET spark_enabled=? WHERE code=?')
+      .bind(sparkEnabled ? 1 : 0, classCode).run();
+    return json({ ok: true, sparkEnabled: !!sparkEnabled });
   } catch (err) { return json({ error: err.message }, 500); }
 }
 

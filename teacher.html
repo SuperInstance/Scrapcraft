@@ -238,6 +238,21 @@
       </div>
     </div>
 
+    <div class="challenge-panel" style="margin-bottom:12px">
+      <div class="panel-title">🤖 SPARK AI ASSISTANT</div>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="font-size:11px;color:var(--text-dim);flex:1;line-height:1.6">
+          Spark helps students build robot programs using AI. Toggle it off during
+          tests or assessments.
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="spark-status-label" style="font-size:11px;color:var(--text-dim)">—</span>
+          <button class="btn btn-primary" id="btn-spark-on"  style="display:none;padding:7px 14px">Enable Spark</button>
+          <button class="btn btn-danger"  id="btn-spark-off" style="display:none;padding:7px 14px">Disable Spark</button>
+        </div>
+      </div>
+    </div>
+
     <div class="challenge-panel">
       <div class="panel-title">⚡ ACTIVE CHALLENGE</div>
       <div id="active-challenge-display">
@@ -378,6 +393,11 @@ async function connect() {
     document.getElementById('class-info').textContent = `Class ${classCode}  ·  ${data.students.length} students`;
     setStatus(true, 'Live');
     renderRoster(data);
+    loadSparkConfig();
+    // Show Spark buttons now that we're connected
+    document.getElementById('btn-spark-on').style.display  = 'none';
+    document.getElementById('btn-spark-off').style.display = '';
+    document.getElementById('spark-status-label').textContent = 'Loading…';
     startPolling();
   } catch (e) {
     showErr('Could not reach worker: ' + e.message);
@@ -494,6 +514,57 @@ function renderChallengePanel() {
     endBtn.style.display = 'none';
   }
 }
+
+// ── Challenge assign / end ───────────────────────────────────────────────────
+
+// ── Spark toggle ───────────────────────────────────────────────────────────────
+
+let sparkEnabled = true;
+
+async function loadSparkConfig() {
+  try {
+    const r = await apiFetch(`/api/v1/class/${classCode}/spark-config`);
+    if (!r.ok) return;
+    const data = await r.json();
+    sparkEnabled = data.sparkEnabled;
+    updateSparkUI();
+  } catch {}
+}
+
+function updateSparkUI() {
+  const label  = document.getElementById('spark-status-label');
+  const onBtn  = document.getElementById('btn-spark-on');
+  const offBtn = document.getElementById('btn-spark-off');
+  if (!label) return;
+  if (sparkEnabled) {
+    label.textContent = '✅ Spark is ENABLED';
+    label.style.color = 'var(--green)';
+    onBtn.style.display  = 'none';
+    offBtn.style.display = '';
+  } else {
+    label.textContent = '🔇 Spark is DISABLED';
+    label.style.color = '#f44336';
+    onBtn.style.display  = '';
+    offBtn.style.display = 'none';
+  }
+}
+
+async function setSparkEnabled(val) {
+  try {
+    const r = await apiFetch(`/api/v1/class/${classCode}/spark-config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sparkEnabled: val }),
+    });
+    if (!r.ok) { const e = await r.json(); toast('Error: ' + e.error); return; }
+    sparkEnabled = val;
+    updateSparkUI();
+    toast(val ? 'Spark enabled for students.' : 'Spark disabled — students will see "Spark is resting".');
+  } catch (e) { toast('Network error: ' + e.message); }
+}
+
+document.getElementById('btn-spark-on')?.addEventListener('click',  () => setSparkEnabled(true));
+document.getElementById('btn-spark-off')?.addEventListener('click', () => setSparkEnabled(false));
 
 // ── Challenge assign / end ───────────────────────────────────────────────────
 
