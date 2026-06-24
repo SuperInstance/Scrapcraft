@@ -357,6 +357,28 @@ console.log('\nVariable init warnings');
   const r3 = compile(progOk);
   ok('no warning when change_var has matching set_var',
      !r3.warnings.some(w => w.includes('"score"')));
+
+  // set_var inside nested body still counts as declared
+  const progNested = new TileProgram({ nodes: [
+    T.setVar('laps', 0),
+    T.forever([
+      T.changeVar('laps', 1),
+      T.if(T.varCond('laps', 'gte', 3), [ T.action('stop') ]),
+    ]),
+  ]});
+  const r4 = compile(progNested);
+  ok('no warning when nested change_var+cond match top-level set_var',
+     !r4.warnings.some(w => w.includes('"laps"')));
+
+  // Two variables — only one missing init → warning only for that one
+  const progTwoVars = new TileProgram({ nodes: [
+    T.setVar('a', 0),
+    T.changeVar('a', 1),
+    T.changeVar('b', 1),   // b is never initialized
+  ]});
+  const r5 = compile(progTwoVars);
+  ok('warns only for the uninitialised variable when two vars are present',
+     r5.warnings.some(w => w.includes('"b"')) && !r5.warnings.some(w => w.includes('"a"')));
 }
 
 // ── 13. Achievement stats for variables ─────────────────────────────────────
