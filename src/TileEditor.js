@@ -159,6 +159,12 @@ export class TileEditor {
     this._stepBtn    = null;
     this._stepInfoEl = null;
 
+    // Undo/redo history (snapshots of program JSON)
+    this._history    = [];
+    this._histIdx    = -1;
+    this._undoBtn    = null;
+    this._redoBtn    = null;
+
     // WebSerial hardware bridge
     this._bridge       = null;
     this._flashBtn     = null;
@@ -196,6 +202,7 @@ export class TileEditor {
       this._program.name = this._nameIn.value || 'My Brain';
     });
     this._brainSel.addEventListener('change', () => {
+      this._saveHistory();
       this._program.brain = this._brainSel.value;
       this._showErrors();
     });
@@ -209,6 +216,21 @@ export class TileEditor {
     this._panel.querySelector('#te-share-btn')?.addEventListener('click', () => this._shareProgram());
     this._panel.querySelector('#te-receipt-btn')?.addEventListener('click', () => this._showFlashReceipt());
     this._panel.querySelector('#te-gallery-btn')?.addEventListener('click', () => this._gallery?.open());
+
+    this._undoBtn = this._panel.querySelector('#te-undo-btn');
+    this._redoBtn = this._panel.querySelector('#te-redo-btn');
+    this._undoBtn?.addEventListener('click', () => this._undo());
+    this._redoBtn?.addEventListener('click', () => this._redo());
+    // Keyboard undo/redo (only when the editor panel is open)
+    document.addEventListener('keydown', (e) => {
+      if (!this._open) return;
+      // Don't intercept when typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && !e.shiftKey && e.key === 'z') { e.preventDefault(); this._undo(); }
+      if (mod &&  e.shiftKey && e.key === 'z') { e.preventDefault(); this._redo(); }
+      if (mod && !e.shiftKey && e.key === 'y') { e.preventDefault(); this._redo(); }
+    });
 
     this._stepBtn    = this._panel.querySelector('#te-step-btn');
     this._stepInfoEl = this._panel.querySelector('#te-step-info');
@@ -546,6 +568,7 @@ export class TileEditor {
     notBtn.textContent = 'NOT';
     notBtn.title = 'Invert condition';
     notBtn.addEventListener('click', () => {
+      this._saveHistory();
       node.cond.not = !node.cond.not;
       notBtn.classList.toggle('active', !!node.cond.not);
       this._showErrors();
@@ -577,6 +600,7 @@ export class TileEditor {
       ssel.appendChild(grp);
     }
     ssel.addEventListener('change', () => {
+      this._saveHistory();
       node.cond.sensor = ssel.value;
       const isVar = ssel.value.startsWith('var:');
       const s = SENSORS[ssel.value];
@@ -598,7 +622,7 @@ export class TileEditor {
       if (op === cond.cmp) o.selected = true;
       csel.appendChild(o);
     });
-    csel.addEventListener('change', () => { node.cond.cmp = csel.value; this._showErrors(); });
+    csel.addEventListener('change', () => { this._saveHistory(); node.cond.cmp = csel.value; this._showErrors(); });
     div.appendChild(csel);
 
     // Value widget
@@ -611,7 +635,7 @@ export class TileEditor {
         if (String(cond.value) === v) o.selected = true;
         vsel.appendChild(o);
       });
-      vsel.addEventListener('change', () => { node.cond.value = vsel.value === 'true'; this._showErrors(); });
+      vsel.addEventListener('change', () => { this._saveHistory(); node.cond.value = vsel.value === 'true'; this._showErrors(); });
       div.appendChild(vsel);
     } else {
       const inp = document.createElement('input');
@@ -623,7 +647,7 @@ export class TileEditor {
       }
       inp.value = cond.value ?? (isVarSensor ? 0 : 0.5);
       inp.style.width = '60px';
-      inp.addEventListener('change', () => { node.cond.value = Number(inp.value); this._showErrors(); });
+      inp.addEventListener('change', () => { this._saveHistory(); node.cond.value = Number(inp.value); this._showErrors(); });
       div.appendChild(inp);
     }
 
@@ -676,8 +700,10 @@ export class TileEditor {
     num.min = min; num.max = max; num.step = step; num.value = current;
 
     slider.addEventListener('input', () => { num.value = slider.value; onChange(Number(slider.value)); });
+    slider.addEventListener('change', () => { this._saveHistory(); });
     num.addEventListener('change', () => {
       const v = Math.min(max, Math.max(min, Number(num.value) || min));
+      this._saveHistory();
       num.value = v; slider.value = v; onChange(v);
     });
 
@@ -694,7 +720,7 @@ export class TileEditor {
     row.appendChild(lbl);
     const inp = document.createElement('input');
     inp.type = 'text'; inp.className = 'te-param-text'; inp.value = current;
-    inp.addEventListener('change', () => onChange(inp.value));
+    inp.addEventListener('change', () => { this._saveHistory(); onChange(inp.value); });
     row.appendChild(inp);
     return row;
   }
@@ -715,6 +741,41 @@ export class TileEditor {
     return found;
   }
 
+  // ── Undo / redo ───────────────────────────────────────────────────────────
+
+  _saveHistory() {
+    const snap = JSON.stringify(this._program.toJSON());
+    // Drop any forward history after current position
+    this._history.splice(this._histIdx + 1);
+    this._history.push(snap);
+    if (this._history.length > 20) this._history.shift();
+    this._histIdx = this._history.length - 1;
+    this._updateUndoRedo();
+  }
+
+  _undo() {
+    if (this._histIdx <= 0) return;
+    this._histIdx--;
+    this._program = TileProgram.fromJSON(JSON.parse(this._history[this._histIdx]));
+    this._renderProgram();
+    this._showErrors();
+    this._updateUndoRedo();
+  }
+
+  _redo() {
+    if (this._histIdx >= this._history.length - 1) return;
+    this._histIdx++;
+    this._program = TileProgram.fromJSON(JSON.parse(this._history[this._histIdx]));
+    this._renderProgram();
+    this._showErrors();
+    this._updateUndoRedo();
+  }
+
+  _updateUndoRedo() {
+    if (this._undoBtn) this._undoBtn.disabled = this._histIdx <= 0;
+    if (this._redoBtn) this._redoBtn.disabled = this._histIdx >= this._history.length - 1;
+  }
+
   // ── Drag / drop ───────────────────────────────────────────────────────────
 
   _handleDrop(list, idx) {
@@ -724,10 +785,11 @@ export class TileEditor {
 
     if (data.kind === 'new') {
       const node = makeNode(data.spec);
-      if (node) { list.splice(idx, 0, node); this._renderProgram(); this._game?.saveSystem?.markDirty(); }
+      if (node) { this._saveHistory(); list.splice(idx, 0, node); this._renderProgram(); this._game?.saveSystem?.markDirty(); }
     } else if (data.kind === 'move') {
       const found = this._findNode(data.nodeId);
       if (!found) return;
+      this._saveHistory();
       let at = idx;
       if (found.list === list && found.idx < idx) at--;
       found.list.splice(found.idx, 1);
@@ -752,7 +814,7 @@ export class TileEditor {
 
   _deleteNode(id) {
     const found = this._findNode(id);
-    if (found) { found.list.splice(found.idx, 1); this._renderProgram(); }
+    if (found) { this._saveHistory(); found.list.splice(found.idx, 1); this._renderProgram(); }
   }
 
   // ── Errors / code ─────────────────────────────────────────────────────────
@@ -1212,6 +1274,10 @@ export class TileEditor {
     this._assignIds(this._program.nodes);
     if (this._nameIn)   this._nameIn.value   = program.name  ?? 'Spark Brain';
     if (this._brainSel) this._brainSel.value = program.brain ?? 'tin';
+    // Seed undo history with the new program as the baseline
+    this._history = [JSON.stringify(program.toJSON())];
+    this._histIdx = 0;
+    this._updateUndoRedo();
     this._renderProgram();
     this._game?.saveSystem?.markDirty();
   }
