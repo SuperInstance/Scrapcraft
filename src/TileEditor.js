@@ -1118,7 +1118,7 @@ export class TileEditor {
     bot.setBrain(this._program, this._game.world, this._game.player, this._game.dayNight);
     this._game.audio?.brainLoad();
     this._game.achievements?.track('program_run', {});
-    // Variable achievement + challenge tracking
+    // Variable achievement + challenge + XP tracking
     const varNames = this._collectVarNames();
     const hasCond  = this._hasVarCond();
     if (varNames.length > 0) {
@@ -1127,6 +1127,7 @@ export class TileEditor {
         hasCond,
       });
       this._game.challenge?.onVariableProgram?.(varNames.length, hasCond);
+      this._game.xpSystem?.trackVariables(varNames);
     }
     // Notify challenge system about which sensors are in use
     const sensorIds = bot._extractSensorIds?.(this._program?.nodes ?? []) ?? new Set();

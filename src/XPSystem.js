@@ -45,6 +45,13 @@ export const XP_SKILLS = [
     earlQuip: "Level 5. You're an engineer now, officially. Craft a second robot_helper and press Shift+B to run it on its own brain. Don't let them fight.",
   },
   {
+    id: 'data_head',
+    level: 6,
+    icon: '📊',
+    name: 'Data Head',
+    earlQuip: "Level 6. You've got memory now — the variable blocks in the Tile Editor let your bot count things, track score, remember laps. Numbers that live between loops. Real programming.",
+  },
+  {
     id: 'maker',
     level: 8,
     icon: '🔌',
@@ -94,6 +101,23 @@ export class XPSystem {
     if (this._seenSensors.has(sensorId)) return;
     this._seenSensors.add(sensorId);
     this.gain(8);
+  }
+
+  /**
+   * Award a one-time 10 XP bonus the first time each distinct variable name
+   * is used in a running program. Returns total XP awarded this call.
+   */
+  trackVariables(varNames) {
+    let total = 0;
+    for (const name of varNames) {
+      const key = `var:${name}`;
+      if (!this._seenSensors.has(key)) {
+        this._seenSensors.add(key);
+        this.gain(10);
+        total += 10;
+      }
+    }
+    return total;
   }
 
   hasSkill(id) { return this.skills.has(id); }
