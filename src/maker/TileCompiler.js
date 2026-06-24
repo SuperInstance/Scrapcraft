@@ -41,6 +41,7 @@
  *    CALL_SUB  {name,target}  push return address, jump to sub start
  *    SUB_RETURN               pop return address and resume
  *    READ_SENSOR {name,sensor}  read live sensor into vars[name] (numeric, not boolean)
+ *    MATH_VAR {name,op,operand}  vars[name] = vars[name] op operand  (op ∈ add|sub|mul|div)
  *    HALT                  stop the program
  * ───────────────────────────────────────────────────────────────────────────
  */
@@ -108,7 +109,7 @@ function _checkVarInit(nodes, ctx) {
   const walk = (list) => {
     for (const n of list) {
       if ((n.type === 'set_var' || n.type === 'read_sensor') && n.name) declared.add(n.name);
-      if (n.type === 'change_var' && n.name) used.add(n.name);
+      if ((n.type === 'change_var' || n.type === 'math_var') && n.name) used.add(n.name);
       if (n.cond?.sensor?.startsWith('var:')) used.add(n.cond.sensor.slice(4));
       if (Array.isArray(n.body))     walk(n.body);
       if (Array.isArray(n.elseBody)) walk(n.elseBody);
@@ -152,6 +153,7 @@ function compileNode(node, ctx) {
       ctx.warnings.push(`"define subroutine" tile "${node.name || 'sub'}" must be at the top level — move it out of loops and conditions.`);
       return;
     case 'read_sensor': return compileReadSensor(node, ctx);
+    case 'math_var':   return compileMathVar(node, ctx);
     case 'macro':      return compileMacro(node, ctx);
     case 'set_var':    return compileSetVar(node, ctx);
     case 'change_var': return compileChangeVar(node, ctx);
@@ -296,6 +298,15 @@ function compileCallSub(node, ctx) {
   ctx.out.push({ op: 'CALL_SUB', name, target: -1 });
   if (!ctx.callPatches[name]) ctx.callPatches[name] = [];
   ctx.callPatches[name].push(idx);
+}
+
+const MATH_OPS = new Set(['add', 'sub', 'mul', 'div']);
+
+function compileMathVar(node, ctx) {
+  const name = _sanitizeVarName(node.name);
+  const op = MATH_OPS.has(node.op) ? node.op : 'add';
+  const operand = Number(node.operand) || 0;
+  ctx.out.push({ op: 'MATH_VAR', name, mathOp: op, operand });
 }
 
 function compileReadSensor(node, ctx) {

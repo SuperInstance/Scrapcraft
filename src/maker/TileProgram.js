@@ -24,6 +24,7 @@
  *    comment      { type:'comment', text }                       non-executing annotation (becomes a code comment)
  *    random_var   { type:'random_var', name, min, max }          set variable to random integer in [min, max]
  *    read_sensor  { type:'read_sensor', name, sensor }           read live sensor value into a variable
+ *    math_var     { type:'math_var', name, op, operand }        name = name op operand  (op ∈ add|sub|mul|div)
  *    if           { type:'if',   cond, body:[...] }             conditional
  *    if_else      { type:'if_else', cond, body:[...], elseBody:[...] }
  *    macro        { type:'macro', kind, params }            expands at compile time
@@ -81,6 +82,9 @@ export const T = {
 
   // read_sensor: capture the live numeric value of a sensor into a variable
   readSensor: (name, sensor = 'distance_ahead') => ({ type: 'read_sensor', name, sensor }),
+
+  // math_var: name = name op operand  (op ∈ 'add' | 'sub' | 'mul' | 'div')
+  mathVar: (name, op = 'mul', operand = 1) => ({ type: 'math_var', name, op, operand: Number(operand) || 0 }),
 };
 
 /**

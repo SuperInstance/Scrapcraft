@@ -38,6 +38,7 @@ const NODE_META = {
   set_var:        { icon: '=',  label: 'set variable',   bg: '#0e1a28', tip: 'Create a named number and set its starting value. Run this before your forever loop.' },
   change_var:     { icon: '±',  label: 'change variable',bg: '#0e1a28', tip: 'Add (or subtract) a number from a variable. Use it inside loops to count things.' },
   read_sensor:    { icon: '📡', label: 'read sensor',    bg: '#0e1a28', tip: 'Read the live value of a sensor into a variable. Use it to store a snapshot or drive proportional behavior.' },
+  math_var:       { icon: '🔢', label: 'math variable',  bg: '#0e1a28', tip: 'Do math on a variable: multiply, divide, add, or subtract a number. Great for scaling sensor values.' },
 };
 
 const TRAY_GROUPS = [
@@ -69,6 +70,7 @@ const TRAY_GROUPS = [
   { label: 'VARIABLES', items: [
     { type: 'set_var' },
     { type: 'change_var' },
+    { type: 'math_var' },
     { type: 'random_var' },
     { type: 'read_sensor' },
     { type: 'print' },
@@ -107,6 +109,10 @@ function _instrSummary(instr) {
     case 'CALL_SUB':    return `⤴ ${instr.name}()`;
     case 'SUB_RETURN':  return `↩ return`;
     case 'READ_SENSOR': return `📡 ${instr.name} ← ${instr.sensor}`;
+    case 'MATH_VAR': {
+      const sym = { add: '+', sub: '-', mul: '×', div: '÷' }[instr.mathOp] ?? '?';
+      return `🔢 ${instr.name} ${sym}= ${instr.operand}`;
+    }
     case 'JZ':    return `? → ${instr.target}`;
     case 'JMP':   return `→ ${instr.target}`;
     case 'HALT':       return '⏹';
@@ -158,6 +164,7 @@ function makeNode(spec) {
     case 'set_var':    return { type: 'set_var',    id, name: 'count', value: 0 };
     case 'change_var': return { type: 'change_var', id, name: 'count', delta: 1 };
     case 'read_sensor': return { type: 'read_sensor', id, name: 'dist', sensor: 'distance_ahead' };
+    case 'math_var':    return { type: 'math_var', id, name: 'dist', op: 'mul', operand: 0.5 };
     default: return null;
   }
 }
@@ -615,6 +622,10 @@ export class TileEditor {
     } else if (node.type === 'read_sensor') {
       rows.push(this._textRow('into var', node.name, v => { node.name = v.replace(/[^a-z0-9_]/gi, '_') || 'dist'; this._showErrors(); }));
       rows.push(this._sensorSelectRow('sensor', node.sensor, v => { node.sensor = v; this._showErrors(); }));
+    } else if (node.type === 'math_var') {
+      rows.push(this._textRow('variable', node.name, v => { node.name = v.replace(/[^a-z0-9_]/gi, '_') || 'dist'; this._showErrors(); }));
+      rows.push(this._enumRow('op', ['mul', 'div', 'add', 'sub'], node.op, v => { node.op = v; }));
+      rows.push(this._numRow('by', node.operand, -999, 999, 0.1, v => { node.operand = v; }));
     }
 
     if (!rows.length) return null;
@@ -817,7 +828,7 @@ export class TileEditor {
   _collectVarNames() {
     const names = new Set();
     this._program.walk(n => {
-      if ((n.type === 'set_var' || n.type === 'change_var' || n.type === 'read_sensor') && n.name) names.add(n.name);
+      if ((n.type === 'set_var' || n.type === 'change_var' || n.type === 'math_var' || n.type === 'read_sensor') && n.name) names.add(n.name);
     });
     return [...names];
   }

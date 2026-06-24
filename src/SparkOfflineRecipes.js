@@ -462,6 +462,30 @@ export const OFFLINE_RECIPES = [
       ]),
     ]}),
   },
+  {
+    keywords: ['multiply', 'divide', 'scale', 'math', 'arithmetic', 'proportional', 'halve', 'double', 'math variable'],
+    reply:    "Math variable demo! The bot reads the battery sensor (0.0–1.0) into 'batt', then multiplies by 100 to get a percentage, and prints it. When battery drops below 25, it slows down. That's math_var doing real sensor scaling!",
+    program:  new TileProgram({ name: 'Battery Monitor', brain: 'spark', nodes: [
+      T.setVar('batt', 100),
+      T.forever([
+        T.readSensor('batt', 'battery'),
+        T.mathVar('batt', 'mul', 100),
+        T.print('batt'),
+        T.ifElse(
+          T.varCond('batt', 'lt', 25),
+          [
+            T.action('led', { state: 'red' }),
+            T.action('drive', { dir: 'forward', speed: 0.25 }),
+          ],
+          [
+            T.action('led', { state: 'green' }),
+            T.action('drive', { dir: 'forward', speed: 0.7 }),
+          ],
+        ),
+        T.wait(0.5),
+      ]),
+    ]}),
+  },
 ];
 
 /** Returns best-matching recipe or null if no keyword hits. */

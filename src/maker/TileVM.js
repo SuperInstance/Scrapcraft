@@ -216,6 +216,20 @@ export class TileVM {
         this.pc++;
         break;
 
+      case 'MATH_VAR': {
+        const cur = this.vars[instr.name] ?? 0;
+        const o   = instr.operand ?? 0;
+        switch (instr.mathOp) {
+          case 'add': this.vars[instr.name] = cur + o; break;
+          case 'sub': this.vars[instr.name] = cur - o; break;
+          case 'mul': this.vars[instr.name] = cur * o; break;
+          case 'div': this.vars[instr.name] = o !== 0 ? cur / o : 0; break;
+          default:    this.vars[instr.name] = cur;
+        }
+        this.pc++;
+        break;
+      }
+
       case 'CALL_SUB':
         this.callStack.push(this.pc + 1);   // return = instruction after CALL_SUB
         this.pc = instr.target;
