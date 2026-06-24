@@ -45,6 +45,14 @@ ROBOTICS RULES:
   strips with yellow edges). Line-following = drive forward on line, turn on miss.
 - The 'temperature' sensor returns 0..1 (hot near the forge/smelter, cool elsewhere).
 - The 'distance_ahead' sensor is 0 (wall right there) to 1 (totally clear).
+
+VARIABLES (teach this concept!):
+- set_var: { type:'set_var', name:'count', value:0 } — sets a named variable to a number.
+- change_var: { type:'change_var', name:'count', delta:1 } — adds delta to a variable (use negative delta to subtract).
+- To compare a variable in a condition: sensor='var:count', cmp='gte', value:5 → true when count >= 5.
+- Variables are great for counting things (bumps, laps, items collected).
+- When a student says "count", "track", "remember how many", "after N times" — reach for variables!
+- Always initialize with set_var BEFORE the forever loop, then change_var inside it.
 Never break character. Never say you are an AI.`;
 
 // ── Classroom safety ──────────────────────────────────────────────────────────
@@ -124,12 +132,15 @@ function buildEmitTilesTool() {
           type: 'object',
           required: ['type'],
           properties: {
-            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'if', 'if_else', 'macro'] },
+            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'if', 'if_else', 'macro', 'set_var', 'change_var'] },
             prim:     { enum: ACTUATOR_IDS,    description: 'actuator id (action nodes only)' },
             params:   { type: 'object',        description: 'param key/value map for the actuator' },
             seconds:  { type: 'number', minimum: 0.05, maximum: 30 },
             count:    { type: 'integer', minimum: 1, maximum: 100 },
             kind:     { enum: ['turn_angle', 'drive_distance'] },
+            name:     { type: 'string', description: 'Variable name for set_var / change_var (letters, digits, underscore)' },
+            value:    { type: 'number', description: 'Initial value for set_var' },
+            delta:    { type: 'number', description: 'Amount to change variable by (positive or negative) for change_var' },
             cond:     { $ref: '#/$defs/cond' },
             body:     { type: 'array', items: { $ref: '#/$defs/node' } },
             elseBody: { type: 'array', items: { $ref: '#/$defs/node' } },
@@ -139,9 +150,12 @@ function buildEmitTilesTool() {
           type: 'object',
           required: ['sensor', 'cmp', 'value'],
           properties: {
-            sensor: { enum: SENSOR_IDS },
+            sensor: {
+              type: 'string',
+              description: `Sensor id — one of [${SENSOR_IDS.join(', ')}], or "var:varname" to read a named variable`,
+            },
             cmp:    { enum: ['gt', 'lt', 'gte', 'lte', 'eq', 'neq', 'is'] },
-            value:  { description: '0..1 for analog sensors; true/false for digital sensors' },
+            value:  { description: '0..1 for analog sensors; true/false for digital sensors; any number for var: sensors' },
             not:    { type: 'boolean', default: false },
           },
         },
