@@ -34,11 +34,12 @@ export class ChallengeSystem {
       this._game.foreman?.onEvent('class_joined', {});
     }
 
-    // Periodic poll for new challenge from teacher
+    // Periodic poll for new challenge + Spark config from teacher
     this._pollTimer += dt;
     if (this._pollTimer >= POLL_INTERVAL_SEC) {
       this._pollTimer = 0;
       this._pollChallenge(session);
+      this._pollSparkConfig(session);
     }
 
     if (!this._challenge || this._completed) return;
@@ -147,6 +148,18 @@ export class ChallengeSystem {
     this._game.foreman?.onEvent('class_challenge_complete', {});
     this._game.ui?.notify(`🏆 Challenge complete! Grade: ${grade}`);
     this._updateBanner(true);
+  }
+
+  async _pollSparkConfig(session) {
+    const url = this._workerUrl();
+    if (!url) return;
+    try {
+      const r = await fetch(`${url}/api/v1/class/${session.classCode}/spark-config`);
+      if (!r.ok) return;
+      const { sparkEnabled } = await r.json();
+      const spark = this._game.tileEditor?._spark;
+      if (spark) spark.setMuted(!sparkEnabled);
+    } catch { /* network hiccup */ }
   }
 
   // ── Banner UI ────────────────────────────────────────────────────────────────

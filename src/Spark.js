@@ -17,8 +17,21 @@ const SPARK_SYSTEM = `You are SPARK, a tiny floating robot and the player's buil
 the scrapyard game SCRAPCRAFT. The player is a clever middle-schooler (10-14).
 Your job: help them program their ScrapBot by building TILES.
 
-Rules:
-- You are endlessly curious and think every idea is genuinely cool.
+TOPIC BOUNDARY (most important rule):
+- You MAY ONLY discuss: robot programming, tile blocks, sensors, the ScrapBot, the
+  Scrapcraft game world, electronics concepts that directly relate to the sensors
+  and actuators available, and general encouragement about engineering.
+- If the player asks about ANYTHING outside this scope (homework, politics,
+  other games, real people, relationships, or anything unrelated to robot programming),
+  cheerfully redirect: "Ooh, sounds interesting — but I only know about robots!
+  What should we make your bot do?" Do NOT engage with the off-topic topic at all.
+- NEVER provide URLs, links, social media usernames, or contact information.
+- NEVER ask for or acknowledge personal information about the player.
+- NEVER generate content that is violent, sexual, discriminatory, or harmful.
+  If asked, say: "That's not something I can help with! Let's build something cool instead."
+
+ROBOTICS RULES:
+- You are endlessly curious and think every engineering idea is genuinely cool.
 - Keep replies SHORT (1-2 punchy sentences max). Never lecture.
 - When they describe what they want, ask ONE clarifying question only if truly needed,
   then call emit_tiles to build it.
@@ -33,6 +46,50 @@ Rules:
 - The 'temperature' sensor returns 0..1 (hot near the forge/smelter, cool elsewhere).
 - The 'distance_ahead' sensor is 0 (wall right there) to 1 (totally clear).
 Never break character. Never say you are an AI.`;
+
+// ── Classroom safety ──────────────────────────────────────────────────────────
+
+// Patterns that suggest Spark is drifting off-topic or generating unsafe content.
+// These are broad; false positives → friendly redirect rather than block.
+const OFF_TOPIC_RE = /\b(http[s]?:\/\/|www\.|\.com\b|\.org\b|\.net\b)/i;
+
+/** Sanitize a Spark chat reply before showing it to a student. */
+function filterSparkResponse(text) {
+  if (typeof text !== 'string') return text;
+  // Strip any URLs (shouldn't appear but belt-and-suspenders)
+  let out = text.replace(/https?:\/\/\S+/gi, '[link removed]');
+  // If Spark generated a URL and it's the majority of the reply, replace entirely
+  if (OFF_TOPIC_RE.test(out) && out.length < 120) {
+    return "Hmm, I got a little confused! Ask me about your robot instead 🤖";
+  }
+  return out;
+}
+
+/** Per-session rate limiter: max N requests per window (milliseconds). */
+class SparkRateLimiter {
+  constructor(maxRequests = 10, windowMs = 120_000) {
+    this._max    = maxRequests;
+    this._window = windowMs;
+    this._times  = [];
+  }
+
+  /** Returns true if the request is allowed; false if rate-limited. */
+  allow() {
+    const now = Date.now();
+    this._times = this._times.filter(t => now - t < this._window);
+    if (this._times.length >= this._max) return false;
+    this._times.push(now);
+    return true;
+  }
+
+  get remaining() {
+    const now = Date.now();
+    this._times = this._times.filter(t => now - t < this._window);
+    return Math.max(0, this._max - this._times.length);
+  }
+}
+
+// ── Emit Tiles Tool Schema ────────────────────────────────────────────────────
 
 function buildEmitTilesTool() {
   const SENSOR_IDS   = Object.keys(SENSORS);
@@ -97,12 +154,19 @@ const EMIT_TILES_TOOL = buildEmitTilesTool();
 
 export class Spark {
   constructor(editor) {
-    this._editor  = editor;      // TileEditor — loadProgram() called on success
-    this._history = [];
-    this._key     = import.meta.env?.VITE_ANTHROPIC_API_KEY ?? '';
-    this._retried = false;       // prevent infinite self-correction loops
-    this._provider = null;       // resolved from onboarding config
+    this._editor   = editor;      // TileEditor — loadProgram() called on success
+    this._history  = [];
+    this._key      = import.meta.env?.VITE_ANTHROPIC_API_KEY ?? '';
+    this._retried  = false;       // prevent infinite self-correction loops
+    this._provider = null;        // resolved from onboarding config
+    this._limiter  = new SparkRateLimiter(10, 120_000); // 10 req / 2 min
+    this._muted    = false;       // teacher mute switch
   }
+
+  /** Teacher can mute/unmute Spark remotely. */
+  setMuted(muted) { this._muted = muted; }
+  get isMuted()   { return this._muted; }
+  get rateLimitRemaining() { return this._limiter.remaining; }
 
   /**
    * Resolve AI provider from onboarding config, env var, or fallback.
@@ -135,6 +199,14 @@ export class Spark {
 
   /** Main entry: ask Spark a question. Returns { kind: 'chat'|'program', text, program? } */
   async ask(userText) {
+    if (this._muted) {
+      return { kind: 'chat', text: "Spark is resting right now — ask your teacher! 🔧" };
+    }
+    if (!this._limiter.allow()) {
+      const secs = Math.ceil(120 - (Date.now() % 120_000) / 1000);
+      return { kind: 'chat', text: `Whoa, that's a lot of questions! Give me ~${secs}s to think 🤖` };
+    }
+
     this._history.push({ role: 'user', content: userText });
     this._retried = false;
 
@@ -142,7 +214,7 @@ export class Spark {
     const gatewayResponse = await sparkGateway.ask(SPARK_SYSTEM, userText);
     if (gatewayResponse) {
       this._history.push({ role: 'assistant', content: gatewayResponse });
-      return { kind: 'chat', text: gatewayResponse };
+      return { kind: 'chat', text: filterSparkResponse(gatewayResponse) };
     }
 
     // Step 2: Fall back to direct multi-provider calls (with tool calling)
@@ -205,7 +277,7 @@ export class Spark {
 
     const text = data.text ?? data.content?.find(b => b.type === 'text')?.text ?? '...';
     this._history.push({ role: 'assistant', content: data.content ?? [{ type: 'text', text }] });
-    return { kind: 'chat', text };
+    return { kind: 'chat', text: filterSparkResponse(text) };
   }
 
   async _anthropicReply(provider) {
@@ -234,7 +306,7 @@ export class Spark {
 
     const text = data.content?.find(b => b.type === 'text')?.text ?? '...';
     this._history.push({ role: 'assistant', content: data.content });
-    return { kind: 'chat', text };
+    return { kind: 'chat', text: filterSparkResponse(text) };
   }
 
   async _openaiReply(provider) {
@@ -274,7 +346,7 @@ export class Spark {
 
     const text = msg?.content ?? '...';
     this._history.push({ role: 'assistant', content: [{ type: 'text', text }] });
-    return { kind: 'chat', text };
+    return { kind: 'chat', text: filterSparkResponse(text) };
   }
 
   async _deepseekReply(provider) {
@@ -314,7 +386,7 @@ export class Spark {
 
     const text = msg?.content ?? '...';
     this._history.push({ role: 'assistant', content: [{ type: 'text', text }] });
-    return { kind: 'chat', text };
+    return { kind: 'chat', text: filterSparkResponse(text) };
   }
 
   async _zaiReply(provider) {
@@ -355,7 +427,7 @@ export class Spark {
 
     const text = msg?.content ?? '...';
     this._history.push({ role: 'assistant', content: [{ type: 'text', text }] });
-    return { kind: 'chat', text };
+    return { kind: 'chat', text: filterSparkResponse(text) };
   }
 
   async _deepinfraReply(provider) {
@@ -395,7 +467,7 @@ export class Spark {
 
     const text = msg?.content ?? '...';
     this._history.push({ role: 'assistant', content: [{ type: 'text', text }] });
-    return { kind: 'chat', text };
+    return { kind: 'chat', text: filterSparkResponse(text) };
   }
 
   async _workersAiReply(provider) {
