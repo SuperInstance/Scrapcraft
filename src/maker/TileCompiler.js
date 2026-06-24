@@ -36,6 +36,7 @@
  *    NEXT  {head}          loop back-edge; forever loops yield one pass / tick
  *    UNTIL {condStart}     repeat_until back-edge; jumps to condStart and yields one tick
  *    BREAK                 pop the innermost loop frame and jump to its end address
+ *    PRINT_VAR {name}      read vars[name] and emit a 'print' event via robot
  *    HALT                  stop the program
  * ───────────────────────────────────────────────────────────────────────────
  */
@@ -112,6 +113,7 @@ function compileNode(node, ctx) {
     case 'forever':      return compileLoop(node, ctx, true);
     case 'repeat_until': return compileUntil(node, ctx);
     case 'break':        return void ctx.out.push({ op: 'BREAK' });
+    case 'print':        return void ctx.out.push({ op: 'PRINT_VAR', name: _sanitizeVarName(node.name) });
     case 'macro':      return compileMacro(node, ctx);
     case 'set_var':    return compileSetVar(node, ctx);
     case 'change_var': return compileChangeVar(node, ctx);

@@ -75,6 +75,7 @@ export function toArduino(program) {
 
   // setup()
   L.push('void setup() {');
+  if (_hasPrintNode(program.nodes)) L.push('  Serial.begin(9600);');
   for (const id of [...used.actuators, ...used.sensors]) {
     const def = getActuator(id) ?? getSensor(id);
     const line = def?.hw?.setup?.arduino;
@@ -136,6 +137,12 @@ function emitArduino(nodes, L, depth) {
       case 'break':
         L.push(pad + 'break;');
         break;
+      case 'print': {
+        const vname = node.name || 'count';
+        L.push(pad + `Serial.print("${vname} = ");`);
+        L.push(pad + `Serial.println(${vname});`);
+        break;
+      }
       case 'macro':
         emitArduino(expandMacro(node) ?? [], L, depth);
         break;
@@ -237,6 +244,9 @@ function emitPython(nodes, L, depth) {
       case 'break':
         L.push(pad + 'break');
         break;
+      case 'print':
+        L.push(pad + `print(f"${node.name || 'count'} = {${node.name || 'count'}}")`);
+        break;
       case 'macro':
         emitPython(expandMacro(node) ?? [], L, depth);
         break;
@@ -279,6 +289,19 @@ function splitRoots(nodes) {
     return { loopBody: nodes[0].body, setupExtra: [] };
   }
   return { loopBody: nodes, setupExtra: [] };
+}
+
+/** Returns true if the program uses any print tiles. */
+function _hasPrintNode(nodes) {
+  const recur = (list) => {
+    for (const n of list) {
+      if (n.type === 'print') return true;
+      if (n.body     && recur(n.body))     return true;
+      if (n.elseBody && recur(n.elseBody)) return true;
+    }
+    return false;
+  };
+  return recur(nodes);
 }
 
 /** Collect all variable names referenced anywhere in the tile tree. */

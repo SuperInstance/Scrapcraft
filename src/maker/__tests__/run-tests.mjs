@@ -537,6 +537,40 @@ console.log('\nbreak tile');
   ok('Python codegen emits break', py.includes('break'));
 }
 
+// ── 16. print tile ─────────────────────────────────────────────────────────
+console.log('\nprint tile');
+{
+  const prog = new TileProgram({ nodes: [
+    T.setVar('score', 7),
+    T.print('score'),
+  ]});
+  const r = compile(prog);
+  ok('print compiles ok', r.ok, JSON.stringify(r.errors));
+  ok('emits PRINT_VAR opcode', r.bytecode.some(i => i.op === 'PRINT_VAR'));
+  ok('PRINT_VAR carries variable name', r.bytecode.some(i => i.op === 'PRINT_VAR' && i.name === 'score'));
+
+  // VM emits print event with correct value
+  const events = [];
+  const fakeRobot = {
+    setDrive: () => {}, setTurn: () => {}, gripping: false,
+    emit: (kind, data) => events.push({ kind, ...data }),
+  };
+  const rt = new TileVM(r.bytecode, fakeRobot, {});
+  for (let i = 0; i < 20; i++) { if (!rt.halted) rt.step(0.016); }
+  const printEvt = events.find(e => e.kind === 'print' && e.name === 'score');
+  ok('VM emits print event with correct name', !!printEvt, `events=${JSON.stringify(events)}`);
+  ok('VM emits correct value (7)', printEvt?.value === 7, `value=${printEvt?.value}`);
+
+  // Firmware: Arduino emits Serial.println
+  const fw = toArduino(prog);
+  ok('Arduino codegen emits Serial.println', fw.includes('Serial.println'));
+  ok('Arduino setup has Serial.begin when print used', fw.includes('Serial.begin(9600)'));
+
+  // Firmware: Python emits print(...)
+  const py = toMicroPython(prog);
+  ok('Python codegen emits print(f"...")', py.includes('print(f"'));
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
