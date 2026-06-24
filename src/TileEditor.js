@@ -1096,6 +1096,16 @@ export class TileEditor {
     const hdgLabel = dirs[Math.round(hdgDeg / 45) % 8];
     const posLabel = `(${robot.x?.toFixed(1)}, ${robot.z?.toFixed(1)})`;
 
+    const varEntries = Object.entries(rt.vm?.vars ?? {});
+    const varHtml = varEntries.length
+      ? `<div class="te-sensor-row te-var-header"><span style="color:#88aaff;font-size:9px;letter-spacing:0.05em">VARIABLES</span></div>`
+        + varEntries.map(([name, val]) =>
+          `<div class="te-sensor-row"><span class="te-sensor-key" style="color:#88aaff">${_esc(name)}</span>`
+        + `<span class="te-sensor-val" style="color:#aaccff">${Number.isInteger(val) ? val : val.toFixed(2)}</span>`
+        + `<div class="te-sensor-bar"><div class="te-sensor-fill" style="width:${Math.min(100, Math.abs(val / 10) * 100).toFixed(0)}%;background:#3355aa"></div></div></div>`
+        ).join('')
+      : '';
+
     this._sensorsEl.style.display = 'flex';
     this._sensorsEl.innerHTML = `<div class="te-sensor-row" style="font-size:9px;color:#777;width:100%">`
       + `<span>pos ${posLabel}</span><span style="margin-left:auto">hdg ${hdgLabel} ${Math.round(hdgDeg)}°</span></div>`
@@ -1108,7 +1118,7 @@ export class TileEditor {
         : '';
       return `<div class="te-sensor-row"><span class="te-sensor-key">${r.key}</span>`
            + `<span class="te-sensor-val">${fval}</span>${bar}</div>`;
-    }).join('');
+    }).join('') + varHtml;
   }
 
   _refreshStats(rt) {
@@ -1276,9 +1286,12 @@ export class TileEditor {
     }
     const instr = vm.code[pc];
     if (this._stepInfoEl) {
-      this._stepInfoEl.textContent = vm.halted
+      const varStr = Object.entries(vm.vars ?? {})
+        .map(([k, v]) => `${k}=${Number.isInteger(v) ? v : v.toFixed(2)}`).join(' ');
+      const base = vm.halted
         ? '⏹ HALTED — click STEP to reset'
         : `PC=${pc} op=${instr?.op ?? '?'} ${_instrSummary(instr)}`;
+      this._stepInfoEl.textContent = varStr ? `${base}  |  ${varStr}` : base;
     }
   }
 
