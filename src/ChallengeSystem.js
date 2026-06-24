@@ -21,11 +21,18 @@ export class ChallengeSystem {
     this._survivalSec = 0;      // seconds robot has survived without bumping
     this._completed   = false;  // already submitted this challenge
     this._bannerEl    = null;
+    this._joinNotified = false; // fire class_joined quip once per session
   }
 
   tick(dt) {
     const session = this._sessionInfo();
     if (!session) return; // not in a class
+
+    // One-shot Earl reaction when the player is in a class session
+    if (!this._joinNotified) {
+      this._joinNotified = true;
+      this._game.foreman?.onEvent('class_joined', {});
+    }
 
     // Periodic poll for new challenge from teacher
     this._pollTimer += dt;
@@ -105,6 +112,7 @@ export class ChallengeSystem {
         this._completed   = false;
         this._showBanner();
         this._game.ui?.notify(`🏆 New challenge: ${challenge.title}`);
+        this._game.foreman?.onEvent('class_challenge_assigned', {});
       }
     } catch { /* network hiccup — try again next poll */ }
   }
@@ -136,6 +144,7 @@ export class ChallengeSystem {
     } catch { /* fire-and-forget */ }
 
     this._game.achievements?.track('challenge_complete');
+    this._game.foreman?.onEvent('class_challenge_complete', {});
     this._game.ui?.notify(`🏆 Challenge complete! Grade: ${grade}`);
     this._updateBanner(true);
   }

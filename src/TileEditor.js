@@ -892,6 +892,7 @@ export class TileEditor {
 
     fr.classList.add('show');
     this._game.achievements?.track('receipt_view', {});
+    this._game.foreman?.onEvent('receipt_view', {});
   }
 
   // ── Runtime ───────────────────────────────────────────────────────────────

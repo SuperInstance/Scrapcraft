@@ -294,6 +294,30 @@ const QUIPS = {
     "Radar dish is scanning. Your minimap just got a whole lot more useful. I can see you watching it from here.",
     "Radar ping! Ore veins lit up on the map. Good. I hate when people wander around aimlessly.",
   ],
+  receipt_view: [
+    "That right there? That's C++ code. Arduino dialect. Going to a real ATmega chip. I'm not emotional about it. My eye just itches.",
+    "See those lines? You wrote that. Not with text — with tiles. The compiler turned your idea into instructions a microcontroller actually runs. That's called compilation. Welcome to engineering.",
+    "Real firmware. From a visual program you built in a scrapyard. If that doesn't blow your mind, I don't know what will. Go ahead, stare at it.",
+  ],
+  class_joined: [
+    "You joined a class. Good. Earl doesn't work well with other people, but even I know learning goes faster with a goal and someone checking your work.",
+    "Class session active. Your saves go to the cloud now. Switch devices, same bot. That's distributed systems, kid. Real production engineering.",
+    "You're in the system now, rookie. Your progress syncs. Your teacher can see your work. Don't embarrass me.",
+  ],
+  class_challenge_assigned: [
+    "New challenge from your teacher. These aren't for fun — well, they are — but they're also graded. Same as real engineering deliverables. Hit the target.",
+    "Teacher's watching. Challenge is live. That grade goes on your record. Not literally. But aim like it does.",
+    "Assignment's up. Efficiency matters here. A leaner program earns a higher grade. That's not just game rules — that's how embedded systems work. Less CPU, longer battery life.",
+  ],
+  class_challenge_complete: [
+    "Challenge complete. Your teacher's dashboard just updated with your grade. In the real world, that's called closing a ticket. You closed it.",
+    "Done. Graded. Submitted. That's the full engineering cycle: design, test, verify, deliver. You just did all four.",
+    "That grade you just earned? That's based on your program's efficiency. A lean loop is better than a wasteful one. Same rule applies to every robot ever shipped.",
+  ],
+  efficiency_grade: [
+    "Good efficiency score. Means your bot isn't burning cycles spinning its wheels. Real embedded devs call that tight code. That's the compliment.",
+    "Lean program. Fast loop. Low budget. You're thinking like an embedded engineer now. I've met ECE graduates who couldn't do what you just did.",
+  ],
 };
 
 // Quests Earl assigns in sequence
@@ -478,6 +502,38 @@ export const QUESTS = [
     reward: { item: 'signal_amp', qty: 1 },
     rewardText: "Signal amplifier. Makes your bot's scanner even better. I had that lying around. Don't ask why.",
   },
+
+  // ── Phase D: Firmware & Classroom quest chain ─────────────────────────────
+  {
+    id: 'q18',
+    title: 'See the Code',
+    intro: "You've been running programs in a game. It's time you looked at what's actually going on underneath. Hit [T], load any program, then click the ⚡ BUILD IT button. Read what comes out. That's real Arduino code. Real C++. It runs on a real chip.",
+    steps: [
+      { label: 'View the Flash Receipt', check: (_, g) => (g?.achievements?.stats?.receiptViews ?? 0) >= 1 },
+    ],
+    rewards: [{ item: 'circuit_board', qty: 3 }, { item: 'battery_pack', qty: 2 }],
+    rewardText: "Three circuit boards and two battery packs. You looked at real firmware today. That's not a small thing. Most people never do.",
+  },
+  {
+    id: 'q19',
+    title: 'Lean Machine',
+    intro: "Any bot can move. A good bot moves efficiently. Run your tile program and aim for a grade of B or better on the efficiency meter — that's BUDGET under 50%. Lean code means longer battery life on a real robot. That matters.",
+    steps: [
+      { label: 'View Flash Receipt with grade B or better', check: (_, g) => (g?.achievements?.stats?.receiptViews ?? 0) >= 2 },
+    ],
+    rewards: [{ item: 'crystal_fragment', qty: 4 }, { item: 'copper_wire', qty: 5 }],
+    rewardText: "Crystal fragments and copper wire. Your bot runs clean. That's not luck — that's design. There's a difference.",
+  },
+  {
+    id: 'q20',
+    title: 'Finish the Chain',
+    intro: "Last one. Flash your program to a real ESP32. Chrome browser, USB cable, WebSerial API. Click FLASH in the Tile Editor. Your tile program becomes machine code on actual hardware. That's the whole stack — game idea to silicon. Close the loop.",
+    steps: [
+      { label: 'Flash firmware to real hardware', check: (_, g) => (g?.achievements?.stats?.hardwareFlashes ?? 0) >= 1 },
+    ],
+    rewards: [{ item: 'vision_brain', qty: 1 }, { item: 'crystal_fragment', qty: 8 }],
+    rewardText: "Vision Brain and eight crystal fragments. You just wrote firmware. You flashed a chip. From a tile program. In a scrapyard. I've taught ECE seniors who haven't done that. I mean it.",
+  },
 ];
 
 export class Foreman {
@@ -556,6 +612,10 @@ export class Foreman {
       'bot_battery_dead':   'bot_battery_dead',
       'storm_exposed':      'storm_exposed',
       'challenge_complete': 'challenge_complete',
+      'receipt_view':             'receipt_view',
+      'class_joined':             'class_joined',
+      'class_challenge_assigned': 'class_challenge_assigned',
+      'class_challenge_complete': 'class_challenge_complete',
     };
     const key = map[event];
     if (key) this.say(key);
