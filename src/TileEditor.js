@@ -29,6 +29,7 @@ const NODE_META = {
   turn_angle:     { icon: '⤾',  label: 'turn angle',    bg: '#1a0c1a', tip: 'Turn an exact number of degrees (e.g. 90° for a square corner). A macro — expands to turn + wait.' },
   drive_distance: { icon: '→|', label: 'drive distance', bg: '#1a0c1a', tip: 'Drive an exact distance in world units. A macro — expands to drive + timed wait.' },
   repeat_until:   { icon: '↻?', label: 'repeat until',   bg: '#18102a', tip: 'Keep running the tiles inside until the condition becomes true — like a while loop. Pairs perfectly with variables.' },
+  break:          { icon: '⛔', label: 'break',           bg: '#280e0e', tip: 'Exit the current forever or repeat loop immediately. Great for "stop when something happens" inside a forever loop.' },
   set_var:        { icon: '=',  label: 'set variable',   bg: '#0e1a28', tip: 'Create a named number and set its starting value. Run this before your forever loop.' },
   change_var:     { icon: '±',  label: 'change variable',bg: '#0e1a28', tip: 'Add (or subtract) a number from a variable. Use it inside loops to count things.' },
 };
@@ -53,6 +54,7 @@ const TRAY_GROUPS = [
     { type: 'repeat_until' },
     { type: 'if' },
     { type: 'if_else' },
+    { type: 'break' },
   ]},
   { label: 'MACROS', items: [
     { type: 'macro', kind: 'turn_angle' },
@@ -83,6 +85,7 @@ function _instrSummary(instr) {
     case 'LOOP':  return instr.forever ? '∞ forever' : `↺ ×${instr.count}`;
     case 'NEXT':  return '↩ next';
     case 'UNTIL': return '↩ until';
+    case 'BREAK': return '⛔ break';
     case 'JZ':    return `? → ${instr.target}`;
     case 'JMP':   return `→ ${instr.target}`;
     case 'HALT':       return '⏹';
@@ -119,6 +122,8 @@ function makeNode(spec) {
       };
     case 'repeat_until':
       return { type: 'repeat_until', id, cond: { sensor: 'distance_ahead', cmp: 'lt', value: 0.25 }, body: [] };
+    case 'break':
+      return { type: 'break', id };
     case 'set_var':    return { type: 'set_var',    id, name: 'count', value: 0 };
     case 'change_var': return { type: 'change_var', id, name: 'count', delta: 1 };
     default: return null;
