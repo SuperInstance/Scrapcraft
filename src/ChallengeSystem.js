@@ -30,6 +30,7 @@ export class ChallengeSystem {
     this._leaderboard = [];     // latest leaderboard snapshot
     this._lbEl        = null;   // leaderboard popup element
     this._lbCount     = 0;      // total enrolled students
+    this._varProgramActive = false; // for variable_survivor type
   }
 
   tick(dt) {
@@ -94,6 +95,28 @@ export class ChallengeSystem {
         }
         break;
       }
+
+      case 'variable_survivor':
+        // Must use a variable AND survive N seconds without bumping
+        if (!this._varProgramActive) break;  // set by onVariableProgramRun()
+        if (bumped) { this._survivalSec = 0; }
+        else        { this._survivalSec += dt; }
+        this._updateBanner();
+        if (this._survivalSec >= (criteria.durationSec ?? 30)) this._submit();
+        break;
+
+      // use_variable and variable_condition are handled in onVariableProgramRun()
+    }
+  }
+
+  /** Called by TileEditor when a program using variables is run. */
+  onVariableProgramRun(hasVar, hasCond) {
+    if (!this._challenge || this._completed) return;
+    const type = this._challenge.criteria?.type;
+    if (type === 'use_variable'       && hasVar)  { this._submit(); return; }
+    if (type === 'variable_condition' && hasCond)  { this._submit(); return; }
+    if (type === 'variable_survivor'  && hasVar) {
+      this._varProgramActive = true;  // allow survival timer to tick
     }
   }
 
@@ -137,6 +160,7 @@ export class ChallengeSystem {
       if (this._challenge?.id !== challenge.id) {
         this._challenge   = challenge;
         this._survivalSec = 0;
+        this._varProgramActive = false;
         this._completed   = false;
         this._leaderboard = [];
         this._showBanner();
@@ -285,6 +309,17 @@ export class ChallengeSystem {
           : `Start robot — need grade ${targetGrade} or better`;
         break;
       }
+      case 'use_variable':
+        progEl.textContent = 'Run a bot program with a set variable tile';
+        break;
+      case 'variable_condition':
+        progEl.textContent = 'Run a bot that uses a variable in an IF condition';
+        break;
+      case 'variable_survivor':
+        progEl.textContent = this._varProgramActive
+          ? (running ? `${done}s / ${target}s no-bump [${pct}%]` : `Var active — ${done}s banked`)
+          : 'First: run a program using variables, then survive!';
+        break;
     }
   }
 
