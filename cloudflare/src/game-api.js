@@ -180,6 +180,7 @@ export default async function handleGameApi(request, env, ctx) {
     if (request.method === 'DELETE' && sub === 'challenge')    return handleEndChallenge(code, url, db);
     if (request.method === 'GET'    && sub === 'spark-config') return handleGetSparkConfig(code, db);
     if (request.method === 'POST'   && sub === 'spark-config') return handleSetSparkConfig(code, request, url, db);
+    if (request.method === 'GET'    && sub === 'leaderboard')  return handleClassLeaderboard(code, db);
   }
 
   // Student submits challenge completion (session auth)
@@ -642,6 +643,46 @@ async function handleSetSparkConfig(classCode, request, url, db) {
     await db.prepare('UPDATE classes SET spark_enabled=? WHERE code=?')
       .bind(sparkEnabled ? 1 : 0, classCode).run();
     return json({ ok: true, sparkEnabled: !!sparkEnabled });
+  } catch (err) { return json({ error: err.message }, 500); }
+}
+
+async function handleClassLeaderboard(classCode, db) {
+  try {
+    const cls = await db.prepare('SELECT 1 FROM classes WHERE code=?').bind(classCode).first();
+    if (!cls) return json({ error: 'Class not found' }, 404);
+
+    const challenge = await db.prepare(
+      'SELECT id, title FROM challenges WHERE class_code=? AND active=1 ORDER BY created_at DESC LIMIT 1'
+    ).bind(classCode).first();
+
+    const totalStudents = await db.prepare(
+      'SELECT COUNT(*) AS n FROM sessions WHERE class_code=?'
+    ).bind(classCode).first();
+
+    if (!challenge) return json({ leaderboard: [], challengeId: null, totalStudents: totalStudents?.n ?? 0 });
+
+    const GRADE_ORDER = { 'A+': 0, A: 1, B: 2, C: 3, D: 4 };
+    const rows = await db.prepare(
+      `SELECT s.display_name AS name, cc.grade, cc.budget_pct, cc.completed_at
+       FROM challenge_completions cc
+       JOIN sessions s ON s.id = cc.session_id
+       WHERE cc.challenge_id = ?
+       ORDER BY cc.completed_at ASC`
+    ).bind(challenge.id).all();
+
+    const sorted = (rows.results ?? []).sort((a, b) => {
+      const ga = GRADE_ORDER[a.grade] ?? 99;
+      const gb = GRADE_ORDER[b.grade] ?? 99;
+      if (ga !== gb) return ga - gb;
+      return (a.budget_pct ?? 50) - (b.budget_pct ?? 50);
+    }).map((r, i) => ({ rank: i + 1, ...r }));
+
+    return json({
+      leaderboard: sorted,
+      challengeId: challenge.id,
+      challengeTitle: challenge.title,
+      totalStudents: totalStudents?.n ?? 0,
+    });
   } catch (err) { return json({ error: err.message }, 500); }
 }
 
