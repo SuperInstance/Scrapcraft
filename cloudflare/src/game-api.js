@@ -171,7 +171,7 @@ export default async function handleGameApi(request, env, ctx) {
   if (request.method === 'POST' && url.pathname === '/api/v1/class/create') {
     return handleClassCreate(request, db);
   }
-  const classPathMatch = url.pathname.match(/^\/api\/v1\/class\/([A-Z0-9]+)\/([a-z_-]+)$/);
+  const classPathMatch = url.pathname.match(/^\/api\/v1\/class\/([A-Z0-9]+)\/([a-z_.]+)$/);
   if (classPathMatch) {
     const [, code, sub] = classPathMatch;
     if (request.method === 'GET'    && sub === 'roster')       return handleClassRoster(code, url, db);
@@ -181,6 +181,7 @@ export default async function handleGameApi(request, env, ctx) {
     if (request.method === 'GET'    && sub === 'spark-config') return handleGetSparkConfig(code, db);
     if (request.method === 'POST'   && sub === 'spark-config') return handleSetSparkConfig(code, request, url, db);
     if (request.method === 'GET'    && sub === 'leaderboard')  return handleClassLeaderboard(code, db);
+    if (request.method === 'GET'    && sub === 'export.csv')   return handleClassExportCsv(code, url, db);
   }
 
   // Student submits challenge completion (session auth)
@@ -682,6 +683,60 @@ async function handleClassLeaderboard(classCode, db) {
       challengeId: challenge.id,
       challengeTitle: challenge.title,
       totalStudents: totalStudents?.n ?? 0,
+    });
+  } catch (err) { return json({ error: err.message }, 500); }
+}
+
+async function handleClassExportCsv(classCode, url, db) {
+  try {
+    const key = url.searchParams.get('key');
+    const cls = await db.prepare('SELECT teacher_name, teacher_key FROM classes WHERE code=?').bind(classCode).first();
+    if (!cls) return json({ error: 'Class not found' }, 404);
+    if (cls.teacher_key && cls.teacher_key !== key) return json({ error: 'Invalid teacher key' }, 403);
+
+    // All challenges for this class (most recent first)
+    const challenges = await db.prepare(
+      'SELECT id, title FROM challenges WHERE class_code=? ORDER BY created_at DESC'
+    ).bind(classCode).all();
+    const cList = challenges.results ?? [];
+
+    // All students
+    const students = await db.prepare(
+      'SELECT id, display_name, last_seen FROM sessions WHERE class_code=? ORDER BY display_name'
+    ).bind(classCode).all();
+
+    // All completions for this class
+    const completions = await db.prepare(
+      `SELECT cc.session_id, cc.challenge_id, cc.grade, cc.budget_pct, cc.completed_at
+       FROM challenge_completions cc
+       JOIN challenges ch ON ch.id = cc.challenge_id
+       WHERE ch.class_code=?`
+    ).bind(classCode).all();
+    const compMap = {};
+    for (const c of completions.results ?? []) {
+      compMap[`${c.session_id}:${c.challenge_id}`] = c;
+    }
+
+    // Build CSV
+    const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const challengeTitles = cList.map(c => c.title);
+    const header = ['Student', 'Last Active', ...challengeTitles.flatMap(t => [`${t} Grade`, `${t} Budget%`])];
+    const rows = (students.results ?? []).map(s => {
+      const cells = [s.display_name, s.last_seen?.split('T')[0] ?? ''];
+      for (const c of cList) {
+        const comp = compMap[`${s.id}:${c.id}`];
+        cells.push(comp?.grade ?? '', comp?.budget_pct != null ? comp.budget_pct : '');
+      }
+      return cells.map(esc).join(',');
+    });
+    const csv = [header.map(esc).join(','), ...rows].join('\r\n');
+    const filename = `scrapcraft_${classCode}_${new Date().toISOString().slice(0,10)}.csv`;
+
+    return new Response(csv, {
+      headers: {
+        'content-type': 'text/csv',
+        'content-disposition': `attachment; filename="${filename}"`,
+      },
     });
   } catch (err) { return json({ error: err.message }, 500); }
 }
