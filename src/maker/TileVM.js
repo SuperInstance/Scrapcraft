@@ -61,6 +61,25 @@ export class TileVM {
 
   get isRunning() { return !this.halted; }
 
+  /**
+   * Advance to the next source-mapped node boundary for the step debugger.
+   * Executes instructions until the pc crosses into a different tile's range,
+   * the VM yields (WAIT / NEXT-forever), or the budget is exhausted.
+   * @param {Array} sourceMap  [{pc, nodeId}] from TileCompiler
+   * @returns {string|null} the newly active nodeId, or null if halted
+   */
+  stepOneNode(sourceMap) {
+    if (this.halted) return null;
+    const startId = _nodeAt(sourceMap, this.pc);
+    this._yield = false;
+    let budget = MAX_STEPS_PER_TICK;
+    while (!this._yield && !this.halted && budget-- > 0) {
+      this._exec(this.code[this.pc]);
+      if (_nodeAt(sourceMap, this.pc) !== startId) break;
+    }
+    return _nodeAt(sourceMap, this.pc);
+  }
+
   /** Advance one game frame. Non-blocking. */
   step(dt) {
     if (this.halted) return;
@@ -190,6 +209,15 @@ export class TileVM {
     if (!def) return;
     def.exec(this.robot, params ?? {});
   }
+}
+
+function _nodeAt(sourceMap, pc) {
+  let id = null;
+  for (const e of sourceMap) {
+    if (e.pc <= pc) id = e.nodeId;
+    else break;
+  }
+  return id;
 }
 
 function compare(a, b, cmp) {

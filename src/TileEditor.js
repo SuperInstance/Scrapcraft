@@ -5,7 +5,7 @@
 
 import { TileProgram, EXAMPLE_WALL_AVOIDER, EXAMPLE_LIGHT_RUNNER, EXAMPLE_SQUARE, EXAMPLE_LINE_FOLLOWER, EXAMPLE_WAYPOINT_NAV, EXAMPLE_ORE_HUNTER, EXAMPLE_BATTERY_SAVER } from './maker/TileProgram.js';
 import { SENSORS, ACTUATORS, BRAINS, withDefaults } from './maker/primitives.js';
-import { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG, compile } from './maker/index.js';
+import { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG, compile, TileVM, VirtualRobot } from './maker/index.js';
 import { WebSerialBridge } from './maker/WebSerialBridge.js';
 import { Spark } from './Spark.js';
 import { BrainGallery } from './BrainGallery.js';
@@ -64,6 +64,21 @@ const CMP_LABELS = { gt: '>', lt: '<', gte: '≥', lte: '≤', eq: '=', neq: '�
 
 function _esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function _instrSummary(instr) {
+  if (!instr) return '';
+  switch (instr.op) {
+    case 'ACT':   return `→ ${instr.action}`;
+    case 'SENSE': return `← ${instr.sensor}`;
+    case 'WAIT':  return `⏱ ${instr.seconds}s`;
+    case 'LOOP':  return instr.forever ? '∞ forever' : `↺ ×${instr.count}`;
+    case 'NEXT':  return '↩ next';
+    case 'JZ':    return `? → ${instr.target}`;
+    case 'JMP':   return `→ ${instr.target}`;
+    case 'HALT':  return '⏹';
+    default:      return '';
+  }
 }
 
 // ── Node factory ─────────────────────────────────────────────────────────────
@@ -127,6 +142,12 @@ export class TileEditor {
 
     this._gallery    = null;
 
+    // Step debugger
+    this._stepMode   = false;
+    this._debugRt    = null;   // { vm, sourceMap } — debug VM instance
+    this._stepBtn    = null;
+    this._stepInfoEl = null;
+
     // WebSerial hardware bridge
     this._bridge       = null;
     this._flashBtn     = null;
@@ -177,6 +198,10 @@ export class TileEditor {
     this._panel.querySelector('#te-share-btn')?.addEventListener('click', () => this._shareProgram());
     this._panel.querySelector('#te-receipt-btn')?.addEventListener('click', () => this._showFlashReceipt());
     this._panel.querySelector('#te-gallery-btn')?.addEventListener('click', () => this._gallery?.open());
+
+    this._stepBtn    = this._panel.querySelector('#te-step-btn');
+    this._stepInfoEl = this._panel.querySelector('#te-step-info');
+    this._stepBtn?.addEventListener('click', () => this._handleStep());
     this._panel.querySelector('#te-dl').addEventListener('click', () => this._download());
     this._panel.querySelector('#te-dl-wokwi')?.addEventListener('click', () => this._downloadWokwi());
 
@@ -939,6 +964,7 @@ export class TileEditor {
     this._btnRun.disabled  = false;
     this._btnStop.disabled = true;
     this._clearHL();
+    this._exitStepMode();
     if (this._sensorsEl) this._sensorsEl.style.display = 'none';
     if (this._statsEl)   this._statsEl.style.display   = 'none';
     if (this._rafId) { cancelAnimationFrame(this._rafId); this._rafId = null; }
@@ -978,6 +1004,7 @@ export class TileEditor {
 
   _clearHL() {
     this._canvas.querySelectorAll('.te-active').forEach(el => el.classList.remove('te-active'));
+    this._canvas.querySelectorAll('.te-step-active').forEach(el => el.classList.remove('te-step-active'));
     this._activeId = null;
   }
 
@@ -1109,7 +1136,92 @@ export class TileEditor {
     if (!this._panel) return;
     this._panel.style.display = 'none';
     this._open = false;
+    this._exitStepMode();
     if (this._rafId) { cancelAnimationFrame(this._rafId); this._rafId = null; }
+  }
+
+  // ── Step debugger ─────────────────────────────────────────────────────────
+
+  _handleStep() {
+    if (this._running) return; // can't step while live-running
+    if (!this._stepMode) {
+      this._enterStepMode();
+    } else {
+      this._stepOnce();
+    }
+  }
+
+  _enterStepMode() {
+    const result = compile(this._program);
+    if (!result.ok && result.errors.length) {
+      this._game.ui?.notify('⚠ Fix errors before stepping.');
+      return;
+    }
+    const bot = this._activeBot();
+    const pos  = bot?.mesh?.position ?? { x: 64, z: 64 };
+    const robot = new VirtualRobot({ x: pos.x, z: pos.z, heading: 0 });
+    const world = bot?._runtime?.world ?? {};
+    this._debugRt = {
+      vm:        new TileVM(result.bytecode, robot, world),
+      sourceMap: result.sourceMap,
+    };
+    this._stepMode = true;
+    if (this._stepBtn) {
+      this._stepBtn.textContent = '▷ STEP';
+      this._stepBtn.style.borderColor = '#f0b429';
+      this._stepBtn.style.color = '#f0b429';
+    }
+    if (this._stepInfoEl) this._stepInfoEl.style.display = 'flex';
+    this._updateStepHighlight();
+  }
+
+  _exitStepMode() {
+    if (!this._stepMode) return;
+    this._stepMode = false;
+    this._debugRt  = null;
+    this._clearHL();
+    if (this._stepBtn) {
+      this._stepBtn.textContent = '▷ STEP';
+      this._stepBtn.style.borderColor = '';
+      this._stepBtn.style.color = '';
+    }
+    if (this._stepInfoEl) this._stepInfoEl.style.display = 'none';
+  }
+
+  _stepOnce() {
+    if (!this._debugRt) return;
+    const { vm, sourceMap } = this._debugRt;
+    if (vm.halted) {
+      this._game.ui?.notify('Program halted — click STEP to restart.');
+      this._exitStepMode();
+      this._enterStepMode();
+      return;
+    }
+    vm.stepOneNode(sourceMap);
+    this._updateStepHighlight();
+  }
+
+  _updateStepHighlight() {
+    if (!this._debugRt) return;
+    const { vm, sourceMap } = this._debugRt;
+    this._clearHL();
+    const pc = vm.pc;
+    let activeId = null;
+    for (const e of sourceMap) {
+      if (e.pc <= pc) activeId = e.nodeId;
+      else break;
+    }
+    if (activeId) {
+      const el = this._canvas.querySelector(`[data-node-id="${activeId}"]`);
+      el?.classList.add('te-step-active');
+      this._activeId = activeId;
+    }
+    const instr = vm.code[pc];
+    if (this._stepInfoEl) {
+      this._stepInfoEl.textContent = vm.halted
+        ? '⏹ HALTED — click STEP to reset'
+        : `PC=${pc} op=${instr?.op ?? '?'} ${_instrSummary(instr)}`;
+    }
   }
 
   get isOpen()      { return this._open; }

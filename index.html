@@ -986,6 +986,15 @@
       border-color:#f0b429;
       box-shadow:0 0 10px rgba(240,180,41,0.22), inset 0 0 6px rgba(240,180,41,0.06);
     }
+    .te-node.te-step-active {
+      border-color:#44ffaa;
+      box-shadow:0 0 14px rgba(0,255,160,0.35), inset 0 0 8px rgba(0,255,160,0.08);
+      animation:te-step-pulse 0.8s ease-out;
+    }
+    @keyframes te-step-pulse {
+      0%   { box-shadow:0 0 30px rgba(0,255,160,0.6), inset 0 0 12px rgba(0,255,160,0.15); }
+      100% { box-shadow:0 0 14px rgba(0,255,160,0.35), inset 0 0 8px rgba(0,255,160,0.08); }
+    }
     .te-node-head {
       display:flex; align-items:center; gap:6px; padding:6px 8px;
       border-bottom:1px solid rgba(255,255,255,0.04);
@@ -1627,6 +1636,7 @@
         </select>
         <button id="te-run"       class="te-btn te-btn-run">▶ RUN</button>
         <button id="te-stop"      class="te-btn te-btn-stop" disabled>■ STOP</button>
+        <button id="te-step-btn"    class="te-btn" title="Step through your program one tile at a time — great for debugging!">▷ STEP</button>
         <button id="te-spark-btn"   class="te-btn">⚡ SPARK</button>
         <button id="te-gallery-btn" class="te-btn" title="Browse and publish community robot programs">🧠 GALLERY</button>
         <button id="te-share-btn"   class="te-btn" title="Copy share link to clipboard">🔗 SHARE</button>
@@ -1635,6 +1645,11 @@
         <button id="te-code-btn"    class="te-btn">&lt;/&gt; CODE</button>
         <button id="te-close-btn"   class="te-btn">✕ CLOSE</button>
       </div>
+    </div>
+
+    <!-- Step-debugger status bar (hidden unless in step mode) -->
+    <div id="te-step-info" style="display:none;padding:4px 14px;font-size:9px;color:#f0b429;background:#181000;border-bottom:1px solid #2a1a00;letter-spacing:1px;font-family:'Courier New',monospace;align-items:center;gap:8px;">
+      ▷ STEP MODE — click STEP each time to advance one tile
     </div>
 
     <!-- Split: tray + canvas -->
