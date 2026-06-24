@@ -1158,7 +1158,7 @@ export class TileEditor {
       return;
     }
     const bot = this._activeBot();
-    const pos  = bot?.mesh?.position ?? { x: 64, z: 64 };
+    const pos  = bot?._pos ?? { x: 64, z: 64 };
     const robot = new VirtualRobot({ x: pos.x, z: pos.z, heading: 0 });
     const world = bot?._runtime?.world ?? {};
     this._debugRt = {
