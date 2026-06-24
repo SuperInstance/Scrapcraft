@@ -25,6 +25,7 @@ import { ScrapExchange, EXCHANGE_POS, EXCHANGE_RADIUS } from './ScrapExchange.js
 import { OnboardingWizard } from './onboarding/OnboardingWizard.js';
 import { RaceBoard, NPC_GHOSTS, BEAT_QUIPS } from './RaceBoard.js';
 import { Codex } from './Codex.js';
+import { ClassRoom } from './ClassRoom.js';
 
 export class Game {
   constructor(canvas) {
@@ -83,6 +84,8 @@ export class Game {
     const _origAdd = this.player.addItem.bind(this.player);
     this.player.addItem = (id, qty) => {
       this.codex?.discover(id) && this.achievements?.track('codex_discover', { count: this.codex.count });
+      // Tutorial step 1: first item pickup advances mission
+      if (this._tutorialActive && this._tutorialStep === 1) this._advanceTutorial();
       return _origAdd(id, qty);
     };
 
@@ -122,6 +125,7 @@ export class Game {
     this.exchange     = new ScrapExchange();
     this.raceBoard    = new RaceBoard();
     this.codex        = new Codex();
+    this.classRoom    = new ClassRoom(this.saveSystem, this.ui);
     this._exchangeNearNotified = false;
     this._raceBoardNearNotified = false;
 
@@ -232,49 +236,94 @@ export class Game {
       setTimeout(() => this.foreman.say('idle'), 1200);
     }
 
+    // Classroom join prompt — shown if a Worker URL is configured and no session exists
+    setTimeout(() => this.classRoom.showJoinPromptIfNeeded(), 2000);
+
     this.ui.updateHotbar(this.player);
   }
 
-  // ── Tutorial (first-time player onboarding) ────────────────────────
+  // ── Mission Card tutorial (Phase A cold-open) ───────────────────────
 
   _startTutorial() {
     this._tutorialActive = true;
     this._tutorialStep   = 0;
-    this._showTutorialHint();
+    this._mcEl = document.getElementById('mission-card');
+    this._mcTitle = document.getElementById('mc-title');
+    this._mcDesc  = document.getElementById('mc-desc');
+    this._mcDots  = document.getElementById('mc-dots');
+    document.getElementById('mc-dismiss')?.addEventListener('click', () => {
+      this._dismissMission();
+    });
+    this._showMissionStep();
   }
 
-  _showTutorialHint() {
-    const STEPS = [
-      '⬆️  Press <b>W A S D</b> to move around the yard',
-      '⛏️  Hold <b>left-click</b> on scrap piles to mine them',
-      '🔧  Press <b>E</b> to open the Workshop & inventory',
-      '🧠  Press <b>T</b> to open the Maker Bench (robot brain!)',
+  _MC_STEPS() {
+    return [
+      {
+        title: 'Welcome to the Scrapyard!',
+        desc: `Earl says: <i>"This place runs on junk and ideas."</i><br><br>Press <b>W A S D</b> to walk around the yard.`,
+      },
+      {
+        title: 'Mine Some Scrap',
+        desc: `You'll need raw materials to build anything.<br><br>Hold <b>left-click</b> on a <b>Rust Heap</b> or <b>Scrap Pile</b> to mine it.`,
+      },
+      {
+        title: 'Open the Workshop',
+        desc: `Take your scrap to the workbench.<br><br>Press <b>E</b> to open the Workshop and see what you can craft.`,
+      },
+      {
+        title: 'Open the Maker Lab',
+        desc: `This is where robots get their brains.<br><br>Press <b>T</b> to open the Maker Lab. Earl's pre-loaded a starter program for you.`,
+      },
+      {
+        title: 'Run Your Robot',
+        desc: `The tiles you see are a real program. Your bot will read its sensors and decide what to do.<br><br>Press <b>▶ RUN</b> to test it in the yard.`,
+      },
+      {
+        title: 'Build It for Real!',
+        desc: `Your robot just ran on your own program.<br><br>Click <b>⚡ BUILD IT</b> in the Maker Lab toolbar to get the real firmware — and flash it to a physical robot.`,
+        cta: true,
+      },
     ];
-    const el = this._tutorialHintEl;
-    if (!el) return;
-    if (this._tutorialStep >= 0 && this._tutorialStep < STEPS.length) {
-      el.innerHTML = STEPS[this._tutorialStep];
-      el.classList.add('show');
-      // Also notify in the notification area
-      this.ui?.notify(STEPS[this._tutorialStep].replace(/<[^>]+>/g, ''));
-    } else if (this._tutorialStep >= STEPS.length) {
-      el.classList.remove('show');
-      this._tutorialActive = false;
-      this.ui?.notify('✅ Tutorial complete! Press <b>H</b> anytime for help.');
+  }
+
+  _showMissionStep() {
+    const steps = this._MC_STEPS();
+    if (!this._mcEl) return;
+    if (this._tutorialStep >= steps.length) {
+      this._dismissMission();
+      this.ui?.notify('✅ Mission complete! Press H for controls. Keep exploring!');
+      return;
     }
+    const s = steps[this._tutorialStep];
+    if (this._mcTitle) this._mcTitle.innerHTML = s.title;
+    if (this._mcDesc)  this._mcDesc.innerHTML  = s.desc;
+
+    // Rebuild step dots
+    if (this._mcDots) {
+      this._mcDots.innerHTML = steps.map((_, i) => {
+        const cls = i < this._tutorialStep ? 'mc-dot done'
+                  : i === this._tutorialStep ? 'mc-dot active' : 'mc-dot';
+        return `<div class="${cls}"></div>`;
+      }).join('');
+    }
+    this._mcEl.classList.add('show');
   }
 
   _advanceTutorial() {
     if (!this._tutorialActive || this._tutorialStep < 0) return;
     this._tutorialStep++;
-    if (this._tutorialStep >= 4) {
-      this._tutorialActive = false;
-      if (this._tutorialHintEl) this._tutorialHintEl.classList.remove('show');
-      this.ui?.notify('✅ Tutorial complete! Press H for help.');
-      return;
-    }
-    this._showTutorialHint();
+    this._showMissionStep();
   }
+
+  _dismissMission() {
+    this._tutorialActive = false;
+    if (this._mcEl) this._mcEl.classList.remove('show');
+    if (this._tutorialHintEl) this._tutorialHintEl.classList.remove('show');
+  }
+
+  // kept for backward compat with code that calls _showTutorialHint
+  _showTutorialHint() { this._showMissionStep(); }
 
   _bindInput() {
     document.addEventListener('keydown', e => {
@@ -346,7 +395,19 @@ export class Game {
       }
       // ── Tutorial: detect T to advance step 3 ──
       if (e.code === 'KeyT') {
-        if (this._tutorialActive && this._tutorialStep === 3) this._advanceTutorial();
+        if (this._tutorialActive && this._tutorialStep === 3) {
+          this._advanceTutorial();
+          // Auto-load the wall-avoider starter program if the canvas is empty
+          if (!this.tileEditor.isOpen) {
+            this.tileEditor.open(this._getBrainTier());
+          }
+          if (this.tileEditor._program?.nodes?.length === 0) {
+            this.tileEditor.loadProgram(EXAMPLE_WALL_AVOIDER);
+          }
+          // Wire the one-shot "first run" callback to advance step 4
+          this.tileEditor.onFirstRun = () => this._advanceTutorial();
+          return;
+        }
         if (this.tileEditor.isOpen) { this.tileEditor.close(); }
         else { this.tileEditor.open(this._getBrainTier()); }
         return;

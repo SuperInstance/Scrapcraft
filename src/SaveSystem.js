@@ -9,15 +9,22 @@
  */
 
 import { TileProgram } from './maker/TileProgram.js';
+import { SaveBackend } from './SaveBackend.js';
 
 const SAVE_KEY     = 'scrapcraft_save_v6';
 const AUTOSAVE_INT = 60;  // seconds between autosaves
 
 export class SaveSystem {
   constructor(game) {
-    this._game  = game;
-    this._timer = 0;
-    this._dirty = false;
+    this._game    = game;
+    this._timer   = 0;
+    this._dirty   = false;
+    this._backend = new SaveBackend();
+  }
+
+  /** Called after onboarding updates the worker URL. */
+  setWorkerUrl(url) {
+    this._backend = new SaveBackend(url);
   }
 
   /** Call each game tick. Triggers autosave when dirty. */
@@ -35,8 +42,9 @@ export class SaveSystem {
   /** Serialize and persist the full game state. */
   save() {
     try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(this._collect()));
-      this._game.ui?.notify('💾 Saved.');
+      const data = this._collect();
+      this._backend.write(data); // async cloud write-behind; sync local inside
+      this._game.ui?.notify('💾 Saved.' + (this._backend.hasCloud ? ' ☁' : ''));
     } catch (e) {
       console.warn('[SaveSystem] Write failed:', e);
       this._game.ui?.notify('⚠ Save failed — storage full?');
@@ -63,10 +71,22 @@ export class SaveSystem {
     }
   }
 
+  /** Load, preferring cloud if a session is active. Async variant for class join flows. */
+  async loadWithCloud() {
+    try {
+      const data = await this._backend.read();
+      if (!data || data.version !== 6) return this.load();
+      this._apply(data);
+      return true;
+    } catch {
+      return this.load();
+    }
+  }
+
   /** Show a confirm then wipe. */
   wipe() {
     if (!confirm('Delete all saved progress? This cannot be undone.')) return;
-    localStorage.removeItem(SAVE_KEY);
+    this._backend.wipe().catch(() => {});
     this._game.ui?.notify('🗑 Save deleted. Reloading...');
     setTimeout(() => location.reload(), 800);
   }
@@ -108,6 +128,7 @@ export class SaveSystem {
           blocksPlaced:       s.blocksPlaced,
           wokwiExported:      s.wokwiExported      ?? 0,
           hardwareFlashes:    s.hardwareFlashes     ?? 0,
+          receiptViews:       s.receiptViews        ?? 0,
           botUpgradesInstalled: s.botUpgradesInstalled ?? 0,
           exchangeTrades:       s.exchangeTrades       ?? 0,
           tracksPlaced:       s.tracksPlaced        ?? 0,

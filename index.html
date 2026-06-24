@@ -476,6 +476,136 @@
     #tutorial-hint.show { opacity:1; }
     #tutorial-hint b { color:#f0b429; }
 
+    /* ── Mission Card (Phase A cold-open tutorial) ── */
+    #mission-card {
+      position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
+      background:rgba(4,8,4,0.97); border:2px solid #2a5a2a;
+      border-radius:10px; padding:0; width:440px; max-width:96vw;
+      pointer-events:auto; z-index:82;
+      box-shadow:0 0 32px rgba(0,180,80,0.18), 0 4px 24px rgba(0,0,0,0.7);
+      opacity:0; transform:translateX(-50%) translateY(12px);
+      transition:opacity 0.3s ease, transform 0.3s ease;
+    }
+    #mission-card.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    .mc-header {
+      display:flex; align-items:center; gap:10px;
+      padding:10px 14px 8px; border-bottom:1px solid #1a3a1a;
+    }
+    .mc-earl { font-size:22px; flex-shrink:0; }
+    .mc-meta { flex:1; min-width:0; }
+    .mc-label { font-size:9px; letter-spacing:2px; color:#44aa44; margin-bottom:2px; }
+    .mc-step-dots { display:flex; gap:4px; }
+    .mc-dot {
+      width:7px; height:7px; border-radius:50%;
+      background:#1a3a1a; border:1px solid #2a5a2a; transition:background 0.2s;
+    }
+    .mc-dot.done { background:#226622; }
+    .mc-dot.active { background:#44dd44; box-shadow:0 0 5px #44dd44; }
+    .mc-dismiss {
+      background:none; border:none; color:#2a5a2a; cursor:pointer;
+      font-size:14px; padding:2px 6px; border-radius:4px;
+      font-family:inherit; transition:color 0.15s;
+    }
+    .mc-dismiss:hover { color:#44dd44; }
+    .mc-body { padding:12px 16px 14px; }
+    .mc-title { font-size:13px; font-weight:bold; color:#ccffcc; margin-bottom:5px; }
+    .mc-desc { font-size:11px; color:#88aa88; line-height:1.55; }
+    .mc-desc b { color:#f0b429; }
+    .mc-desc code { background:#0a1a0a; border:1px solid #1a3a1a; padding:1px 5px; border-radius:3px; color:#44ee88; font-size:10px; }
+    .mc-cta {
+      display:inline-block; margin-top:8px;
+      background:#0c2c0c; border:1px solid #44aa44; color:#44ee88;
+      padding:5px 14px; border-radius:4px; font-size:11px;
+      font-family:inherit; cursor:pointer; letter-spacing:1px;
+      transition:background 0.15s, border-color 0.15s;
+    }
+    .mc-cta:hover { background:#142c14; border-color:#66cc66; }
+
+    /* ── Flash Receipt modal ── */
+    #flash-receipt {
+      position:fixed; inset:0; background:rgba(0,0,0,0.75);
+      display:flex; align-items:center; justify-content:center;
+      z-index:200; opacity:0; pointer-events:none;
+      transition:opacity 0.25s ease;
+    }
+    #flash-receipt.show { opacity:1; pointer-events:auto; }
+    .fr-card {
+      background:#040c04; border:2px solid #226622;
+      border-radius:12px; width:560px; max-width:95vw; max-height:90vh;
+      overflow-y:auto; box-shadow:0 0 48px rgba(0,200,80,0.2), 0 8px 40px rgba(0,0,0,0.8);
+    }
+    .fr-head {
+      display:flex; align-items:center; gap:10px;
+      padding:14px 16px 12px; border-bottom:1px solid #1a3a1a;
+      background:#061006;
+    }
+    .fr-icon { font-size:22px; }
+    .fr-headline { flex:1; }
+    .fr-headline h3 { font-size:14px; color:#44ee88; letter-spacing:2px; margin:0; }
+    .fr-headline small { font-size:9px; color:#447744; letter-spacing:1px; }
+    .fr-close-btn {
+      background:none; border:none; color:#336633; cursor:pointer;
+      font-size:16px; padding:2px 8px; font-family:inherit;
+    }
+    .fr-close-btn:hover { color:#44ee88; }
+    .fr-body { padding:16px; }
+    .fr-prog-row {
+      display:flex; align-items:center; gap:10px; margin-bottom:12px;
+    }
+    .fr-prog-name { font-size:16px; color:#ccffcc; font-weight:bold; }
+    .fr-brain-badge {
+      background:#0a200a; border:1px solid #226622; color:#44aa44;
+      padding:2px 8px; border-radius:3px; font-size:9px; letter-spacing:2px;
+    }
+    .fr-grade-badge {
+      margin-left:auto; font-size:18px; font-weight:bold;
+      padding:2px 10px; border-radius:4px; letter-spacing:1px;
+    }
+    .fr-stats-row {
+      display:flex; gap:0; border:1px solid #1a3a1a; border-radius:6px;
+      overflow:hidden; margin-bottom:14px;
+    }
+    .fr-stat {
+      flex:1; padding:8px 10px; text-align:center;
+      border-right:1px solid #1a3a1a;
+    }
+    .fr-stat:last-child { border-right:none; }
+    .fr-stat-val { font-size:18px; color:#88ffaa; font-weight:bold; }
+    .fr-stat-lbl { font-size:8px; color:#336633; letter-spacing:2px; margin-top:2px; }
+    .fr-section-lbl {
+      font-size:9px; color:#336633; letter-spacing:2px;
+      margin-bottom:6px; margin-top:12px;
+    }
+    .fr-code {
+      background:#020802; border:1px solid #1a3a1a; border-radius:6px;
+      padding:10px 12px; font-size:9.5px; line-height:1.6;
+      color:#5a9a5a; overflow-x:auto; max-height:180px;
+      overflow-y:auto; white-space:pre; font-family:'Courier New',monospace;
+    }
+    .fr-code .fr-comment { color:#2a5a2a; }
+    .fr-wokwi-box {
+      background:#020c10; border:1px solid #0a3a4a; border-radius:6px;
+      padding:12px 14px; margin-top:12px;
+    }
+    .fr-wokwi-title { font-size:10px; color:#44aacc; letter-spacing:1px; margin-bottom:6px; }
+    .fr-wokwi-steps { font-size:10px; color:#447788; line-height:1.8; }
+    .fr-wokwi-steps b { color:#66ccdd; }
+    .fr-actions {
+      display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;
+    }
+    .fr-btn {
+      flex:1; min-width:120px; padding:9px 12px; border-radius:5px;
+      font-family:inherit; font-size:10px; letter-spacing:1px;
+      cursor:pointer; text-align:center; text-decoration:none;
+      display:flex; align-items:center; justify-content:center; gap:5px;
+      transition:filter 0.15s;
+    }
+    .fr-btn:hover { filter:brightness(1.2); }
+    .fr-btn-share { background:#1a1a08; border:1px solid #8a7a00; color:#f0d040; }
+    .fr-btn-wokwi { background:#08101a; border:1px solid #0a4a6a; color:#44aacc; }
+    .fr-btn-real  { background:#081808; border:1px solid #1a5a1a; color:#44ee44; }
+    .fr-btn-dim   { background:#0a0a0a; border:1px solid #222; color:#445; }
+
     /* ── Foreman panel ── */
     #foreman-panel { position:absolute; top:16px; right:16px; width:300px; pointer-events:auto; }
     #foreman-bubble {
@@ -925,6 +1055,17 @@
     #te-wiring-svg { flex:1; overflow:auto; }
     #te-wiring-svg svg { width:100%; height:auto; display:block; }
 
+    /* ── BUILD IT / receipt button ── */
+    .te-receipt-btn {
+      background:#0c200c; border-color:#226622; color:#44ee44;
+      animation:receipt-pulse 2.5s ease-in-out infinite;
+    }
+    .te-receipt-btn:hover { background:#142c14 !important; border-color:#44ee44 !important; animation:none; }
+    @keyframes receipt-pulse {
+      0%,100% { box-shadow:none; }
+      50% { box-shadow:0 0 8px rgba(68,238,68,0.4); border-color:#44aa44; }
+    }
+
     /* ── WebSerial flash button ── */
     .te-flash-btn { background:#081808; border-color:#1a4a1a; color:#44dd44; }
     .te-flash-btn:hover:not(:disabled) { background:#0c2c0c; border-color:#44dd44; }
@@ -1165,6 +1306,23 @@
     <div id="zone-toast"></div>
     <div id="notifications"></div>
     <div id="tutorial-hint"></div>
+
+    <!-- Mission Card (Phase A cold-open tutorial) -->
+    <div id="mission-card">
+      <div class="mc-header">
+        <div class="mc-earl">🔧</div>
+        <div class="mc-meta">
+          <div class="mc-label">EARL'S MISSION</div>
+          <div class="mc-step-dots" id="mc-dots"></div>
+        </div>
+        <button class="mc-dismiss" id="mc-dismiss" title="Skip tutorial">✕</button>
+      </div>
+      <div class="mc-body">
+        <div class="mc-title" id="mc-title"></div>
+        <div class="mc-desc" id="mc-desc"></div>
+      </div>
+    </div>
+
     <div id="block-label"></div>
 
     <!-- XP bar -->
@@ -1181,6 +1339,44 @@
       <div class="lu-icon" id="lu-icon">⬆️</div>
       <div class="lu-title" id="lu-title">LEVEL UP!</div>
       <div class="lu-skill" id="lu-skill"></div>
+    </div>
+
+    <!-- Flash Receipt modal -->
+    <div id="flash-receipt">
+      <div class="fr-card">
+        <div class="fr-head">
+          <div class="fr-icon">⚡</div>
+          <div class="fr-headline">
+            <h3>READY TO BUILD</h3>
+            <small>YOUR TILES → REAL FIRMWARE</small>
+          </div>
+          <button class="fr-close-btn" id="fr-close">✕</button>
+        </div>
+        <div class="fr-body">
+          <div class="fr-prog-row">
+            <span class="fr-prog-name" id="fr-prog-name">My Brain</span>
+            <span class="fr-brain-badge" id="fr-brain-badge">TIN BRAIN</span>
+            <span class="fr-grade-badge" id="fr-grade-badge">A+</span>
+          </div>
+          <div class="fr-stats-row" id="fr-stats-row"></div>
+          <div class="fr-section-lbl">GENERATED ARDUINO FIRMWARE</div>
+          <pre class="fr-code" id="fr-code"></pre>
+          <div class="fr-wokwi-box">
+            <div class="fr-wokwi-title">🖥 TEST ON WOKWI (free browser simulator)</div>
+            <div class="fr-wokwi-steps">
+              <b>1.</b> Click "Download for Wokwi" below<br>
+              <b>2.</b> Open <b>wokwi.com</b> → New Project → ESP32<br>
+              <b>3.</b> Paste your <code style="color:#44aacc;background:#061016;padding:1px 4px;border-radius:2px;font-size:9px;">sketch.ino</code> and import <code style="color:#44aacc;background:#061016;padding:1px 4px;border-radius:2px;font-size:9px;">diagram.json</code>
+            </div>
+          </div>
+          <div class="fr-actions">
+            <button class="fr-btn fr-btn-share" id="fr-share-btn">🔗 Copy Share Link</button>
+            <button class="fr-btn fr-btn-wokwi" id="fr-wokwi-dl-btn">⬇ Download for Wokwi</button>
+            <a class="fr-btn fr-btn-wokwi" href="https://wokwi.com/projects/new/esp32" target="_blank" rel="noopener">🖥 Open Wokwi →</a>
+            <button class="fr-btn fr-btn-dim" id="fr-close-btn2">Close</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Bot speech bubbles (positioned by Game.js via screen projection) -->
@@ -1433,6 +1629,7 @@
         <button id="te-stop"      class="te-btn te-btn-stop" disabled>■ STOP</button>
         <button id="te-spark-btn"   class="te-btn">⚡ SPARK</button>
         <button id="te-share-btn"   class="te-btn" title="Copy share link to clipboard">🔗 SHARE</button>
+        <button id="te-receipt-btn" class="te-btn te-receipt-btn" title="See generated firmware + Wokwi / flash options">⚡ BUILD IT</button>
         <button id="te-upgrades-btn" class="te-btn" title="Bot Workshop — install hardware upgrades [U]">🔧 MODS</button>
         <button id="te-code-btn"    class="te-btn">&lt;/&gt; CODE</button>
         <button id="te-close-btn"   class="te-btn">✕ CLOSE</button>
