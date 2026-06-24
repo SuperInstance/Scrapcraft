@@ -111,7 +111,30 @@ export async function ensureTables(db) {
       updated TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_sessions_class ON sessions(class_code);
+    CREATE TABLE IF NOT EXISTS challenges (
+      id TEXT PRIMARY KEY,
+      class_code TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      criteria TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      ended_at TEXT,
+      active INTEGER DEFAULT 1
+    );
+    CREATE TABLE IF NOT EXISTS challenge_completions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      challenge_id TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      grade TEXT,
+      budget_pct INTEGER,
+      completed_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(challenge_id, session_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_challenges_class ON challenges(class_code, active);
+    CREATE INDEX IF NOT EXISTS idx_completions_challenge ON challenge_completions(challenge_id);
   `);
+  // Migrate teacher_key column — silently ignored if it already exists
+  try { await db.exec('ALTER TABLE classes ADD COLUMN teacher_key TEXT'); } catch { /* already present */ }
 }
 
 // ── Router ────────────────────────────────────────────────────────
@@ -147,9 +170,18 @@ export default async function handleGameApi(request, env, ctx) {
   if (request.method === 'POST' && url.pathname === '/api/v1/class/create') {
     return handleClassCreate(request, db);
   }
-  const rosterMatch = url.pathname.match(/^\/api\/v1\/class\/([A-Z0-9]+)\/roster$/);
-  if (request.method === 'GET' && rosterMatch) {
-    return handleClassRoster(rosterMatch[1], db);
+  const classPathMatch = url.pathname.match(/^\/api\/v1\/class\/([A-Z0-9]+)\/([a-z]+)$/);
+  if (classPathMatch) {
+    const [, code, sub] = classPathMatch;
+    if (request.method === 'GET'    && sub === 'roster')    return handleClassRoster(code, url, db);
+    if (request.method === 'GET'    && sub === 'challenge') return handleGetChallenge(code, db);
+    if (request.method === 'POST'   && sub === 'challenge') return handleAssignChallenge(code, request, url, db);
+    if (request.method === 'DELETE' && sub === 'challenge') return handleEndChallenge(code, url, db);
+  }
+
+  // Student submits challenge completion (session auth)
+  if (session && request.method === 'POST' && url.pathname === '/api/v1/challenge/complete') {
+    return handleChallengeComplete(request, session, db);
   }
 
   // ── Legacy save game state (by explicit playerId) ─────────────
@@ -466,10 +498,11 @@ async function handleClassCreate(request, db) {
       tries++;
     } while (tries < 10 &&
       await db.prepare('SELECT 1 FROM classes WHERE code=?').bind(classCode).first());
+    const teacherKey = crypto.randomUUID();
     await db.prepare(
-      `INSERT INTO classes (code, teacher_name) VALUES (?, ?)`
-    ).bind(classCode, teacherName.trim()).run();
-    return json({ classCode, teacherName: teacherName.trim() });
+      `INSERT INTO classes (code, teacher_name, teacher_key) VALUES (?, ?, ?)`
+    ).bind(classCode, teacherName.trim(), teacherKey).run();
+    return json({ classCode, teacherName: teacherName.trim(), teacherKey });
   } catch (err) { return json({ error: err.message }, 500); }
 }
 
@@ -488,17 +521,101 @@ async function handleClassJoin(request, db) {
   } catch (err) { return json({ error: err.message }, 500); }
 }
 
-async function handleClassRoster(classCode, db) {
+async function handleClassRoster(classCode, url, db) {
   try {
+    const key = url.searchParams.get('key');
+    const cls = await db.prepare('SELECT teacher_key FROM classes WHERE code=?').bind(classCode).first();
+    if (!cls) return json({ error: 'Class not found' }, 404);
+    if (cls.teacher_key && cls.teacher_key !== key) return json({ error: 'Invalid teacher key' }, 403);
+
+    // Active challenge for this class
+    const challenge = await db.prepare(
+      'SELECT id, title, description FROM challenges WHERE class_code=? AND active=1 ORDER BY created_at DESC LIMIT 1'
+    ).bind(classCode).first();
+
+    // Roster with challenge completion status
     const rows = await db.prepare(
       `SELECT s.id, s.display_name, s.last_seen,
-              CASE WHEN ss.session_id IS NOT NULL THEN 1 ELSE 0 END AS has_save
+              CASE WHEN ss.session_id IS NOT NULL THEN 1 ELSE 0 END AS has_save,
+              cc.grade, cc.budget_pct, cc.completed_at
        FROM sessions s
        LEFT JOIN session_saves ss ON ss.session_id = s.id
+       LEFT JOIN challenge_completions cc
+         ON cc.session_id = s.id AND cc.challenge_id = ?
        WHERE s.class_code = ?
        ORDER BY s.last_seen DESC`
-    ).bind(classCode).all();
-    return json({ classCode, students: rows.results ?? [] });
+    ).bind(challenge?.id ?? '', classCode).all();
+
+    return json({ classCode, students: rows.results ?? [], challenge: challenge ?? null });
+  } catch (err) { return json({ error: err.message }, 500); }
+}
+
+async function handleGetChallenge(classCode, db) {
+  try {
+    const row = await db.prepare(
+      'SELECT id, title, description, criteria, created_at FROM challenges WHERE class_code=? AND active=1 ORDER BY created_at DESC LIMIT 1'
+    ).bind(classCode).first();
+    if (!row) return json({ challenge: null });
+    return json({ challenge: { ...row, criteria: JSON.parse(row.criteria) } });
+  } catch (err) { return json({ error: err.message }, 500); }
+}
+
+async function handleAssignChallenge(classCode, request, url, db) {
+  try {
+    const key = url.searchParams.get('key');
+    const cls = await db.prepare('SELECT teacher_key FROM classes WHERE code=?').bind(classCode).first();
+    if (!cls) return json({ error: 'Class not found' }, 404);
+    if (cls.teacher_key !== key) return json({ error: 'Invalid teacher key' }, 403);
+
+    const { title, description, criteria } = await request.json();
+    if (!title || !criteria) return json({ error: 'title and criteria required' }, 400);
+
+    // End any active challenges first
+    await db.prepare(
+      `UPDATE challenges SET active=0, ended_at=datetime('now') WHERE class_code=? AND active=1`
+    ).bind(classCode).run();
+
+    const id = crypto.randomUUID();
+    await db.prepare(
+      'INSERT INTO challenges (id, class_code, title, description, criteria) VALUES (?, ?, ?, ?, ?)'
+    ).bind(id, classCode, title, description ?? '', JSON.stringify(criteria)).run();
+
+    return json({ ok: true, challengeId: id });
+  } catch (err) { return json({ error: err.message }, 500); }
+}
+
+async function handleEndChallenge(classCode, url, db) {
+  try {
+    const key = url.searchParams.get('key');
+    const cls = await db.prepare('SELECT teacher_key FROM classes WHERE code=?').bind(classCode).first();
+    if (!cls) return json({ error: 'Class not found' }, 404);
+    if (cls.teacher_key !== key) return json({ error: 'Invalid teacher key' }, 403);
+
+    await db.prepare(
+      `UPDATE challenges SET active=0, ended_at=datetime('now') WHERE class_code=? AND active=1`
+    ).bind(classCode).run();
+    return json({ ok: true });
+  } catch (err) { return json({ error: err.message }, 500); }
+}
+
+async function handleChallengeComplete(request, sessionId, db) {
+  try {
+    const { challengeId, grade, budgetPct } = await request.json();
+    if (!challengeId) return json({ error: 'challengeId required' }, 400);
+
+    // Verify session owns a challenge in the same class
+    const sess = await db.prepare('SELECT class_code FROM sessions WHERE id=?').bind(sessionId).first();
+    if (!sess) return json({ error: 'Invalid session' }, 403);
+    const ch = await db.prepare('SELECT class_code FROM challenges WHERE id=?').bind(challengeId).first();
+    if (!ch || ch.class_code !== sess.class_code) return json({ error: 'Challenge not found' }, 404);
+
+    await db.prepare(
+      `INSERT INTO challenge_completions (challenge_id, session_id, grade, budget_pct)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(challenge_id, session_id) DO NOTHING`
+    ).bind(challengeId, sessionId, grade ?? 'C', budgetPct ?? 50).run();
+
+    return json({ ok: true });
   } catch (err) { return json({ error: err.message }, 500); }
 }
 

@@ -125,6 +125,7 @@ export class ClassRoom {
 
     if (mode === 'status') {
       const s = this.session;
+      const teacher = this._getTeacherInfo();
       return `
       <div class="cr-card">
         <div class="cr-head">
@@ -140,7 +141,11 @@ export class ClassRoom {
             Your progress syncs to the cloud ☁<br>
             You can switch devices and your bot will be there.
           </div>
+          ${teacher ? `
           <div class="cr-actions" style="margin-top:14px">
+            <button class="cr-btn cr-btn-join" id="cr-dashboard">🏫 Open Teacher Dashboard →</button>
+          </div>` : ''}
+          <div class="cr-actions" style="margin-top:8px">
             <button class="cr-btn" id="cr-leave" style="color:#f66;border-color:#622">Leave Class</button>
           </div>
         </div>
@@ -176,7 +181,20 @@ export class ClassRoom {
           this._ui?.notify('Left class. Progress stays local.');
         }
       });
+      el.querySelector('#cr-dashboard')?.addEventListener('click', () => {
+        const t = this._getTeacherInfo();
+        if (!t) return;
+        const url = this._teacherDashUrl(t.classCode, t.teacherKey);
+        window.open(url, '_blank');
+      });
     }
+  }
+
+  _getTeacherInfo() {
+    try {
+      const raw = localStorage.getItem('scrapcraft_class_teacher');
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
   }
 
   async _doJoin() {
@@ -206,13 +224,31 @@ export class ClassRoom {
     if (btn) { btn.textContent = 'Creating…'; btn.disabled = true; }
     try {
       const data = await this.backend.createClass(name);
+      // Persist teacher credentials so they can reopen the dashboard
+      localStorage.setItem('scrapcraft_class_teacher', JSON.stringify({
+        classCode:  data.classCode,
+        teacherKey: data.teacherKey,
+        teacherName: name,
+      }));
       this._closePanel();
-      prompt(`Class created! Share this code with students:`, data.classCode);
-      this._ui?.notify(`🏫 Class ${data.classCode} created. Students join at the startup screen.`);
+      const dashUrl = this._teacherDashUrl(data.classCode, data.teacherKey);
+      prompt(
+        `Class ${data.classCode} created!\n\nShare this code with students: ${data.classCode}\n\nYour teacher dashboard URL (bookmark it):`,
+        dashUrl,
+      );
+      this._ui?.notify(`🏫 Class ${data.classCode} created. Open teacher.html to see your roster.`);
     } catch (e) {
       if (btn) { btn.textContent = 'CREATE CLASS →'; btn.disabled = false; }
       this._showErr(e.message ?? 'Could not create class.');
     }
+  }
+
+  _teacherDashUrl(classCode, teacherKey) {
+    const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/teacher.html');
+    const params = new URLSearchParams({ code: classCode, key: teacherKey });
+    const workerUrl = this.backend.workerUrl;
+    if (workerUrl) params.set('url', workerUrl);
+    return `${base}?${params}`;
   }
 
   _showErr(msg) {
