@@ -141,8 +141,11 @@ function emitArduino(nodes, L, depth) {
         break;
       case 'repeat_until':
         L.push(pad + `while (!(${condArduino(node.cond)})) {`);
-        emitArduino(node.body, L, depth + 1);
+        emitArduino(Array.isArray(node.body) ? node.body : [], L, depth + 1);
         L.push(pad + '}');
+        break;
+      case 'wait_until':
+        L.push(pad + `while (!(${condArduino(node.cond)})) { delay(10); }`);
         break;
       case 'break':
         L.push(pad + 'break;');
@@ -285,7 +288,11 @@ function emitPython(nodes, L, depth) {
         break;
       case 'repeat_until':
         L.push(pad + `while not (${condPython(node.cond)}):`);
-        emitPython(node.body, L, depth + 1);
+        emitPython(Array.isArray(node.body) ? node.body : [], L, depth + 1);
+        break;
+      case 'wait_until':
+        L.push(pad + `while not (${condPython(node.cond)}):`);
+        L.push(pad + '    sleep_ms(10)');
         break;
       case 'break':
         L.push(pad + 'break');

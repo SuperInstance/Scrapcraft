@@ -25,6 +25,7 @@
  *    random_var   { type:'random_var', name, min, max }          set variable to random integer in [min, max]
  *    read_sensor  { type:'read_sensor', name, sensor }           read live sensor value into a variable
  *    math_var     { type:'math_var', name, op, operand }        name = name op operand  (op ∈ add|sub|mul|div)
+ *    wait_until   { type:'wait_until', cond }                   yield each tick until condition becomes true
  *    if           { type:'if',   cond, body:[...] }             conditional
  *    if_else      { type:'if_else', cond, body:[...], elseBody:[...] }
  *    macro        { type:'macro', kind, params }            expands at compile time
@@ -86,6 +87,9 @@ export const T = {
 
   // math_var: name = name op operand  (op ∈ 'add' | 'sub' | 'mul' | 'div')
   mathVar: (name, op = 'mul', operand = 1) => ({ type: 'math_var', name, op, operand: Number(operand) || 0 }),
+
+  // wait_until: yield each tick until condition becomes true (= repeat_until with empty body)
+  waitUntil: (cond) => ({ type: 'wait_until', cond }),
 };
 
 /**

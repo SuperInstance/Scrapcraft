@@ -898,6 +898,74 @@ console.log('\nvar-vs-var conditions');
   ok('warns when varValue var is uninitialised', warnRes.warnings.some(w => w.includes('"limit"')));
 }
 
+// ── 24. wait_until ─────────────────────────────────────────────────────────
+console.log('\nwait_until tile');
+{
+  // Basic: wait until bumped=true, then beep
+  const prog = new TileProgram({ name: 'WaitUntil', brain: 'tin', nodes: [
+    T.waitUntil(T.is('bumped', true)),
+    T.action('beep', { pitch: 'high' }),
+  ]});
+
+  const res = compile(prog);
+  ok('wait_until program compiles ok', res.ok, res.errors.join(', '));
+
+  // Compiles to a repeat_until with an empty body: JZ (exit) + UNTIL (back-edge),
+  // with no ACT between the exit-jump and the UNTIL.
+  const untilIdx = res.bytecode.findIndex(i => i.op === 'UNTIL');
+  const jzIdx    = res.bytecode.findIndex(i => i.op === 'JZ');
+  ok('emits UNTIL opcode (loop back-edge)', untilIdx !== -1);
+  ok('emits JZ opcode (condition exit)', jzIdx !== -1);
+  ok('JZ comes before UNTIL', jzIdx !== -1 && untilIdx !== -1 && jzIdx < untilIdx);
+  // Between JZ and UNTIL there should be no ACT (empty body)
+  const between = res.bytecode.slice(jzIdx + 1, untilIdx);
+  ok('no ACT between JZ and UNTIL (empty body)', !between.some(i => i.op === 'ACT'));
+  // UNTIL back-edge targets the condition start (0)
+  ok('UNTIL loops back to condition start', res.bytecode[untilIdx]?.condStart === 0);
+
+  // VM: bumped starts false (dist high) → loop spins; once bumped (dist<0.08) → beep
+  {
+    const world = new MockWorld();
+    world.dist = 1.0;   // far → not bumped → wait_until spins
+    const rt = new MakerRuntime(prog, {}, world);
+    const events = [];
+    // Tick a few times without bumping — should not beep, should not halt
+    for (let i = 0; i < 20; i++) { rt.tick(0.016); events.push(...rt.drainEvents()); }
+    ok('no beep while condition false', !events.some(e => e.kind === 'beep'));
+    ok('does not halt while waiting', !rt.vm.halted);
+    // Now bump → condition becomes true → loop exits → beep fires → halts
+    world.dist = 0.05;   // < 0.08 → bumped true
+    for (let i = 0; i < 20 && !rt.vm.halted; i++) { rt.tick(0.016); events.push(...rt.drainEvents()); }
+    ok('beep fires after condition becomes true', events.some(e => e.kind === 'beep'));
+    ok('program halts after wait_until releases', rt.vm.halted);
+  }
+
+  // wait_until with var condition: wait until dist >= 0.5
+  const varProg = new TileProgram({ name: 'WaitUntilVar', brain: 'tin', nodes: [
+    T.setVar('dist', 0),
+    T.waitUntil(T.varCond('dist', 'gte', 0.5)),
+    T.action('beep', { pitch: 'low' }),
+  ]});
+  const varRes = compile(varProg);
+  ok('wait_until with var condition compiles ok', varRes.ok, varRes.errors.join(', '));
+
+  // Firmware: Arduino renders a busy-wait guarded loop (while (!(cond)) { delay })
+  const fw = toArduino(prog);
+  ok('Arduino codegen has guarded while loop for wait_until',
+     fw.includes('while (!(') && fw.includes('delay(10)') && fw.includes('BUMP_PIN'));
+
+  // Firmware: Python renders a busy-wait guarded loop (while not (cond): sleep_ms)
+  const py = toMicroPython(prog);
+  ok('Python codegen has guarded while loop for wait_until',
+     py.includes('while not (') && py.includes('sleep_ms(10)') && py.includes('bump.value()'));
+
+  // T.waitUntil helper produces correct structure
+  const node = T.waitUntil(T.is('bumped', true));
+  ok('T.waitUntil produces correct type', node.type === 'wait_until');
+  ok('T.waitUntil has cond field', node.cond != null);
+  ok('T.waitUntil has no body field', node.body === undefined);
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

@@ -82,6 +82,12 @@ REPEAT_UNTIL (loop until condition is true):
 - When a student says "keep doing X until Y", "run until", "stop when" — use repeat_until.
 - Example: drive forward until wall is close → repeat_until with cond distance_ahead < 0.25, body has drive action.
 
+WAIT_UNTIL (pause until a condition is true):
+- wait_until: { type:'wait_until', cond:{...} } — does nothing until condition becomes true, then moves on.
+- No body — it's a pure pause/gate. Like a traffic light that turns green when the sensor triggers.
+- When a student says "wait until", "don't move until", "hold on until", "pause until" — use wait_until.
+- Example: wait until bumped=true, then beep. Much simpler than repeat_until with an empty body.
+
 READ_SENSOR (capture a live sensor reading into a variable):
 - read_sensor: { type:'read_sensor', name:'dist', sensor:'distance_ahead' } — reads the sensor's current numeric value (0.0–1.0) and stores it in the named variable.
 - Use it to snapshot a sensor value, compare it later, or drive proportional behaviors (e.g. speed based on distance).
@@ -174,7 +180,7 @@ function buildEmitTilesTool() {
           type: 'object',
           required: ['type'],
           properties: {
-            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'repeat_until', 'break', 'print', 'comment', 'random_var', 'read_sensor', 'math_var', 'define_sub', 'call_sub', 'if', 'if_else', 'macro', 'set_var', 'change_var'] },
+            type:     { enum: ['action', 'wait', 'repeat', 'forever', 'repeat_until', 'wait_until', 'break', 'print', 'comment', 'random_var', 'read_sensor', 'math_var', 'define_sub', 'call_sub', 'if', 'if_else', 'macro', 'set_var', 'change_var', 'add_score'] },
             prim:     { enum: ACTUATOR_IDS,    description: 'actuator id (action nodes only)' },
             params:   { type: 'object',        description: 'param key/value map for the actuator' },
             seconds:  { type: 'number', minimum: 0.05, maximum: 30 },

@@ -143,6 +143,7 @@ function compileNode(node, ctx) {
     case 'repeat':       return compileLoop(node, ctx, false);
     case 'forever':      return compileLoop(node, ctx, true);
     case 'repeat_until': return compileUntil(node, ctx);
+    case 'wait_until':   return compileUntil({ ...node, body: [] }, ctx);
     case 'break':        return void ctx.out.push({ op: 'BREAK' });
     case 'print':        return void ctx.out.push({ op: 'PRINT_VAR', name: _sanitizeVarName(node.name) });
     case 'comment':      return;   // annotation only — no bytecode emitted
