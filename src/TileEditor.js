@@ -29,6 +29,7 @@ const NODE_META = {
   turn_angle:     { icon: '⤾',  label: 'turn angle',    bg: '#1a0c1a', tip: 'Turn an exact number of degrees (e.g. 90° for a square corner). A macro — expands to turn + wait.' },
   drive_distance: { icon: '→|', label: 'drive distance', bg: '#1a0c1a', tip: 'Drive an exact distance in world units. A macro — expands to drive + timed wait.' },
   repeat_until:   { icon: '↻?', label: 'repeat until',   bg: '#18102a', tip: 'Keep running the tiles inside until the condition becomes true — like a while loop. Pairs perfectly with variables.' },
+  wait_until:     { icon: '⏸?', label: 'wait until',     bg: '#202010', tip: 'Pause here — do nothing — until the condition becomes true. Like a stop sign that lifts when the sensor triggers.' },
   break:          { icon: '⛔', label: 'break',           bg: '#280e0e', tip: 'Exit the current forever or repeat loop immediately. Great for "stop when something happens" inside a forever loop.' },
   print:          { icon: '📤', label: 'print variable',  bg: '#0e1a28', tip: 'Show the current value of a variable in the serial monitor. Like console.log — great for debugging!' },
   comment:        { icon: '💬', label: 'comment',          bg: '#111111', tip: 'A note for humans — does nothing when the program runs. Use it to label sections of your program.' },
@@ -60,6 +61,7 @@ const TRAY_GROUPS = [
     { type: 'forever' },
     { type: 'repeat' },
     { type: 'repeat_until' },
+    { type: 'wait_until' },
     { type: 'if' },
     { type: 'if_else' },
     { type: 'break' },
@@ -153,6 +155,8 @@ function makeNode(spec) {
       };
     case 'repeat_until':
       return { type: 'repeat_until', id, cond: { sensor: 'distance_ahead', cmp: 'lt', value: 0.25 }, body: [] };
+    case 'wait_until':
+      return { type: 'wait_until', id, cond: { sensor: 'distance_ahead', cmp: 'lt', value: 0.25 } };
     case 'break':
       return { type: 'break', id };
     case 'print':
@@ -523,8 +527,8 @@ export class TileEditor {
     const pDiv = this._renderParams(node);
     if (pDiv) el.appendChild(pDiv);
 
-    // Condition row (if / if_else / repeat_until)
-    if (node.type === 'if' || node.type === 'if_else' || node.type === 'repeat_until') {
+    // Condition row (if / if_else / repeat_until / wait_until)
+    if (node.type === 'if' || node.type === 'if_else' || node.type === 'repeat_until' || node.type === 'wait_until') {
       el.appendChild(this._renderCond(node));
     }
 
@@ -535,6 +539,7 @@ export class TileEditor {
     if (node.type === 'repeat_until' || node.type === 'define_sub') {
       el.appendChild(this._renderBody(node.body, 'DO'));
     }
+    // wait_until has NO body (it only has a condition)
     if (node.type === 'if' || node.type === 'if_else') {
       el.appendChild(this._renderBody(node.body, 'THEN'));
       if (node.type === 'if_else') el.appendChild(this._renderBody(node.elseBody, 'ELSE'));
