@@ -1070,6 +1070,240 @@ console.log('\nSparkCache client');
   }
 }
 
+
+// ── Pin model: the virtual Arduino Uno ──────────────────────────────────────
+console.log('\nPinModel (hardware twin)');
+{
+  const { UnoPinModel, PWM_PINS, UNO_WIRING } = await import('../PinModel.js');
+  let pm = new UnoPinModel();
+
+  // digitalWrite / digitalRead on OUTPUT pins stick
+  pm.pinMode(13, 1); // OUTPUT
+  pm.digitalWrite(13, 1);
+  ok('digitalWrite HIGH sticks on OUTPUT', pm.digitalRead(13) === 1);
+  pm.digitalWrite(13, 0);
+  ok('digitalWrite LOW overwrites', pm.digitalRead(13) === 0);
+
+  // INPUT pins read the world, not the output register
+  pm = new UnoPinModel();
+  pm.setDigitalInput(2, true);
+  ok('INPUT pin reads world value', pm.digitalRead('D2') === 1);
+  pm.setDigitalInput(2, false);
+  ok('INPUT pin follows world changes', pm.digitalRead('D2') === 0);
+
+  // digitalWrite on INPUT = pull-up trick (teachable warning, no crash)
+  pm.digitalWrite(2, 1);
+  ok('digitalWrite on INPUT reads back HIGH (pull-up trick)', pm.digitalRead(2) === 1);
+  ok('pull-up trick raises a teachable warning', pm.warnings.some(w => /pull-up/.test(w)));
+
+  // analogRead: 0..1 world float → 10-bit counts
+  pm.setAnalogInput('A0', 1.0);
+  ok('analogRead full scale = 1023', pm.analogRead('A0') === 1023);
+  pm.setAnalogInput('A0', 0.5);
+  ok('analogRead half = ~512', Math.abs(pm.analogRead('A0') - 511.5) < 1);
+  pm.setAnalogInput('A0', 2.0);
+  ok('analogRead clamps at 1023', pm.analogRead('A0') === 1023);
+
+  // analogWrite/PWM only on PWM pins, only on OUTPUT
+  pm = new UnoPinModel();
+  pm.analogWrite(5, 200);
+  ok('analogWrite without pinMode warns', pm.warnings.some(w => /pinMode/.test(w)));
+  pm.pinMode(5, 1); pm.analogWrite(5, 200);
+  ok('PWM duty stored on D5', pm.duty[5] === 200);
+  ok('PWM duty clamps to 255', (pm.pinMode(5,1), pm.analogWrite(5, 999), pm.duty[5] === 255));
+  pm.pinMode(2, 1); pm.analogWrite(2, 128);
+  ok('analogWrite on non-PWM pin warns (D2 has no PWM)', pm.warnings.some(w => /D2 has no PWM/.test(w)) && pm.duty[2] === -1);
+  pm.pinMode(5,1); pm.analogWrite(5, 150); pm.digitalWrite(5, 1);
+  ok('plain digitalWrite cancels PWM (real AVR behavior)', pm.duty[5] === -1);
+
+  // differential drive mapping: drive 0.6 + turn 0 → both motors 153
+  pm = new UnoPinModel();
+  const robot = { drivePower: 0.6, turnPower: 0, gripping: false, led: 'off', events: [] };
+  pm.syncFromRuntime(robot, { distance_ahead: 0.25, light: 1, temperature: 0, line_under: true, motion_nearby: false });
+  ok('distance sensor → A0 counts', pm.analogRead('A0') === 256);
+  ok('line sensor → D2 HIGH', pm.digitalRead('D2') === 1);
+  ok('motion sensor → D3 LOW', pm.digitalRead('D3') === 0);
+  ok('forward: both dir pins HIGH', pm.digitalRead('D4') === 1 && pm.digitalRead('D7') === 1);
+  ok('forward PWM duty = |0.6|*255 → 153', pm.duty[5] === 153 && pm.duty[6] === 153);
+
+  // turning: drive 0 + turn 0.5 → left forward, right backward (skid steer!)
+  pm.syncFromRuntime({ drivePower: 0, turnPower: 0.5, gripping: true, led: '#ff0000', events: [{ kind: 'beep', freq: 880 }] },
+                     { distance_ahead: 1, light: 0.5, temperature: 0.5, line_under: false, motion_nearby: true });
+  ok('spin in place: left fwd, right back', pm.digitalRead('D4') === 1 && pm.digitalRead('D7') === 0);
+  ok('spin duty = 128-ish on both', Math.abs(pm.duty[5] - 128) <= 1 && Math.abs(pm.duty[6] - 128) <= 1);
+  ok('beep event drives tone()', pm.toneHz === 880);
+  ok('gripper closed → servo duty 0', pm.duty[9] === 0);
+  ok('red LED: D12 HIGH, built-in D13 HIGH', pm.digitalRead('D12') === 1 && pm.digitalRead('D13') === 1);
+  ok('beep cleared when no event next frame', (pm.syncFromRuntime({ drivePower:0, turnPower:0, gripping:false, led:'off', events:[] }, {}), pm.toneHz === 0));
+
+  // snapshot shape for the wiring view
+  const snap = pm.snapshot();
+  ok('snapshot: 14 digital pins', snap.digital.length === 14);
+  ok('snapshot: 6 analog pins', snap.analog.length === 6);
+  ok('snapshot flags PWM-capable pins', snap.digital[5].isPwmCapable === true && snap.digital[2].isPwmCapable === false);
+  ok('wiring contract covers all 5 sensors', Object.keys(UNO_WIRING.sensors).length === 5);
+
+  // unknown pins never throw — teachable warnings only
+  pm.digitalWrite('Z9', 1); pm.analogRead('D13'); pm.pinMode(-1, 1);
+  ok('bogus pins warn but never throw', pm.warnings.length >= 3);
+}
+
+// ── Intel HEX parser ─────────────────────────────────────────────────────────
+console.log('\nIntelHex');
+{
+  const { parseIntelHex } = await import('../IntelHex.js');
+  const rec = (count, addr, type, data) => {
+    const b = [count, (addr >> 8) & 0xff, addr & 0xff, type, ...data];
+    const ck = (256 - (b.reduce((a, c) => a + c, 0) & 0xff)) & 0xff;
+    return ':' + [...b, ck].map(x => x.toString(16).padStart(2, '0').toUpperCase()).join('');
+  };
+  const hex = [
+    rec(4, 0x0000, 0x00, [0x0C, 0x94, 0x34, 0x00]),
+    rec(2, 0x0004, 0x00, [0xFF, 0xFF]),
+    rec(0, 0x0000, 0x01, []),
+  ].join('\n');
+  const img = parseIntelHex(hex);
+  ok('parses data records in order', Array.from(img.bytes.slice(0, 4)).join(',') === '12,148,52,0');
+  ok('base offset = 0', img.base === 0);
+  ok('EOF terminates cleanly', img.bytes.length === 6);
+
+  const gapped = [rec(2, 0x0010, 0x00, [0xAA, 0xBB]), rec(0, 0, 1, [])].join('\n');
+  const g = parseIntelHex(gapped);
+  ok('gap before first record is dropped (base=0x10)', g.base === 0x10 && g.bytes.length === 2);
+
+  const bad = [':100000000095', 'garbage'].join('\n');
+  let threw = false;
+  try { parseIntelHex(bad); } catch { threw = true; }
+  ok('malformed record throws', threw);
+
+  let threw2 = false;
+  try { parseIntelHex(rec(1, 0, 0, [0x42]).replace(/:0/, ':9')); } catch { threw2 = true; }
+  ok('checksum mismatch throws', threw2);
+}
+
+// ── AVR109 flasher: protocol against a fake bootloader + graceful degradation ─
+console.log('\nAvr109Flasher');
+{
+  const { Avr109Flasher } = await import('../Avr109Flasher.js');
+
+  // Fake bootloader: a small AVR109 state machine keyed on write-call
+  // boundaries (how a real device parses complete commands).
+  class FakeBootloader {
+    constructor() {
+      this.rx = [];
+      this.written = [];
+      this.isOpen = true;
+      this._pendingBlock = 0;   // bytes still owed on an open 'B' block write
+    }
+    get isSupported() { return true; }
+    async open() {
+      const bl = this;
+      return {
+        async read() {
+          const b = bl.rx.splice(0, 64);
+          return new Uint8Array(b);
+        },
+        async write(bytes) {
+          bl.written.push(Array.from(bytes));
+          bl._onWrite(Array.from(bytes));
+        },
+        async close() { bl.isOpen = false; },
+      };
+    }
+    _emit(arr) { this.rx.push(...arr); }
+    _onWrite(bytes) {
+      // finish a pending block write first (data bytes count toward it)
+      if (this._pendingBlock > 0) {
+        this._pendingBlock -= bytes.length;
+        if (this._pendingBlock <= 0) this._emit([0x0d]);   // block done → CR
+        return;
+      }
+      const [c0, c1, c2, c3] = bytes;
+      if (c0 === 0x1b && c1 === 0x53) {                     // SYNC + 'S' → software id
+        this._emit([...'AVRBOOT'].map(ch => ch.charCodeAt(0)));
+      } else if (c0 === 0x62 && bytes.length === 1) {       // 'b' → block support: 'Y' + 128
+        this._emit([0x59, 0x00, 0x80]);
+      } else if (c0 === 0x42 && c3 === 0x46) {              // 'B' nHi nLo 'F' data…
+        const size = (c1 << 8) | c2;
+        const dataLen = bytes.length - 4;
+        this._pendingBlock = size - dataLen;
+        if (this._pendingBlock <= 0) this._emit([0x0d]);
+      } else {
+        this._emit([0x0d]);                                  // erase / set-addr / leave → CR
+      }
+    }
+  }
+
+  const rec = (count, addr, type, data) => {
+    const b = [count, (addr >> 8) & 0xff, addr & 0xff, type, ...data];
+    const ck = (256 - (b.reduce((a, c) => a + c, 0) & 0xff)) & 0xff;
+    return ':' + [...b, ck].map(x => x.toString(16).padStart(2, '0').toUpperCase()).join('');
+  };
+  const hexText = [
+    rec(4, 0, 0, [1, 2, 3, 4]),
+    rec(0, 0, 1, []),
+  ].join('\n');
+
+  // Full happy path: connect → identify → block-write → leave
+  {
+    const bl = new FakeBootloader();
+    const f = new Avr109Flasher(bl);
+    const statuses = [];
+    f.onStatus = s => statuses.push(s);
+    const conn = await f.connect();
+    ok('connect: bootloader identified', conn.ok && /AVRBOOT/.test(conn.bootloader ?? ''));
+    const flash = await f.flash(hexText);
+    ok('flash succeeds on real protocol', flash.ok === true);
+    ok('flash reports byte count', flash.bytes === 4);
+    ok('status flow reaches running', statuses.includes('flashing') && statuses[statuses.length - 1] === 'running');
+    ok('chip erase was commanded', bl.written.some(w => w.includes(0x65)));
+    ok('block write with F marker sent', bl.written.some(w => w[0] === 0x42 && w[3] === 0x46));
+    ok('leave-programming sent (reboot into sketch)', bl.written.some(w => w[0] === 0x45));
+  }
+
+  // Graceful degradation: unsupported browser
+  {
+    class None { get isSupported() { return false; } async open() { throw new Error('nope'); } }
+    const f = new Avr109Flasher(new None());
+    const r = await f.connect();
+    ok('no Web Serial → structured keep-simulating result', r.ok === false && /keep simulating/i.test(r.message));
+  }
+
+  // Graceful degradation: user cancels port picker (open throws)
+  {
+    class Cancel { get isSupported() { return true; } async open() { throw new Error('user cancelled'); } }
+    const f = new Avr109Flasher(new Cancel());
+    const r = await f.connect();
+    ok('cancelled port pick → keep-simulating message', r.ok === false && /No device connected/.test(r.message));
+  }
+
+  // Graceful degradation: silent board (no bootloader answer)
+  {
+    class Silent {
+      get isSupported() { return true; }
+      async open() { return { read: async () => new Uint8Array(0), write: async () => {}, close: async () => {} }; }
+    }
+    const f = new Avr109Flasher(new Silent());
+    const r = await f.connect();
+    ok('silent board → bootloader-mode hint, sim unaffected', r.ok === false && /bootloader mode/i.test(r.message));
+  }
+
+  // Graceful degradation: corrupt hex never reaches the wire
+  {
+    const bl = new FakeBootloader();
+    const f = new Avr109Flasher(bl);
+    await f.connect();
+    const r = await f.flash(':not-a-hex-record');
+    ok('corrupt hex → structured error, no throw', r.ok === false && /hex file looks broken/.test(r.message));
+  }
+
+  // flash before connect → structured miss, sim unaffected
+  {
+    const f = new Avr109Flasher(new FakeBootloader());
+    const r = await f.flash(hexText);
+    ok('flash without connect → keep-simulating result', r.ok === false && /Not connected/.test(r.message));
+  }
+}
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

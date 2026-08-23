@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { MakerRuntime, GameWorldAdapter } from './maker/index.js';
+import { UnoPinModel } from './maker/PinModel.js';
 import { EXAMPLE_WALL_AVOIDER } from './maker/TileProgram.js';
 import { BotPersonality, randomBotName } from './BotPersonality.js';
 
@@ -62,6 +63,7 @@ export class ScrapBot {
 
     // Maker Lab brain
     this._runtime   = null;
+    this.pinModel   = new UnoPinModel();   // hardware twin — wiring view reads this
     this._brainMode = false;
     this._game      = null;
 
@@ -361,6 +363,20 @@ export class ScrapBot {
 
     const tickSpeed = this._game?.botUpgrades?.getMultiplier('tick_speed') ?? 1;
     this._runtime.tick(dt, tickSpeed);
+
+    // Hardware twin: mirror this tick into the virtual Uno's pins, so the
+    // wiring view (and the kid's mental model) tracks the physics exactly.
+    if (this.pinModel) {
+      const rb = this._runtime.robot;
+      const ad = this._runtime.world;
+      this.pinModel.syncFromRuntime(rb, ad ? {
+        distance_ahead: ad.distanceAhead?.(rb.x, rb.z, rb.heading) ?? 1,
+        light:          ad.lightAt?.(rb.x, rb.z) ?? 0.5,
+        temperature:    ad.temperatureAt?.(rb.x, rb.z) ?? 0,
+        line_under:     !!ad.lineUnder?.(rb.x, rb.z),
+        motion_nearby:  (ad.playerDistance?.(rb.x, rb.z) ?? 99) < 4,
+      } : {});
+    }
 
     const r = this._runtime.robot;
     this._pos.set(r.x, 1, r.z);
