@@ -82,6 +82,21 @@ export async function runLivelinessTests(ok) {
     ok('fast lane is budget-exempt (speaks with the chatter budget spent)',
        spoken3.length === 1, spoken3.join(' | '));
 
+    // min-gap exemption: even an enormous ChatterGuard quiet-gap can't hold
+    // the fast lane — like tier-ups, big moments don't wait in the
+    // unsolicited line
+    const spoken6 = [];
+    const strictGap = new ChatterGuard({ minGapS: 100000, windowS: 600, maxUnsolicited: 6, now: () => 1000 });
+    strictGap.noteSpeech();   // someone just spoke — unsolicited chatter is locked
+    ok('setup: the min gap is active', strictGap.canSpeakUnsolicited() === false);
+    const c6 = new Companion({
+      persona: 'rivet', storage: mkStore(), managed: true, rng: () => 0.01, chatter: strictGap,
+      speak: (text, meta) => spoken6.push({ text, event: meta.event }),
+    });
+    c6.observe('rare_loot', { note: 'min_gap_test' });
+    ok('fast lane is exempt from the ChatterGuard min gap (like tier-ups)',
+       spoken6.length === 1, spoken6.join(' | '));
+
     // fallback guarantee: empty banter bank → the fallback bank still speaks
     const spoken4 = [];
     const c4 = new Companion({
