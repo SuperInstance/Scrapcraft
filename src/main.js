@@ -85,6 +85,9 @@ function boot() {
 startBtn.addEventListener('click', () => {
   startScreen.style.opacity = '0';
   startScreen.style.transition = 'opacity 0.6s';
+  // Remove the splash from the layout after the fade — an invisible full-screen
+  // overlay at z-index:1000 otherwise eats every click/keypress post-boot (P0).
+  setTimeout(() => { startScreen.style.display = 'none'; }, 700);
   setTimeout(boot, 600);
 });
 
