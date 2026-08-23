@@ -729,8 +729,12 @@ export class Game {
         if (this.companions) this.ui?.notify(`📖 ${this.companions.storyText()}`);
       }
       if (e.code === 'F9') { e.preventDefault(); this.saveSystem.load(); }
-      if (e.code === 'KeyF') {
+      if (e.code === 'KeyF' && !e.repeat && !this._earlBusy) {
+        // prompt() is modal and hard-blocks; the guard stops queued key-mash
+        // F presses from stacking prompts and wedging the tab (beta P1).
+        this._earlBusy = true;
         const msg = prompt('Talk to Big Earl:') ?? '';
+        this._earlBusy = false;
         if (msg) this.foreman.playerTalks(msg);
         else this.foreman.say('idle');
       }
@@ -754,10 +758,10 @@ export class Game {
       // Hold V to talk to Rivet — STT in, character answer out, in Rivet's voice
       if (e.code === 'KeyV' && !e.repeat && !this.ui.isOpen && !this.tileEditor.isOpen) {
         this._startRivetTalk();
-        // C — swap active companion (party members take the shoulder)
-        if (e.code === 'KeyC' && document.pointerLockElement && !this.ui.isOpen && !this.tileEditor.isOpen) {
-          this._cycleCompanion();
-        }
+      }
+      // C — swap active companion (party members take the shoulder)
+      if (e.code === 'KeyC' && document.pointerLockElement && !this.ui.isOpen && !this.tileEditor.isOpen) {
+        this._cycleCompanion();
       }
       if (e.code === 'KeyR' && document.pointerLockElement) {
         this.player.pos.set(8, 2, 5);
