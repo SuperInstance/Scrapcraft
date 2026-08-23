@@ -26,6 +26,7 @@ import { runPrestigeTests } from '../../prestige/__tests__/prestige-tests.mjs';
 import { runGeographyTests } from '../../world/__tests__/geography-tests.mjs';
 import { runWakesTests } from '../../story/__tests__/wakes-tests.mjs';
 import { runAmbientTests, runCompanionAmbientTests, runA11yPanelTests } from '../../world/__tests__/ambient-tests.mjs';
+import { runInstanceLedgerTests } from '../../render/__tests__/ledger-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -1848,6 +1849,9 @@ console.log('\nAmbient Yard Life');
 runAmbientTests(ok);
 runCompanionAmbientTests(ok);
 runA11yPanelTests(ok);
+
+// ── InstanceLedger: incremental instancing bookkeeping ──────────────────────
+runInstanceLedgerTests(ok);
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);

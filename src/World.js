@@ -47,8 +47,10 @@ export class World {
 
   setBlock(x, y, z, id) {
     if (x < 0 || x >= this.width || z < 0 || z >= this.depth || y < 0 || y >= this.height) return;
-    this.blocks[this._idx(x, y, z)] = id;
-    this._emit('change', { x, y, z, id });
+    const idx = this._idx(x, y, z);
+    const prev = this.blocks[idx];
+    this.blocks[idx] = id;
+    this._emit('change', { x, y, z, prev, id });
   }
 
   on(event, fn) { this._listeners.push({ event, fn }); }

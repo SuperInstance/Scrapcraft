@@ -272,7 +272,12 @@ export class Game {
     this._towerActivated = false;
     this._towerNearNotified = false;
 
-    this.world.on('change', () => this.renderer.rebuildMeshes(this.world));
+    this.world.on('change', (d) => {
+      this.renderer.applyBlockChange(d.x, d.y, d.z, d.prev ?? d.oldId ?? B.AIR, d.id);
+      if (this.renderer.needsFullRebuild()) {
+        this.renderer.rebuildMeshes(this.world);
+      }
+    });
 
     // Speech bubble elements (screen-projected world-space)
     this._speechEl1 = document.getElementById('bot-speech-1');
