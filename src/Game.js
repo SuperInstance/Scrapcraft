@@ -69,6 +69,13 @@ export class Game {
 
     // First-time craft tracking
     this._notifiedWrench  = false;
+    this._firstToolCrafted = false;
+
+    // Naming ceremony — shown once per game
+    this._namingCeremonyShown = false;
+
+    // Ghost-racer intro — shown once per game
+    this._ghostRacerIntroShown = false;
   }
 
   init() {
@@ -876,16 +883,170 @@ export class Game {
     const bot = this.scrapBot?.isActive ? this.scrapBot : null;
     if (!bot) return;
     const current = bot.personality.name;
-    const entered = prompt(`Rename your bot (currently "${current}"):`, current);
-    if (!entered) return;
-    const name = entered.trim().slice(0, 16);
-    if (!name) return;
+
+    // Show ceremony only once per game session, on first bot naming
+    if (!this._namingCeremonyShown && this.achievements.stats.botNamed === 0) {
+      this._showNamingCeremony(bot, current);
+    } else {
+      const entered = prompt(`Rename your bot (currently "${current}"):`, current);
+      if (!entered) return;
+      const name = entered.trim().slice(0, 16);
+      if (!name) return;
+      this._applyBotName(bot, name);
+    }
+  }
+
+  _showNamingCeremony(bot, current) {
+    this._namingCeremonyShown = true;
+    const overlay = document.createElement('div');
+    overlay.id = 'naming-ceremony-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    `;
+
+    const panel = document.createElement('div');
+    panel.style.cssText = `
+      background: linear-gradient(135deg, #2a2a3e, #1a1a2e);
+      border: 3px solid #ff6b35;
+      border-radius: 12px;
+      padding: 40px;
+      max-width: 500px;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      color: #fff;
+      box-shadow: 0 0 40px rgba(255, 107, 53, 0.3);
+    `;
+
+    panel.innerHTML = `
+      <div style="font-size: 28px; margin-bottom: 20px;">⚙️ NAMING CEREMONY ⚙️</div>
+      <p style="font-size: 16px; line-height: 1.6; margin-bottom: 30px; color: #ccc;">
+        You've built something that's never existed before.<br>
+        Now it needs a name. What will you call it?
+      </p>
+      <input id="naming-input" type="text" value="${current}" maxlength="16"
+        style="
+          width: 100%;
+          padding: 12px;
+          font-size: 16px;
+          border: 2px solid #ff6b35;
+          background: #1a1a2e;
+          color: #fff;
+          border-radius: 6px;
+          box-sizing: border-box;
+          margin-bottom: 20px;
+          font-family: 'Courier New', monospace;
+        ">
+      <div style="display: flex; gap: 10px;">
+        <button id="name-confirm" style="
+          flex: 1;
+          padding: 12px;
+          background: #ff6b35;
+          color: #1a1a2e;
+          border: none;
+          border-radius: 6px;
+          font-size: 16px;
+          font-weight: bold;
+          cursor: pointer;
+          font-family: 'Courier New', monospace;
+        ">CONFIRM</button>
+        <button id="name-cancel" style="
+          flex: 1;
+          padding: 12px;
+          background: #333;
+          color: #fff;
+          border: 2px solid #ff6b35;
+          border-radius: 6px;
+          font-size: 16px;
+          cursor: pointer;
+          font-family: 'Courier New', monospace;
+        ">CANCEL</button>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    const input = document.getElementById('naming-input');
+    input.focus();
+    input.select();
+
+    const confirm = () => {
+      const name = input.value.trim().slice(0, 16);
+      if (!name) return;
+      overlay.remove();
+      this._applyBotName(bot, name);
+      this._celebrateNaming(bot);
+    };
+
+    const cancel = () => {
+      overlay.remove();
+    };
+
+    document.getElementById('name-confirm').addEventListener('click', confirm);
+    document.getElementById('name-cancel').addEventListener('click', cancel);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') confirm();
+      if (e.key === 'Escape') cancel();
+    });
+  }
+
+  _applyBotName(bot, name) {
     bot.personality.name = name;
     this.ui.updateBotBond(name, bot.personality.bond);
     bot.speak(`[NAME UPDATE] New designation: ${name}. Acknowledged.`);
     this.saveSystem.markDirty();
     this.achievements.track('bot_named', {});
-    setTimeout(() => this.foreman?.onEvent('bot_named', {}), 1500);
+    setTimeout(() => this.foreman?.onEvent('bot_named', {}), 500);
+  }
+
+  _celebrateNaming(bot) {
+    const botPos = bot.mesh?.position || { x: 0, y: 1, z: 0 };
+    this.particles.burst(botPos.x, botPos.y + 1, botPos.z, 'confetti', 30);
+    this.audio.playSound('craft'); // celebration chime
+  }
+
+  _showGhostRacerIntro() {
+    const tooltip = document.createElement('div');
+    tooltip.style.cssText = `
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #2a2a3e, #1a1a2e);
+      border: 2px solid #00d9ff;
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 400px;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      color: #00d9ff;
+      z-index: 1000;
+      box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+      animation: slideUp 0.5s ease-out;
+      white-space: pre-wrap;
+    `;
+
+    tooltip.textContent = '👻 GHOST RACING ENABLED\n\nYour best lap is recorded.\nRace yourself. Beat yourself.\nThat\'s engineering.';
+
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+        to { opacity: 1; transform: translateX(-50%) translateY(0); }
+      }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(tooltip);
+
+    setTimeout(() => {
+      tooltip.style.opacity = '0';
+      tooltip.style.transition = 'opacity 0.5s ease-in';
+      setTimeout(() => tooltip.remove(), 500);
+    }, 4000);
   }
 
   _toggleBot2() {
@@ -1380,9 +1541,25 @@ export class Game {
     this.xpSystem.gain(isNew ? 10 : 3);
     this.saveSystem.markDirty();
     this.audio.craft();
+
+    const isTool = ['wrench', 'pickaxe', 'axe', 'shovel'].includes(output);
+    const particleCount = (!this._firstToolCrafted && isTool) ? 40 : 18;
+    const particleType = (!this._firstToolCrafted && isTool) ? 'confetti' : 'craft';
+
     this.particles.burst(
-      this.player.pos.x, this.player.pos.y + 1, this.player.pos.z, 'craft', 18,
+      this.player.pos.x, this.player.pos.y + 1, this.player.pos.z, particleType, particleCount,
     );
+
+    // Enhanced feedback for first tool
+    if (isTool && !this._firstToolCrafted) {
+      this._firstToolCrafted = true;
+      this.audio.craft();
+      this.audio.questComplete();
+      setTimeout(() => {
+        this.ui.notify('🎉 First tool forged! You\'re a builder now.');
+      }, 200);
+    }
+
     if (output === 'robot_helper' && !this.scrapBot.isActive) {
       setTimeout(() => this.scrapBot.activate(this.player.pos), 1000);
       this.rivet?.observe('bot_built');
@@ -1826,6 +2003,11 @@ export class Game {
       if (px2 >= 20 && px2 <= 50 && pz2 >= 76 && pz2 <= 92) {
         this._nearOvalSeen = true;
         this.foreman.onEvent('near_oval', {});
+        // Ghost-racer intro — only show on first oval visit
+        if (!this._ghostRacerIntroShown) {
+          this._ghostRacerIntroShown = true;
+          setTimeout(() => this._showGhostRacerIntro(), 1000);
+        }
       }
     }
 
