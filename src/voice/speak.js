@@ -5,8 +5,8 @@
 
 const VOICE_WORKER = () => localStorage.getItem('scrapcraft_voice_worker') ?? 'https://scrap-voice.casey-digennaro.workers.dev';
 const TTS_TIMEOUT = 6000;
-const VOICE_RATE = { spark: 1.15, earl: 0.9, announcer: 1.05 };
-const VOICE_PITCH = { spark: 1.3, earl: 0.7, announcer: 0.9 };
+const VOICE_RATE = { spark: 1.15, earl: 0.9, announcer: 1.05, rivet: 1.32 };
+const VOICE_PITCH = { spark: 1.3, earl: 0.7, announcer: 0.9, rivet: 1.55 };
 
 export class VoiceOut {
   constructor() {

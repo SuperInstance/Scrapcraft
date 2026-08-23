@@ -27,7 +27,10 @@ import { RaceBoard, NPC_GHOSTS, BEAT_QUIPS } from './RaceBoard.js';
 import { Codex } from './Codex.js';
 import { ClassRoom } from './ClassRoom.js';
 import { ChallengeSystem } from './ChallengeSystem.js';
-import { voiceOut, announceRaceStart, announceLap, announcePersonalBest, announceVictory, preloadAnnouncements } from './voice/index.js';
+import { voiceOut, voiceIn, announceRaceStart, announceLap, announcePersonalBest, announceVictory, preloadAnnouncements } from './voice/index.js';
+import { Rivet } from './companion/Rivet.js';
+import { RivetAvatar } from './companion/avatar.js';
+import { RivetConverse } from './companion/converse.js';
 
 export class Game {
   constructor(canvas) {
@@ -128,6 +131,43 @@ export class Game {
     this.exchange     = new ScrapExchange();
     this.raceBoard    = new RaceBoard();
     this.codex        = new Codex();
+
+    // ── RIVET — the companion who grows with you ──
+    // Speech sink: voiceOut in Rivet's voice (younger, quicker than Spark)
+    // + HUD subtitle + avatar speech pulse + mood reactions.
+    this.rivetAvatar = new RivetAvatar(this.renderer.scene);
+    this.rivet = new Rivet({
+      converse: new RivetConverse({}),
+      // Hold-V STT: start on demand, resolve when the key comes up
+      listen: async () => {
+        await voiceIn.start();
+        return await new Promise(resolve => {
+          const onUp = ev => {
+            if (ev.code !== 'KeyV') return;
+            document.removeEventListener('keyup', onUp);
+            voiceIn.stop().then(resolve).catch(() => resolve(''));
+          };
+          document.addEventListener('keyup', onUp);
+        });
+      },
+      speak: (text, meta) => {
+        voiceOut.speak(text, { voice: 'rivet', emotion: meta?.event });
+        this.ui?.notify(`🔩 <b>Rivet:</b> ${text}`);
+        this.rivetAvatar?.setTalking(Math.min(9000, 1500 + text.length * 55));
+        this.rivetAvatar?.react(meta?.mood);
+      },
+    });
+    // Session opener: first ever meeting starts the onboarding conversation.
+    // Rivet IS the tutorial now — the first minutes are a talk, not a wall of text.
+    setTimeout(() => {
+      this.rivet?.greet();
+      // Rivet narrates the early mission steps conversationally (the mission
+      // card stays as the visual anchor; the voice walk-along is Rivet's job)
+      if (this.rivet.state.tier === 'stranger' && this.rivet.state.data.counters.blocksMined === 0) {
+        this.rivet.say('Earl said mine five iron off that rust heap — hold left-click and I\'ll keep count. First one\'s free. They\'re all free. It\'s a junkyard.', { mood: 'happy' });
+      }
+    }, 2500);
+
     this.classRoom        = new ClassRoom(this.saveSystem, this.ui);
     this.challengeSystem  = new ChallengeSystem(this);
     this._exchangeNearNotified = false;
@@ -318,6 +358,18 @@ export class Game {
     if (!this._tutorialActive || this._tutorialStep < 0) return;
     this._tutorialStep++;
     this._showMissionStep();
+    // Rivet IS the tutorial voice — the first five minutes are a conversation,
+    // not a wall of text. The card anchors; Rivet talks.
+    const rivetLines = [
+      null, // step 0 — the greet() line covers it
+      'Walking works! You passed the test. Next: see that rust heap? It wants to be mined. Hold left-click on it — trust me, it likes it.',
+      'Look at all that scrap you OWN now. Press E — the workshop turns piles into parts. Alchemy, but with hammers.',
+      'Ok, big moment: press T. The Maker Lab is where bots get brains. Earl pre-loaded yours. He acts casual, but he prepared.',
+      null, // run step — the Maker Lab has the floor
+      'You just ran your OWN program! Want the real thing? Hit BUILD IT — real firmware, real board, real wheels. I get chatty when I\'m excited. This is me being chill.',
+    ];
+    const line = rivetLines[this._tutorialStep];
+    if (line) this.rivet?.say(line, { mood: 'happy', event: 'tutorial' });
   }
 
   _dismissMission() {
@@ -440,6 +492,10 @@ export class Game {
         this._toggleBotUpgradePanel();
       }
       if (e.code === 'KeyH' && !this.ui.isOpen && !this.tileEditor.isOpen) this._toggleHelp();
+      // Hold V to talk to Rivet — STT in, character answer out, in Rivet's voice
+      if (e.code === 'KeyV' && !e.repeat && !this.ui.isOpen && !this.tileEditor.isOpen) {
+        this._startRivetTalk();
+      }
       if (e.code === 'KeyR' && document.pointerLockElement) {
         this.player.pos.set(8, 2, 5);
         this.player.vel?.set(0, 0, 0);
@@ -556,6 +612,8 @@ export class Game {
         this.xpSystem.gain(2);
         this.foreman.onEvent(`mine_${drop}`, {});
         this.challenge.onCollect(drop);
+        // Rivet was there — every block mined together counts
+        this.rivet?.observe('block_mined');
       }
     };
     if (def.drop    && Math.random() < def.dropChance)    {
@@ -584,6 +642,7 @@ export class Game {
       this.foreman.onEvent('lucky_find', {});
       this.achievements.track('lucky_find', {});
       this.xpSystem.gain(5);
+      this.rivet?.observe('rare_loot', { note: lDef?.name ?? lucky });
     }
     // Night bonus HUD indicator (first mine of the night)
     if (isNight && !this._nightBonusShown) {
@@ -1264,6 +1323,7 @@ export class Game {
     );
     if (output === 'robot_helper' && !this.scrapBot.isActive) {
       setTimeout(() => this.scrapBot.activate(this.player.pos), 1000);
+      this.rivet?.observe('bot_built');
     }
     // First-time craft notifications
     if (output === 'wrench' && !this._notifiedWrench) {
@@ -1294,6 +1354,30 @@ export class Game {
     this._render(dt);
   }
 
+  // ── Rivet per-frame: presence, idle watch, battery, nudges ──────────────
+  _startRivetTalk() {
+    if (!this.rivet || this.rivet.talking) return;
+    this.ui?.notify('🔩 <b>Rivet:</b> <i>listening… (talk, then let go of V)</i>');
+    this.rivet.talk().catch(() => {});
+  }
+
+  _tickRivet(dt) {
+    if (!this.rivet) return;
+    const locked = Boolean(document.pointerLockElement);
+    const vel = this.player.vel;
+    const moving = Boolean(vel && Math.hypot(vel.x, vel.z) > 0.35);
+    const bot = this.scrapBot?.isActive ? this.scrapBot : null;
+    this.rivet.update(dt, {
+      locked,
+      moving,
+      midFlow: this.ui.isOpen || this.tileEditor.isOpen || this.rivet.talking
+        || (this._lapState?.lapStart ?? 0) > 0,
+      battery: bot ? (bot.battery ?? 100) : null,
+    });
+    // the voxel face: follows the player, looks where they look, mirrors mood
+    this.rivetAvatar?.update(dt, this.player.pos, this.player.yaw, this.rivet.mood);
+  }
+
   _update(dt) {
     // Fuel boost timer
     if (this._fuelBoostTimer > 0) {
@@ -1304,6 +1388,8 @@ export class Game {
     }
 
     this.player.tick(dt, this.world);
+
+    this._tickRivet(dt);
 
     // Flying machine — override gravity, boost speed, allow vertical movement
     if (this._flyingMode) {
@@ -1486,8 +1572,11 @@ export class Game {
     const bandIdx = this.world.getBandIndex(Math.floor(this.player.pos.z));
     if (bandIdx !== this._lastBandIndex) {
       if (this._lastBandIndex >= 0) {
-        this.ui.showZoneToast(this.world.getBandName(Math.floor(this.player.pos.z)));
+        const bandName = this.world.getBandName(Math.floor(this.player.pos.z));
+        this.ui.showZoneToast(bandName);
         this.foreman.onEvent(`enter_band_${bandIdx}`, {});
+        // Rivet marks first-visit biomes — new places grow the friendship
+        this.rivet?.observe('biome_first', { name: bandName });
         // Notify on first entry to special bands
         if (bandIdx === 2 && !this._notifiedBand2) {
           this._notifiedBand2 = true;
@@ -1860,6 +1949,7 @@ export class Game {
             if (res) {
               this.ui.notify(`🔧 ${b.ledger.name}: ${res.dentsFixed} dent${res.dentsFixed > 1 ? 's' : ''} hammered out. Logged in the repair book.`);
               b.speak(`[REPAIR LOG] ${res.dentsFixed} dents gone. I still remember every one.`);
+              this.rivet?.observe('repair_done', { note: b.ledger.name });
             }
           }
         }
@@ -2031,6 +2121,7 @@ export class Game {
         this.achievements.track('lap_complete', {});
         this.challenge.onLapComplete();
         this.xpSystem.gain(20);
+        this.rivet?.observe('lap_complete', { secs, note: `${secs}s${improved ? ' PB' : ''}` });
         // The heart: this lap is remembered
         if (bot?.ledger?.lapCompleted()) {
           this.ui.notify(`💛 ${bot.ledger.name}'s first lap — remembered forever.`);

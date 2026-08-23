@@ -1274,6 +1274,8 @@ export class TileEditor {
     if (res.ok) {
       this._game.achievements?.track('hardware_flash', {});
       this._game.foreman?.say('hardware_flash');
+      // Rivet was holding the metaphorical flashlight
+      this._game.rivet?.observe('flash_success');
     }
   }
 
@@ -1762,6 +1764,14 @@ export class TileEditor {
     this._btnStop.disabled = false;
     this._running = true;
     if (!this._rafId) this._rafId = requestAnimationFrame(() => this._tickHL());
+
+    // Rivet counts every program run — and notices line-following specifically
+    this._game.rivet?.observe('program_run', {
+      note: sensorIds.size ? [...sensorIds].join('+') : 'basic',
+    });
+    if (sensorIds.has('line_under')) {
+      this._game.rivet?.state.markNudgeDone('line_follow');
+    }
 
     // One-shot tutorial callback
     if (this.onFirstRun) { this.onFirstRun(); this.onFirstRun = null; }

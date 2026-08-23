@@ -383,7 +383,11 @@ export class ScrapBot {
     if (this.ledger && prePose && this._runtime) {
       const rb = this._runtime.robot;
       const dent = this.ledger.observeMotion(prePose, rb, rb.drivePower, dt);
-      if (dent) this.speak(`[DENT LOG] that wall came out of nowhere. That's ${this.ledger.dents.length} total.`);
+      if (dent) {
+        this.speak(`[DENT LOG] that wall came out of nowhere. That's ${this.ledger.dents.length} total.`);
+        // Rivet saw the whole thing — crashes survived together count
+        this._game?.rivet?.observe('crash_survived', { note: `speed ${dent.speed}` });
+      }
     }
 
     // Hardware twin: mirror this tick into the virtual Uno's pins, so the

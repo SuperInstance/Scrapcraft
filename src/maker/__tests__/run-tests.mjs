@@ -1440,6 +1440,14 @@ console.log('\nBotLedger (the heart)');
   const lg3 = new BotLedger('?', 'test-slot-x1');
   ok('ledger restores from slot on reload', lg3.name === 'Klunk' && lg3.isRetired && lg3.laps === 10);
 }
+
+// ── Rivet companion suite ───────────────────────────────────────────────────
+console.log('\nRivet — the companion');
+{
+  const { runRivetTests } = await import('../../companion/__tests__/rivet-tests.mjs');
+  await runRivetTests(ok);
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
