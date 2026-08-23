@@ -1448,6 +1448,13 @@ console.log('\nRivet — the companion');
   await runRivetTests(ok);
 }
 
+// ── Companion roster suite (Bolt/Magma/Juno, parties, entry points) ────────
+console.log('\nCompanion roster — the replay-value engine');
+{
+  const { runRosterTests } = await import('../../companion/__tests__/roster-tests.mjs');
+  await runRosterTests(ok);
+}
+
 // ── Render mode (?lite=1 / deviceMemory heuristic) ──────────────────────────
 console.log('\nRender mode — workshop OOM hardening');
 {

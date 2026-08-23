@@ -31,9 +31,9 @@ import { resolveRenderMode } from './renderMode.js';
 import { createPanicState, consumePanic, panicStatus, noteCrash, noteTaskComplete, smashTargets, rollLootCache, SMASHABLE_BLOCKS } from './PanicButton.js';
 import { PLAQUES } from './data/plaques.js';
 import { voiceOut, voiceIn, announceRaceStart, announceLap, announcePersonalBest, announceVictory, preloadAnnouncements } from './voice/index.js';
-import { Rivet } from './companion/Rivet.js';
+import { CompanionRoster, EARL_PAIRING_LINE } from './companion/registry.js';
 import { RivetAvatar } from './companion/avatar.js';
-import { RivetConverse } from './companion/converse.js';
+import { CompanionGate } from './companion/entry.js';
 
 export class Game {
   constructor(canvas) {
@@ -149,12 +149,11 @@ export class Game {
     this.raceBoard    = new RaceBoard();
     this.codex        = new Codex();
 
-    // ── RIVET — the companion who grows with you ──
-    // Speech sink: voiceOut in Rivet's voice (younger, quicker than Spark)
-    // + HUD subtitle + avatar speech pulse + mood reactions.
-    this.rivetAvatar = new RivetAvatar(this.renderer.scene);
-    this.rivet = new Rivet({
-      converse: new RivetConverse({}),
+    // ── THE COMPANION ROSTER — same yard, different friend, different journey ──
+    // The roster proxies the active companion; `this.rivet` is the facade so a
+    // decade of call sites (observe/say/talk/state/mood) route through the crew.
+    // Per-companion speech: each in its own voice + emoji subtitle + avatar pulse.
+    this.companions = new CompanionRoster({
       // Hold-V STT: start on demand, resolve when the key comes up
       listen: async () => {
         await voiceIn.start();
@@ -167,21 +166,47 @@ export class Game {
           document.addEventListener('keyup', onUp);
         });
       },
-      speak: (text, meta) => {
-        voiceOut.speak(text, { voice: 'rivet', emotion: meta?.event });
-        this.ui?.notify(`🔩 <b>Rivet:</b> ${text}`);
-        this.rivetAvatar?.setTalking(Math.min(9000, 1500 + text.length * 55));
-        this.rivetAvatar?.react(meta?.mood);
+      speak: (companion, text, meta) => {
+        voiceOut.speak(text, { voice: companion.persona.voice.name, emotion: meta?.event });
+        this.ui?.notify(`${companion.persona.emoji} <b>${companion.name}:</b> ${text}`);
+        if (companion.id === this.companions.activeId) {
+          this.companionAvatar?.setTalking(Math.min(9000, 1500 + text.length * 55));
+          this.companionAvatar?.react(meta?.mood);
+        }
+      },
+      onRecruit: newcomer => {
+        // Earl's pairing moment — the yard's cranky blessing
+        this.ui?.notify(`☕ <b>Earl:</b> ${EARL_PAIRING_LINE}`);
+        this.ui?.notify(`${newcomer.persona.emoji} <b>${newcomer.name}</b> joined the crew — press C to swap companions.`);
+        this.saveSystem?.markDirty();
       },
     });
-    // Session opener: first ever meeting starts the onboarding conversation.
-    // Rivet IS the tutorial now — the first minutes are a talk, not a wall of text.
+    this.rivet = this.companions; // legacy facade (observe/say/talk/state/mood)
+    this.companionAvatar = new RivetAvatar(this.renderer.scene, this.companions.active.persona);
+    this._avatarPersonaId = this.companions.activeId;
+
+    // Session opener. NEW GAME → the yard gate: Earl's two questions deliver
+    // the starter companion (the tutorial voice, the story pull). Returning
+    // runs greet the active companion directly.
     setTimeout(() => {
-      this.rivet?.greet();
-      // Rivet narrates the early mission steps conversationally (the mission
-      // card stays as the visual anchor; the voice walk-along is Rivet's job)
-      if (this.rivet.state.tier === 'stranger' && this.rivet.state.data.counters.blocksMined === 0) {
-        this.rivet.say('Earl said mine five iron off that rust heap — hold left-click and I\'ll keep count. First one\'s free. They\'re all free. It\'s a junkyard.', { mood: 'happy' });
+      if (this.companions.needsEntryChoice) {
+        this._companionGate = new CompanionGate({
+          onChosen: (personaId, delivery) => {
+            const starter = this.companions.beginRun(personaId);
+            this._swapAvatar(starter.persona);
+            this.ui?.notify(`🚪 ${delivery}`);
+            starter.greet();
+            this.saveSystem?.markDirty();
+          },
+        });
+      } else {
+        this.companions.greet();
+      }
+      // The starter companion narrates the early mission steps conversationally
+      // (the mission card stays as the visual anchor; the walk-along is theirs)
+      const c = this.companions.active;
+      if (c.state.tier === 'stranger' && c.state.data.counters.blocksMined === 0) {
+        c.say('Earl said mine five iron off that rust heap — hold left-click and I\'ll keep count. First one\'s free. They\'re all free. It\'s a junkyard.', { mood: 'happy' });
       }
     }, 2500);
 
@@ -499,6 +524,8 @@ export class Game {
         return;
       }
       if (e.code === 'F5') { e.preventDefault(); this.saveSystem.save();
+        // end-of-session story identity: the yard remembers who you ran with
+        if (this.companions) this.ui?.notify(`📖 ${this.companions.storyText()}`);
       }
       if (e.code === 'F9') { e.preventDefault(); this.saveSystem.load(); }
       if (e.code === 'KeyF') {
@@ -525,7 +552,12 @@ export class Game {
       if (e.code === 'KeyH' && !this.ui.isOpen && !this.tileEditor.isOpen) this._toggleHelp();
       // Hold V to talk to Rivet — STT in, character answer out, in Rivet's voice
       if (e.code === 'KeyV' && !e.repeat && !this.ui.isOpen && !this.tileEditor.isOpen) {
-        this._startRivetTalk();      }
+        this._startRivetTalk();
+        // C — swap active companion (party members take the shoulder)
+        if (e.code === 'KeyC' && document.pointerLockElement && !this.ui.isOpen && !this.tileEditor.isOpen) {
+          this._cycleCompanion();
+        }
+      }
       if (e.code === 'KeyR' && document.pointerLockElement) {
         this.player.pos.set(8, 2, 5);
         this.player.vel?.set(0, 0, 0);
@@ -1469,11 +1501,37 @@ export class Game {
     }
   }
 
-  // ── Rivet per-frame: presence, idle watch, battery, nudges ──────────────
+  // ── Companion roster per-frame: presence, idle watch, battery, party nudges ─
   _startRivetTalk() {
     if (!this.rivet || this.rivet.talking) return;
-    this.ui?.notify('🔩 <b>Rivet:</b> <i>listening… (talk, then let go of V)</i>');
+    const c = this.companions.active;
+    this.ui?.notify(`${c.persona.emoji} <b>${c.name}:</b> <i>listening… (talk, then let go of V)</i>`);
     this.rivet.talk().catch(() => {});
+  }
+
+  /** Swap the active companion (C key) — crew members take the shoulder. */
+  _cycleCompanion() {
+    if (!this.companions) return;
+    const party = this.companions.partyIds;
+    if (party.length < 2) {
+      const c = this.companions.active;
+      this.ui?.notify(`${c.persona.emoji} ${c.name}: it's just us so far — reach FRIEND tier and Earl will pair you with another.`);
+      return;
+    }
+    const idx = party.indexOf(this.companions.activeId);
+    const nextId = party[(idx + 1) % party.length];
+    if (this.companions.setActive(nextId)) {
+      this._swapAvatar(this.companions.active.persona);
+      this.saveSystem?.markDirty();
+    }
+  }
+
+  /** Rebuild the voxel face when the active companion changes. */
+  _swapAvatar(persona) {
+    if (this._avatarPersonaId === persona.id && this.companionAvatar) return;
+    this.companionAvatar?.dispose(this.renderer.scene);
+    this.companionAvatar = new RivetAvatar(this.renderer.scene, persona);
+    this._avatarPersonaId = persona.id;
   }
 
   _tickRivet(dt) {
@@ -1486,11 +1544,11 @@ export class Game {
       locked,
       moving,
       midFlow: this.ui.isOpen || this.tileEditor.isOpen || this.rivet.talking
-        || (this._lapState?.lapStart ?? 0) > 0,
+        || (this._lapState?.lapStart ?? 0) > 0 || Boolean(this._companionGate),
       battery: bot ? (bot.battery ?? 100) : null,
     });
     // the voxel face: follows the player, looks where they look, mirrors mood
-    this.rivetAvatar?.update(dt, this.player.pos, this.player.yaw, this.rivet.mood);
+    this.companionAvatar?.update(dt, this.player.pos, this.player.yaw, this.rivet.mood);
   }
 
   _update(dt) {
@@ -2373,6 +2431,7 @@ export class Game {
               setTimeout(() => {
                 this.ui.notify(`🏆 Beaten ${ghost.name} (${ghost.bot})!`);
                 this.foreman.sayLine(BEAT_QUIPS[idx]);
+                this.companions?.observe('ghost_beaten', { name: ghost.name, note: ghost.bot });
               }, 1200 + idx * 800);
             }
           }

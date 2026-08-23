@@ -156,6 +156,10 @@ export class SaveSystem {
 
       xp: g.xpSystem?.toSaveData() ?? null,
 
+      // the run's story identity — who walked you in, how the friendship grew
+      // (multi-run history reads differently because different friends pulled)
+      story: g.companions ? g.companions.quilt() : null,
+
       tileEditor: g.tileEditor?._program?.toJSON() ?? null,
 
       earl: {

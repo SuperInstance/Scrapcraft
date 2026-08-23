@@ -1,28 +1,28 @@
 /**
  * ───────────────────────────────────────────────────────────────────────────
- *  RIVET STATE  —  the companion who grows with you
+ *  COMPANION STATE  —  the friendship that grows, per companion
  * ───────────────────────────────────────────────────────────────────────────
  *
- * Rivet is a small repair-drone who arrived in the yard the same day you did.
- * The relationship is REAL because it is earned by real events: blocks mined
- * together, robots built, races run, crashes survived, conversations had.
+ * Same doctrine as Rivet's original: the relationship is REAL because it is
+ * earned by real events. One state class, one soul per companion — each with
+ * its OWN storage key (state isolation: a Bolt-run never touches Rivet's
+ * friendship) and its OWN trait axes (defined by the persona).
  *
  *   tiers     stranger → coworker → friend (bond thresholds, never lost)
- *   bond      grows from shared experiences — mining, building, racing, talking
- *   traits    three sliders that shift with play style:
- *               scrappy     — mines a lot, digs through junk → punchier lines
- *               competitive — races and laps  → trash talk (the kind kind)
- *               curious     — asks lots of questions → wonders out loud
+ *   bond      grows from shared experiences — same event vocabulary yard-wide
+ *   traits    per-persona axes, same push/pull mechanic
  *
- * Persisted to localStorage under a versioned schema (same doctrine as
- * BotLedger): v1 today, migrations later, corrupt saves start fresh —
- * the game never breaks because a save is weird.
+ * Rivet keeps its legacy storage key (`scrapcraft_rivet`) so existing
+ * friendships survive the roster. Others live under
+ * `scrapcraft_companion_<id>`, versioned, corrupt-save-tolerant.
  *
- * Headless-testable: storage is injectable, zero DOM/three.js deps.
+ * Headless-testable: storage injectable, zero DOM deps.
  */
 
+import { getPersona, TRAIT_PUSH, TRAIT_PULL, TRAIT_FLOOR } from './personas.js';
+
 export const RIVET_SCHEMA_VERSION = 1;
-const LS_KEY = 'scrapcraft_rivet';
+const LS_KEY_PREFIX = 'scrapcraft_companion_';
 
 /** Bond awarded per shared event. Real events only — no timers, no pity points. */
 export const BOND_EVENTS = {
@@ -38,49 +38,50 @@ export const BOND_EVENTS = {
   conversation:    5,
   biome_first:     5,
   repair_done:     4,
-  nudge_followed:  3,   // player tried the thing Rivet suggested
+  nudge_followed:  3,   // player tried the thing the companion suggested
+  ghost_beaten:    10,  // beat a name on the race board — a yard milestone
+  spark_consult:   4,   // asked Spark a question — every companion respects that
 };
 
 /** Tier thresholds in bond points. Once earned, never lost. */
 export const TIER_THRESHOLDS = { stranger: 0, coworker: 30, friend: 120 };
 export const TIERS = ['stranger', 'coworker', 'friend'];
 
-/** Which shared experiences nudge which trait. */
-const TRAIT_EVENTS = {
-  scrappy:     ['block_mined', 'rare_loot', 'repair_done'],
-  competitive: ['lap_complete', 'race_run'],
-  curious:     ['conversation', 'flash_success'],
-};
-
-/** How far one event pushes a trait toward 1 (and the others toward the floor). */
-const TRAIT_PUSH = 0.04;
-const TRAIT_PULL = 0.008;
-const TRAIT_FLOOR = 0.08;
-
 const RECENT_CAP = 12;
 
-export class RivetState {
+export class CompanionState {
   /**
    * @param {object} [opts]
-   * @param {Storage|object|null} [opts.storage] injectable storage (tests); defaults to localStorage if present
+   * @param {string} [opts.personaId] persona id (default 'rivet')
+   * @param {object} [opts.persona]    persona object (overrides personaId)
+   * @param {Storage|object|null} [opts.storage] injectable storage (tests)
    */
   constructor(opts = {}) {
+    this.persona = opts.persona ?? getPersona(opts.personaId ?? 'rivet');
     this._storage = opts.storage !== undefined
       ? opts.storage
       : (typeof localStorage !== 'undefined' ? localStorage : null);
+    this._key = this.persona.legacyKey ?? `${LS_KEY_PREFIX}${this.persona.id}`;
     this.data = this._fresh();
     this.load();
+  }
+
+  /** Trait axes from the persona: { axis: startValue } */
+  _freshTraits() {
+    const t = {};
+    for (const [k, def] of Object.entries(this.persona.traits)) t[k] = def.start;
+    return t;
   }
 
   _fresh() {
     return {
       v: RIVET_SCHEMA_VERSION,
       bond: 0,
-      traits: { scrappy: 0.15, competitive: 0.15, curious: 0.45 }, // born curious
+      traits: this._freshTraits(),
       counters: {
         blocksMined: 0, rareLoot: 0, botsBuilt: 0, programsRun: 0,
         laps: 0, races: 0, crashes: 0, flashes: 0, conversations: 0,
-        repairs: 0, nudgesFollowed: 0,
+        repairs: 0, nudgesFollowed: 0, ghostsBeaten: 0, sparkAsks: 0,
       },
       biomes: [],            // biome names visited (first time = an event)
       recent: [],            // ring of recent shared events (prompt context)
@@ -103,6 +104,9 @@ export class RivetState {
     const t = this.data.traits;
     return Object.entries(t).sort((a, b) => b[1] - a[1])[0][0];
   }
+
+  /** Human label for a trait axis (persona-defined). */
+  traitLabel(trait) { return this.persona.traits[trait]?.label ?? trait; }
 
   /**
    * Record a shared event. Updates bond, traits, counters, the recent ring.
@@ -135,6 +139,8 @@ export class RivetState {
       case 'conversation':   c.conversations++; break;
       case 'repair_done':    c.repairs++; break;
       case 'nudge_followed': c.nudgesFollowed++; break;
+      case 'ghost_beaten':   c.ghostsBeaten++; break;
+      case 'spark_consult': c.sparkAsks++; break;
       case 'biome_first': {
         const name = String(detail.name ?? 'somewhere new');
         if (!d.biomes.includes(name)) { d.biomes.push(name); first.biome = name; }
@@ -142,9 +148,9 @@ export class RivetState {
       }
     }
 
-    // traits — real play style moves the sliders
-    for (const [trait, events] of Object.entries(TRAIT_EVENTS)) {
-      if (events.includes(event)) {
+    // traits — per-persona axes, same push/pull mechanic
+    for (const [trait, def] of Object.entries(this.persona.traits)) {
+      if (def.events.includes(event)) {
         d.traits[trait] = Math.min(1, d.traits[trait] + TRAIT_PUSH);
         for (const other of Object.keys(d.traits)) {
           if (other !== trait) {
@@ -180,33 +186,33 @@ export class RivetState {
   /** Compact human summary — feeds the conversation prompt. */
   summarize() {
     const c = this.data.counters;
-    const t = this.data.traits;
     const pct = v => Math.round(v * 100);
+    const traits = Object.entries(this.data.traits)
+      .map(([k, v]) => `${k}:${pct(v)}%`).join(' ');
     const recent = this.data.recent
       .slice(-6)
       .map(r => r.note ? `${r.event} (${r.note})` : r.event)
       .join(', ');
-    return `tier:${this.tier} bond:${Math.round(this.data.bond)} ` +
-      `traits scrappy:${pct(t.scrappy)}% competitive:${pct(t.competitive)}% curious:${pct(t.curious)}% | ` +
+    return `tier:${this.tier} bond:${Math.round(this.data.bond)} traits ${traits} | ` +
       `together: ${c.blocksMined} blocks, ${c.botsBuilt} bots built, ${c.programsRun} programs run, ` +
-      `${c.laps} laps, ${c.crashes} crashes survived, ${c.conversations} talks` +
+      `${c.laps} laps, ${c.ghostsBeaten} ghosts beaten, ${c.crashes} crashes survived, ${c.conversations} talks` +
       (this.data.biomes.length ? `, biomes: ${this.data.biomes.join('/')}` : '') +
       (recent ? ` | recently: ${recent}` : '');
   }
 
-  // ── persistence (versioned, best-effort) ──────────────────────────────────
+  // ── persistence (versioned, best-effort, per-companion key) ───────────────
 
   save() {
     if (!this._storage) return;
     try {
-      this._storage.setItem(LS_KEY, JSON.stringify(this.data));
+      this._storage.setItem(this._key, JSON.stringify(this.data));
     } catch { /* full or blocked — the game goes on */ }
   }
 
   load() {
     if (!this._storage) return;
     try {
-      const raw = this._storage.getItem(LS_KEY);
+      const raw = this._storage.getItem(this._key);
       if (!raw) return;
       const d = JSON.parse(raw);
       if (d && d.v === RIVET_SCHEMA_VERSION) this._merge(d);
@@ -236,7 +242,21 @@ export class RivetState {
   }
 }
 
-/** Test/dev helper — wipe the friendship (localStorage only). */
-export function resetRivetState(storage) {
-  try { (storage ?? (typeof localStorage !== 'undefined' ? localStorage : null))?.removeItem(LS_KEY); } catch {}
+/** Back-compat: Rivet IS the rivet-persona CompanionState (legacy key). */
+export class RivetState extends CompanionState {
+  constructor(opts = {}) {
+    super({ ...opts, persona: opts.persona ?? getPersona('rivet') });
+  }
 }
+
+/** Test/dev helper — wipe a companion's friendship. */
+export function resetCompanionState(personaId, storage) {
+  try {
+    const p = getPersona(personaId);
+    const key = p.legacyKey ?? `${LS_KEY_PREFIX}${p.id}`;
+    (storage ?? (typeof localStorage !== 'undefined' ? localStorage : null))?.removeItem(key);
+  } catch {}
+}
+
+/** @deprecated use resetCompanionState('rivet', storage) */
+export const resetRivetState = storage => resetCompanionState('rivet', storage);

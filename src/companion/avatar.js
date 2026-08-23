@@ -12,57 +12,100 @@
  */
 
 import * as THREE from 'three';
+import { getPersona } from './personas.js';
 
 const COPPER = 0xd9843b;
 const DARK   = 0x5a3a1e;
 const TEAL   = 0x3ee8c8;
 
+/**
+ * The companion's face — one avatar class, one look per persona.
+ * Colors/proportions come from the persona (personas.js); JUNO renders as a
+ * swarm: a small core plus orbiting micro-fliers instead of a torso.
+ */
 export class RivetAvatar {
   /**
    * @param {THREE.Scene} scene
+   * @param {object|string} [persona] persona object or id (default rivet)
    */
-  constructor(scene) {
+  constructor(scene, persona) {
+    const P = typeof persona === 'string' ? getPersona(persona) : (persona ?? getPersona('rivet'));
+    this.persona = P;
+    const C = P.colors ?? { body: COPPER, dark: DARK, glow: TEAL };
+    const S = P.shape ?? { bodyScale: 1 };
+    this._swarm = Boolean(S.swarm);
+
     this.root = new THREE.Group();
-    this.root.name = 'rivet';
+    this.root.name = P.id;
 
     const mat = (color, emissive = 0x000000, ei = 0) =>
       new THREE.MeshLambertMaterial({ color, emissive, emissiveIntensity: ei });
 
-    // body — chunky little toolbox torso
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.34, 0.34), mat(COPPER));
+    // body — chunky little toolbox torso (scaled per persona; the swarm gets a core)
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.42 * (S.bodyScale ?? 1), 0.34 * (S.bodyScale ?? 1), 0.34 * (S.bodyScale ?? 1)), mat(C.body));
     body.position.y = 0;
     this.root.add(body);
     this.body = body;
 
     // head — smaller, slightly forward, with the eye
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.26), mat(0xc46a2a));
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.3 * (S.bodyScale ?? 1), 0.22 * (S.bodyScale ?? 1), 0.26 * (S.bodyScale ?? 1)), mat(C.head ?? C.body));
     head.position.set(0, 0.3, 0.03);
     this.root.add(head);
     this.head = head;
 
     // eye — one expressive lens (a Rivet tell: it's a repair drone, one eye)
-    const eye = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.1, 0.02), mat(TEAL, TEAL, 1));
+    const eye = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.1, 0.02), mat(C.glow, C.glow, 1));
     eye.position.set(0, 0.32, 0.17);
     this.root.add(eye);
     this.eye = eye;
 
-    // wing nubs
-    for (const side of [-1, 1]) {
-      const nub = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.18), mat(DARK));
-      nub.position.set(side * 0.26, 0.02, 0);
-      this.root.add(nub);
+    // wing nubs (persona option)
+    if (S.wingNubs !== false) {
+      for (const side of [-1, 1]) {
+        const nub = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.18), mat(C.dark ?? DARK));
+        nub.position.set(side * 0.26, 0.02, 0);
+        this.root.add(nub);
+      }
+    }
+
+    // big lifter arms (MAGMA)
+    if (S.bigArms) {
+      for (const side of [-1, 1]) {
+        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.3, 0.16), mat(C.dark ?? DARK));
+        arm.position.set(side * (0.24 * (S.bodyScale ?? 1) + 0.08), -0.04, 0);
+        this.root.add(arm);
+      }
+    }
+
+    // racing stripe (BOLT — low, fast, sponsor-ready)
+    if (S.racingStripe) {
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.44 * (S.bodyScale ?? 1), 0.05, 0.36 * (S.bodyScale ?? 1)), mat(C.glow, C.glow, 0.6));
+      stripe.position.y = 0.08;
+      this.root.add(stripe);
+    }
+
+    // the swarm (JUNO) — five micro-fliers orbiting the core
+    this.swarmBits = [];
+    if (this._swarm) {
+      for (let i = 0; i < 5; i++) {
+        const bit = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.07), mat(C.glow, C.glow, 0.9));
+        bit.userData.phase = (i / 5) * Math.PI * 2;
+        bit.userData.radius = 0.34 + (i % 2) * 0.12;
+        this.root.add(bit);
+        this.swarmBits.push(bit);
+      }
     }
 
     // antenna with a tiny light
-    const stem = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.14, 0.03), mat(DARK));
+    const stem = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.14, 0.03), mat(C.dark ?? DARK));
     stem.position.set(0.08, 0.47, 0);
     this.root.add(stem);
-    this.bulb = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.07), mat(TEAL, TEAL, 0.8));
+    this.bulb = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.07), mat(C.glow, C.glow, 0.8));
     this.bulb.position.set(0.08, 0.56, 0);
     this.root.add(this.bulb);
 
     // speech indicator — the waveform dot
-    this.speechDot = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), mat(TEAL, TEAL, 1));
+    this.speechDot = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), mat(C.glow, C.glow, 1));
     this.speechDot.position.set(-0.16, 0.52, 0.1);
     this.speechDot.visible = false;
     this.root.add(this.speechDot);
@@ -139,6 +182,14 @@ export class RivetAvatar {
 
     // idle eye glow breathing
     this.eye.material.emissiveIntensity = talking ? 1.4 : 0.7 + Math.sin(this._t * 1.7) * 0.25;
+
+    // swarm orbits (JUNO) — faster + tighter when talking
+    const swirl = talking ? 6.5 : 2.6;
+    for (const bit of this.swarmBits) {
+      const a = bit.userData.phase + this._t * swirl;
+      const r = bit.userData.radius;
+      bit.position.set(Math.cos(a) * r, Math.sin(a * 1.7 + bit.userData.phase) * 0.09, Math.sin(a) * r);
+    }
   }
 
   dispose(scene) { scene.remove(this.root); }

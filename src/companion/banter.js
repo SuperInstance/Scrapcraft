@@ -168,10 +168,10 @@ export const OBSERVATIONS = [
  * All lines legal for `event` at `tier` (index 0..2). A tier may reach one
  * pool down, never up.
  */
-export function filterLines(event, tierIndex) {
-  const bank = BANTER[event];
-  if (!bank) return [];
-  return bank.filter(l => l.tier !== undefined && l.tier <= tierIndex && l.line);
+export function filterLines(event, tierIndex, bank = BANTER) {
+  const pool = bank[event];
+  if (!pool) return [];
+  return pool.filter(l => l.tier !== undefined && l.tier <= tierIndex && l.line);
 }
 
 /**
@@ -179,12 +179,13 @@ export function filterLines(event, tierIndex) {
  * @param {string} event
  * @param {{tierIndex?: Function, tier?: string, topTrait?: string}} stateLike (accepts RivetState)
  * @param {() => number} [rng] injectable random (tests)
+ * @param {object} [bank] persona banter bank (defaults to Rivet's)
  */
-export function pickBanter(event, stateLike, rng = Math.random) {
+export function pickBanter(event, stateLike, rng = Math.random, bank = BANTER) {
   const idx = typeof stateLike.tierIndex === 'function'
     ? stateLike.tierIndex()
     : TIER_NAMES.indexOf(stateLike.tier ?? 'stranger');
-  const eligible = filterLines(event, idx);
+  const eligible = filterLines(event, idx, bank);
   if (eligible.length === 0) return null;
 
   const top = typeof stateLike.topTrait === 'function' ? stateLike.topTrait() : (stateLike.topTrait ?? null);
@@ -207,15 +208,15 @@ export function renderLine(line, detail = {}) {
  * Pick an observational idle line. Tier shapes tone by picking from the
  * observation bank — strangers get the gentle ones, friends the personal ones.
  */
-export function pickObservation(stateLike, rng = Math.random) {
+export function pickObservation(stateLike, rng = Math.random, observations = OBSERVATIONS) {
   const idx = typeof stateLike.tierIndex === 'function'
     ? stateLike.tierIndex()
     : TIER_NAMES.indexOf(stateLike.tier ?? 'stranger');
   const data = stateLike.data ?? stateLike;
   // first observations are the polite ones; later entries lean personal
-  const slice = idx >= 2 ? OBSERVATIONS
-    : idx === 1 ? OBSERVATIONS.slice(0, Math.max(3, OBSERVATIONS.length - 2))
-    : OBSERVATIONS.slice(0, 3);
+  const slice = idx >= 2 ? observations
+    : idx === 1 ? observations.slice(0, Math.max(3, observations.length - 2))
+    : observations.slice(0, Math.min(3, observations.length));
   const pick = slice[Math.floor(rng() * slice.length)];
   try {
     return typeof pick === 'function' ? pick(data) : null;
@@ -223,7 +224,7 @@ export function pickObservation(stateLike, rng = Math.random) {
 }
 
 /** Promotion line for a tier-up. */
-export function tierUpLine(newTier, rng = Math.random) {
-  const bank = TIER_UP_LINES[newTier];
+export function tierUpLine(newTier, rng = Math.random, tierUpLines = TIER_UP_LINES) {
+  const bank = tierUpLines[newTier];
   return bank ? bank[Math.floor(rng() * bank.length)] : null;
 }

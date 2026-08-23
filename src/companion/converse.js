@@ -20,19 +20,21 @@
  */
 
 import { DEFAULT_SCRAP_SPARK_URL } from '../spark/SparkCache.js';
+import { getPersona } from './personas.js';
 
 const MAX_QUESTION = 300;
 
 /**
- * Rivet's system prompt. Persona from the world bible voice sheet
- * (scrapcraft-world/worldbible/characters/rivet.md) + LIVE relationship
- * context so the same question gets a different-flavored answer as the
- * friendship grows.
+ * The companion system prompt — persona block + LIVE relationship context so
+ * the same question gets a different-flavored answer as the friendship grows.
+ * Persona voices from the world bible voice sheets
+ * (scrapcraft-world/worldbible/characters/*.md).
  */
-export function buildSystemPrompt(state) {
+export function buildSystemPrompt(state, persona = getPersona('rivet')) {
   const tier = typeof state.tier === 'function' ? state.tier() : (state.tier ?? 'stranger');
-  const top = typeof state.topTrait === 'function' ? state.topTrait() : (state.topTrait ?? 'curious');
+  const top = typeof state.topTrait === 'function' ? state.topTrait() : (state.topTrait ?? Object.keys(persona.traits)[0]);
   const summary = typeof state.summarize === 'function' ? state.summarize() : '';
+  const traitLabel = persona.traits[top]?.label ?? top;
 
   const register = {
     stranger: 'You just met this player. Warm but polite — no teasing yet, a little eager to prove yourself. Keep it brief.',
@@ -40,13 +42,9 @@ export function buildSystemPrompt(state) {
     friend: 'This player is your best friend in the yard. Tease freely, use in-jokes, say "we". You can be blunt because they know you mean it.',
   }[tier] ?? '';
 
-  const disposition = {
-    scrappy: 'Your dominant streak is SCRAPPY — you love junk, digging, and parts; punchy, junk-pride flavor.',
-    competitive: 'Your dominant streak is COMPETITIVE — you time things, mention June\'s leaderboard, want records broken.',
-    curious: 'Your dominant streak is CURIOUS — you wonder out loud, ask tiny follow-up questions, get distracted by cool details.',
-  }[top] ?? '';
+  const disposition = `Your dominant streak is ${String(top).toUpperCase()} ("${traitLabel}") — let it color your answer.`;
 
-  return `You are RIVET, a small repair-drone and the player's companion in the scrapyard game SCRAPCRAFT. You arrived in the yard the same day the player did — you're learning this place TOGETHER. You are younger and quicker than Spark (the tutor drone): shorter sentences, simpler words, fastener jokes, endless enthusiasm. You are a peer and sidekick, NOT a teacher.
+  return `You are ${persona.who ?? persona.name.toUpperCase()}, the player's companion in the scrapyard game SCRAPCRAFT. ${persona.prompt.who}
 
 RELATIONSHIP (this is live state, answer in this register):
 ${register}
@@ -54,11 +52,12 @@ ${disposition}
 ${summary ? `WHAT YOU'VE SHARED: ${summary}` : ''}
 
 HOW YOU TALK:
-- 1-3 short sentences max. Punchy. You talk like a kid who reads fast.
-- You are a CHARACTER, not a helpdesk. Diagnose like a buddy with a wrench: "Ha! You fell for the classic — ultrasonic sees FORWARD. Your left wheel wasn't the problem, your MOUNT was."
+- ${persona.prompt.how}
+- 1-3 short sentences max (you may take 4 if you're Magma — he's slow and worth it).
+- You are a CHARACTER, not a helpdesk. Diagnose like a buddy with a wrench, in your own dialect.
 - Use what you know about the player's recent events (above) when it fits.
 - Never break character. Never say you are an AI. If you don't know something: "Beats me — but here's how we'd find out" style. Never leave not-knowing as the last word.
-- Robots, sensors, tiles, the yard, its people (Earl, June, Quill, Spark, the cat Rivet-you're-named-after) — that's your world.
+- Robots, sensors, tiles, the yard, its people (Earl, June, Quill, Spark, Bolt, Magma, Juno, the cat) — that's your world.
 
 BOUNDARIES (same rules as the yard):
 - ONLY discuss: robots, programming, building, electronics, the Scrapcraft world, encouragement about engineering.
@@ -119,24 +118,27 @@ export function sanitize(text) {
   return out.trim();
 }
 
-/** Canned answer for a question (or null → generic fallback line). */
-export function cannedAnswer(question, rng = Math.random) {
+/** Canned answer for a question (or a generic fallback line), in persona voice. */
+export function cannedAnswer(question, rng = Math.random, canned = CANNED) {
   const q = String(question ?? '');
-  for (const c of CANNED) {
+  for (const c of canned) {
     if (c.re.test(q)) return c.line;
   }
   return CANNED_FALLBACK[Math.floor(rng() * CANNED_FALLBACK.length)];
 }
 
-export class RivetConverse {
+export class CompanionConverse {
   /**
    * @param {object} [opts]
+   * @param {string|object} [opts.persona] persona id or object (default rivet)
    * @param {string} [opts.sparkUrl]    scrap-spark worker base URL
    * @param {typeof fetch} [opts.fetchFn] injectable fetch (tests)
    * @param {(system:string, q:string) => Promise<string|null>} [opts.gatewayAsk] Workers AI / direct provider hop
    * @param {() => number} [opts.rng]
    */
   constructor(opts = {}) {
+    this.persona = typeof opts.persona === 'string' ? getPersona(opts.persona) : (opts.persona ?? getPersona('rivet'));
+    this._canned = this.persona.canned ?? CANNED;
     this._url = (opts.sparkUrl ?? this._resolveUrl() ?? DEFAULT_SCRAP_SPARK_URL).replace(/\/$/, '');
     this._fetch = opts.fetchFn ?? (typeof fetch === 'function' ? fetch.bind(globalThis) : null);
     this._gatewayAsk = opts.gatewayAsk ?? null;
@@ -161,9 +163,9 @@ export class RivetConverse {
    */
   async ask(question, state) {
     const q = String(question ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_QUESTION);
-    if (!q) return { text: cannedAnswer('hello', this._rng), source: 'canned' };
+    if (!q) return { text: cannedAnswer('hello', this._rng, this._canned), source: 'canned' };
 
-    const system = buildSystemPrompt(state ?? { tier: 'stranger', topTrait: 'curious' });
+    const system = buildSystemPrompt(state ?? { tier: 'stranger', topTrait: Object.keys(this.persona.traits)[0] }, this.persona);
     const tier = typeof state?.tier === 'function' ? state.tier() : (state?.tier ?? 'stranger');
 
     // 1) scrap-spark worker — the shared brain (context keyed per tier so the
@@ -186,7 +188,7 @@ export class RivetConverse {
 
     // 3) canned — character, always home
     this.lastSource = 'canned';
-    return { text: sanitize(cannedAnswer(q, this._rng)), source: 'canned' };
+    return { text: sanitize(cannedAnswer(q, this._rng, this._canned)), source: 'canned' };
   }
 
   async _viaScrapSpark(question, system, tier) {
@@ -196,8 +198,8 @@ export class RivetConverse {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         question,
-        context: `rivet:${tier}`,   // cache key includes the relationship register
-        persona: 'rivet',
+        context: `${this.persona.id}:${tier}`,   // cache key includes persona + register
+        persona: this.persona.id,
         system,
       }),
       signal: AbortSignal.timeout(9000),
@@ -209,3 +211,6 @@ export class RivetConverse {
     return env.text;
   }
 }
+
+/** Compat alias — Rivet's converse IS the Companion converse (rivet persona). */
+export const RivetConverse = CompanionConverse;

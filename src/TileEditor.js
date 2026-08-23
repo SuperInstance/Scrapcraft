@@ -431,6 +431,7 @@ export class TileEditor {
       this._sparkLog.appendChild(thinking);
       this._sparkLog.scrollTop = this._sparkLog.scrollHeight;
 
+      this._game?.companions?.observe('spark_consult', { note: String(text).slice(0, 30) });
       const reply = await this._spark.ask(text);
 
       thinking.remove();
@@ -552,6 +553,7 @@ export class TileEditor {
 
       if (!handled) {
         try {
+          this._game?.companions?.observe('spark_consult', { note: String(q).slice(0, 30) });
           const reply = await this._spark.ask(q);
           thinking.remove();
           const cls = reply.kind === 'program' ? 'sp-msg sp-spark sp-built' : 'sp-msg sp-spark';
@@ -1394,6 +1396,7 @@ export class TileEditor {
         beeps:        this._quiltBeeps(rt),
       } : undefined,
       pins:    bot?.pinModel?.snapshot(),
+      companions: this._game?.companions?.quilt(),
       heart: {
         name:  bot?.personality?.name,
         bond:  Math.floor((bot?.personality?.bond ?? 0) / 25),

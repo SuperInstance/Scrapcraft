@@ -25,6 +25,7 @@ export const GROUPS = {
   program:  { label: 'Program',  emoji: '🧩', color: '#34d399' },
   pins:     { label: 'Pins',     emoji: '📐', color: '#fbbf24' },
   heart:    { label: 'Bot Heart', emoji: '💛', color: '#fb7185' },
+  companions: { label: 'Companions', emoji: '🧭', color: '#e879f9' },
 };
 
 export const CELLS = [
@@ -60,6 +61,13 @@ export const CELLS = [
   { id: 'pin.a0',   group: 'pins', label: 'A0 counts',  emoji: '📏', kind: 'value', fmt: 'int', description: 'analogRead(A0) = distance in raw 10-bit counts, exactly like the real pin.' },
 
   // ── bot heart (M4 — the bot as a character)
+  { id: 'comp.active',  group: 'companions', label: 'Active',   emoji: '🧭', kind: 'value', fmt: 'str',  description: 'The companion on your shoulder right now — the run\'s current storyteller.' },
+  { id: 'comp.started', group: 'companions', label: 'Starter',   emoji: '🚪', kind: 'value', fmt: 'str',  description: 'Who the gate delivered on day one. The run\'s story identity — different friend, different journey.' },
+  { id: 'comp.tier',    group: 'companions', label: 'Tier',      emoji: '🤝', kind: 'value', fmt: 'str',  description: 'stranger → coworker → friend. Earned by real shared events, never lost.' },
+  { id: 'comp.bond',    group: 'companions', label: 'Bond',      emoji: '💛', kind: 'value', fmt: 'int',  description: 'Shared-experience points with the active companion.' },
+  { id: 'comp.drift',   group: 'companions', label: 'Drift',     emoji: '🧬', kind: 'value', fmt: 'str',  description: 'The trait axis your play style grew strongest — the friendship\'s own shape.' },
+  { id: 'comp.party',   group: 'companions', label: 'Party Size', emoji: '👥', kind: 'value', fmt: 'int',  description: 'Crew size. 2 initially, 3 once two companions have hit FRIEND.' },
+
   { id: 'heart.name',   group: 'heart', label: 'Name',   emoji: '🤖', kind: 'value', fmt: 'str',  description: 'This bot has a name. It earned it.' },
   { id: 'heart.bond',   group: 'heart', label: 'Bond',   emoji: '💛', kind: 'value', fmt: 'int',  description: 'Bond level — grows with every second of program runtime together.' },
   { id: 'heart.dents',  group: 'heart', label: 'Dents',  emoji: '🔨', kind: 'value', fmt: 'int',  description: 'Dents from wall-bonks. Each one is a story (and a repair log entry).' },
@@ -98,6 +106,7 @@ export class QuiltSheet {
    * @param {object} [s.program]   { tileLabel, stepsPerSec, budgetPct, beeps }
    * @param {object} [s.pins]      PinModel.snapshot() — { digital, analog }
    * @param {object} [s.heart]     { name, bond, dents, laps }
+   * @param {object} [s.companions] { active, starter, tier, bond, drift, party }
    */
   update(s = {}) {
     this.ticks++;
@@ -144,6 +153,14 @@ export class QuiltSheet {
       set('heart.bond',  s.heart.bond ?? 0);
       set('heart.dents', s.heart.dents ?? 0);
       set('heart.laps',  s.heart.laps ?? 0);
+    }
+    if (s.companions) {
+      if (s.companions.active) set('comp.active', s.companions.active);
+      if (s.companions.starter) set('comp.started', s.companions.starter);
+      if (s.companions.tier) set('comp.tier', s.companions.tier);
+      set('comp.bond', s.companions.bond ?? 0);
+      if (s.companions.drift) set('comp.drift', s.companions.drift);
+      set('comp.party', s.companions.party ?? 1);
     }
 
     // formulas after inputs (deps are earlier in CELLS order)
