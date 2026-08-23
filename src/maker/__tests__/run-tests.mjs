@@ -1461,6 +1461,13 @@ console.log('\nCompanion roster — the replay-value engine');
   await runRosterTests(ok);
 }
 
+// ── Companion roundness suite (self-correction, One Things, arcs) ───────────
+console.log('\nCompanion roundness — the second layer of every voice');
+{
+  const { runRoundnessTests } = await import('../../companion/__tests__/roundness-tests.mjs');
+  await runRoundnessTests(ok);
+}
+
 // ── Render mode (?lite=1 / deviceMemory heuristic) ──────────────────────────
 console.log('\nRender mode — workshop OOM hardening');
 {
