@@ -1108,6 +1108,25 @@
     .te-flash-btn[data-status="running"]   { color:#44ee88; border-color:#226633; }
     .te-flash-btn[data-status="error"]     { color:#ff6655; border-color:#661111; background:#140808; }
 
+    /* Quilt view — the bot as a live spreadsheet */
+    #te-quilt-panel { position:absolute; inset:0; z-index:41; background:rgba(8,10,6,.97);
+      display:flex; flex-direction:column; font:10px/1.6 'Courier New',monospace; color:#8fa; overflow:auto; }
+    .quilt-head { padding:8px 10px; color:#7dd3fc; letter-spacing:1px; font-weight:bold;
+      border-bottom:1px solid #234; display:flex; gap:10px; align-items:baseline; }
+    .quilt-sub { font-weight:normal; color:#7a8; letter-spacing:0; }
+    .quilt-body { display:flex; flex-wrap:wrap; gap:0; align-items:flex-start; padding:4px 0; }
+    .quilt-group { min-width:180px; flex:1; padding:4px 10px; border-right:1px solid #1b2a22; }
+    .quilt-group-head { color:var(--gcolor,#8fa); font-weight:bold; margin-bottom:2px; }
+    .quilt-row { display:flex; justify-content:space-between; gap:10px; padding:1px 6px; border-radius:3px; }
+    .q-label { color:#9b8; }
+    .q-fx { color:#f0b429; font-size:9px; }
+    .q-value { color:#cfc; font-weight:bold; }
+    .quilt-row.q-flash { animation:qflash .8s ease-out; }
+    @keyframes qflash {
+      0%   { background:#4a3a08; box-shadow:inset 2px 0 0 #ffb020; }
+      100% { background:transparent; }
+    }
+
     /* Hardware twin — Uno pin view */
     #te-pin-panel { position:absolute; inset:0; z-index:40; background:rgba(6,10,8,.97);
       display:flex; flex-direction:column; font:10px/1.5 'Courier New',monospace; color:#9fc; }
@@ -1749,6 +1768,7 @@
         <button id="te-hex-flash" class="te-btn te-flash-btn" title="Flash a compiled .hex to an AVR109/STM32duino board via USB — or keep simulating!" style="display:none;">🔥 Flash .hex</button>
         <input type="file" id="te-hex-file" accept=".hex,.hexfile" style="display:none;" />
         <button id="te-pin-view" class="te-btn" title="Hardware twin: see your program driving a virtual Arduino Uno's pins">📐 Wiring</button>
+        <button id="te-quilt-btn" class="te-btn" title="Quilt view: your bot as a live spreadsheet — flip to watch every value flash">🧾 Quilt</button>
       </div>
       <pre id="te-code-pre"></pre>
       <div id="te-wiring-svg" style="display:none;overflow:auto;padding:8px;"></div>

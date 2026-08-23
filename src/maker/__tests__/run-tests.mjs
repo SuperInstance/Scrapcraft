@@ -1304,6 +1304,63 @@ console.log('\nAvr109Flasher');
     ok('flash without connect → keep-simulating result', r.ok === false && /Not connected/.test(r.message));
   }
 }
+
+// ── Quilt sheet: the bot as a live spreadsheet ──────────────────────────────
+console.log('\nQuiltSheet');
+{
+  const { QuiltSheet, CELLS, CELL_IDS } = await import('../QuiltSheet.js');
+
+  const qs = new QuiltSheet();
+  ok('all cells initialized', CELL_IDS.every(id => qs.cells[id] && typeof qs.cells[id].v !== 'undefined'));
+  ok('cell defs carry group + description (the teaching layer)',
+     CELLS.every(c => c.group && c.label && c.description && c.emoji));
+
+  // frame 1: bot driving forward, distance 0.8
+  qs.update({
+    robot: { x: 10, z: 20, heading: Math.PI / 2, drivePower: 0.6, turnPower: 0, events: [], gripping: false },
+    sensors: { distance_ahead: 0.8, light: 0.4, temperature: 0.1, line_under: true, motion_nearby: false },
+    program: { tileLabel: 'forever ∞', stepsPerSec: 1200, budgetPct: 3, beeps: 0 },
+    heart: { name: 'Klunk', bond: 1, dents: 0, laps: 0 },
+  });
+  ok('sensor distance lands in cell', qs.cells['sensor.distance'].v === 0.8);
+  ok('line cell is TRUE', qs.cells['sensor.line'].v === true);
+  ok('drive as percent', qs.cells['motor.drive'].v === 60);
+  ok('speed formula computed', qs.cells['pose.speed'].v === 1.44);
+  ok('straight drive: L=R motors', qs.cells['motor.left'].v === 60 && qs.cells['motor.right'].v === 60);
+  ok('first write flashes the cell', qs.cells['sensor.distance'].ch === true);
+
+  // frame 2: identical state → no flash
+  qs.update({
+    robot: { x: 10, z: 20, heading: Math.PI / 2, drivePower: 0.6, turnPower: 0, events: [] },
+    sensors: { distance_ahead: 0.8, light: 0.4, temperature: 0.1, line_under: true, motion_nearby: false },
+  });
+  ok('unchanged value does NOT flash', qs.cells['sensor.distance'].ch === false);
+  ok('changed() lists only flashing cells', !qs.changed().includes('sensor.distance'));
+
+  // frame 3: wall appears + turn right → differential math visible
+  qs.update({
+    robot: { x: 10, z: 20, heading: Math.PI / 2, drivePower: 0.4, turnPower: 0.6, events: [{ kind: 'beep', freq: 880 }] },
+    sensors: { distance_ahead: 0.15, light: 0.4, temperature: 0.1, line_under: false, motion_nearby: false },
+  });
+  ok('distance drop flashes', qs.cells['sensor.distance'].ch === true && qs.cells['sensor.distance'].v === 0.15);
+  ok('skid steer: L=100 R=-20', qs.cells['motor.left'].v === 100 && qs.cells['motor.right'].v === -20);
+  ok('beep event lands in buzzer cell', qs.cells['motor.buzzer'].v === 880);
+
+  // pins feed PWM cells from a pin snapshot
+  qs.update({
+    robot: { x: 10, z: 20, heading: 0, drivePower: 1, turnPower: 0, events: [] },
+    pins: { digital: Array.from({ length: 14 }, (_, i) => ({ pin: 'D' + i, level: 0, pwm: i === 5 ? 255 : i === 6 ? 128 : -1 })), analog: [{ counts: 512 }, ...Array(5).fill({ counts: 0 })] },
+  });
+  ok('D5/D6 duties flow into pin cells', qs.cells['pin.pwmL'].v === 255 && qs.cells['pin.pwmR'].v === 128);
+  ok('A0 counts cell = analogRead', qs.cells['pin.a0'].v === 512);
+
+  // heart cells (M4 wiring target)
+  qs.update({ heart: { name: 'Rivet', bond: 2, dents: 3, laps: 7 } });
+  ok('bot heart cells update', qs.cells['heart.name'].v === 'Rivet' && qs.cells['heart.dents'].v === 3 && qs.cells['heart.laps'].v === 7);
+
+  // heading formats to degrees
+  ok('heading in degrees', qs.cells['pose.heading'].v === 0);
+}
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
