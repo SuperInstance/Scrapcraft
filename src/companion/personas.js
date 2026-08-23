@@ -214,7 +214,7 @@ const bolt = {
       { tier: 1, trait: 'throttle', line: 'You just out-ran a ghost. They don\'t get tired, they don\'t blink, and you STILL took it.' },
       { tier: 1, trait: 'steely', line: 'Ghost retired. By you. Your time\'s on the board now. The old one\'s still in my head — I keep everything. Ask me in a year.' },
       { tier: 2, line: 'Another ghost beaten. The board\'s getting personal now. Good. Racing was always personal.' },
-      { tier: 2, line: 'Another ghost down. The board\'s thinning up top. One of these days the only name left to beat is yours. Plan for that day.' },
+      { tier: 2, line: 'Another ghost down. You entered the pile corner half a second later and exited cleaner. The timing chain doesn\'t lie — that\'s wear-in, not luck.' },
     ],
     bot_built: [
       { tier: 0, line: 'New bot. It\'s boxy. Boxwood is aero-neutral. That\'s a real term. Probably.' },
@@ -471,7 +471,7 @@ const magma = {
       { tier: 1, trait: 'patience', line: 'Dent pressed, book updated, no hurry anywhere. That repair will hold, small one. Hurried repairs lie. Patient ones keep their promises.' },
       { tier: 1, trait: 'craftwork', line: 'Fixed and logged! Feel the seam with your thumb — smooth, yes? That is your patience, made touchable. Not everyone gets to touch their own patience. You do.' },
       { tier: 2, line: 'Good as race day — I learned that phrase from Bolt, and I use it wrong on purpose. It means: better than before, because now it is loved on.' },
-      { tier: 2, line: 'The bot is loved-on and race-day ready. A good repair leaves a seam, little one — and a good seam is stronger than the metal around it. Run your thumb across. That is your work, holding.' },
+      { tier: 2, line: 'Repairs done. New plate on the left flank, torqued to spec. It will run hotter for an hour — that is normal. Hands off till it cools.' },
       { tier: 2, trait: 'warmth', line: 'Repaired! I remember your first dent, little one. Look how gently you fix things now. Some people learn force. You learned care. Better curriculum.' },
     ],
     flash_success: [
