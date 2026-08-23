@@ -27,6 +27,8 @@ import { runGeographyTests } from '../../world/__tests__/geography-tests.mjs';
 import { runWakesTests } from '../../story/__tests__/wakes-tests.mjs';
 import { runAmbientTests, runCompanionAmbientTests, runA11yPanelTests } from '../../world/__tests__/ambient-tests.mjs';
 import { runInstanceLedgerTests } from '../../render/__tests__/ledger-tests.mjs';
+import { runTouchTests } from '../../touch/__tests__/touch-tests.mjs';
+import { runPerfGuardTests } from '../../__tests__/perf-guards.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -1852,6 +1854,18 @@ runA11yPanelTests(ok);
 
 // ── InstanceLedger: incremental instancing bookkeeping ──────────────────────
 runInstanceLedgerTests(ok);
+
+// ── Touch layer: detection truth table, joystick math, gesture decisions ───
+runTouchTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
+
+// ── Perf guards: static allocation checks over the hot paths ───────────────
+runPerfGuardTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);

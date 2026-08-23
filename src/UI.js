@@ -222,6 +222,13 @@ export class UI {
 
     this._hotbarTip = document.getElementById('hotbar-tip');
 
+    // Per-frame dirty-check caches — setZone/setBlockLabel/updateHotbar are
+    // called every frame but their content almost never changes.
+    this._zoneLast        = null;
+    this._blockLabelLast  = undefined;
+    this._activeLabelTxt  = null;
+    this._hotbarSlots     = [];   // cached {el, icon, count} refs + last-written strings
+
     this._buildHotbar();
     this._buildCodex();
     this._bindOverlayEvents();
@@ -233,6 +240,7 @@ export class UI {
 
   _buildHotbar() {
     this._hotbar.innerHTML = '';
+    this._hotbarSlots = [];
     for (let i = 0; i < 9; i++) {
       const slot = document.createElement('div');
       slot.className = 'hotbar-slot';
@@ -241,6 +249,14 @@ export class UI {
       slot.addEventListener('mouseenter', () => this._showHotbarTip(i));
       slot.addEventListener('mouseleave', () => this._hideHotbarTip());
       this._hotbar.appendChild(slot);
+      // Cache the slot + its icon/count children once — updateHotbar runs
+      // every frame and must not re-query the DOM per call.
+      this._hotbarSlots.push({
+        el: slot,
+        icon: slot.querySelector('.item-icon'),
+        count: slot.querySelector('.item-count'),
+        id: undefined, qty: undefined, active: undefined,
+      });
     }
   }
 
@@ -259,20 +275,39 @@ export class UI {
   }
 
   updateHotbar(player) {
-    const slots = this._hotbar.querySelectorAll('.hotbar-slot');
+    // Per-slot dirty checks: skip DOM writes (and getItem lookups) whenever
+    // the id/qty/active state hasn't changed — the steady-state every frame.
+    const slots = this._hotbarSlots;
     const prevIndex = this._lastHotbarIndex ?? player.hotbarIndex;
-    slots.forEach((slot, i) => {
-      const item = player.inventory[i];
-      slot.classList.toggle('active', i === player.hotbarIndex);
-      slot.querySelector('.item-icon').textContent  = item ? (getItem(item.id)?.icon ?? '?') : '';
-      slot.querySelector('.item-count').textContent = item?.qty > 1 ? item.qty : '';
-    });
+    for (let i = 0; i < slots.length; i++) {
+      const s = slots[i];
+      const item  = player.inventory[i];
+      const id    = item ? item.id : null;
+      const qty   = item?.qty > 1 ? String(item.qty) : '';
+      if (s.id !== id) {
+        s.id = id;
+        s.icon.textContent = item ? (getItem(item.id)?.icon ?? '?') : '';
+      }
+      if (s.qty !== qty) {
+        s.qty = qty;
+        s.count.textContent = qty;
+      }
+      const active = i === player.hotbarIndex;
+      if (s.active !== active) {
+        s.active = active;
+        s.el.classList.toggle('active', active);
+      }
+    }
     // Active item label above hotbar
     const active = player.inventory[player.hotbarIndex];
     if (this._activeLabel) {
       const def = active ? getItem(active.id) : null;
-      this._activeLabel.textContent = def ? `${def.icon} ${def.name}` : '';
-      this._activeLabel.style.opacity = def ? '1' : '0';
+      const label = def ? `${def.icon} ${def.name}` : '';
+      if (this._activeLabelTxt !== label) {
+        this._activeLabelTxt = label;
+        this._activeLabel.textContent = label;
+        this._activeLabel.style.opacity = def ? '1' : '0';
+      }
     }
     // Flash item tooltip on keyboard slot switch
     if (player.hotbarIndex !== prevIndex) {
@@ -436,7 +471,10 @@ export class UI {
   setZone(zone, timeLabel) {
     if (!this._zoneLabel) return;
     const icon = { Night:'🌙', Dawn:'🌅', Morning:'☀️', Midday:'☀️', Afternoon:'🌤️', Dusk:'🌇' }[timeLabel] ?? '🌙';
-    this._zoneLabel.textContent = `${zone}  ·  ${icon} ${timeLabel}`;
+    const text = `${zone}  ·  ${icon} ${timeLabel}`;
+    if (this._zoneLast === text) return;   // zone+time are stable most frames
+    this._zoneLast = text;
+    this._zoneLabel.textContent = text;
   }
 
   showZoneToast(name) {
@@ -450,6 +488,8 @@ export class UI {
   // ── Block label ───────────────────────────────────────────────────────
 
   setBlockLabel(blockId) {
+    if (blockId === this._blockLabelLast) return;   // crosshair id stable most frames
+    this._blockLabelLast = blockId;
     if (blockId == null) {
       this._blockLabel.style.display = 'none';
     } else {

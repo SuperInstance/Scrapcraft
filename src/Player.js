@@ -29,6 +29,7 @@ export class Player {
 
     this._keys   = {};
     this._locked = false;
+    this._touchMove = null;  // virtual joystick vector {x,y} — set once touch mode wakes
     this._bobTime = 0;
     this._landBob = 0; // extra downward squish on land
 
@@ -38,11 +39,7 @@ export class Player {
   _bindInput() {
     document.addEventListener('keydown', e => {
       this._keys[e.code] = true;
-      if (e.code === 'Space' && this.onGround) {
-        const boost = this.hasTool('spring_boots') ? 2.5 : 1;
-        this.vel.y = JUMP_VEL * boost;
-        this.onGround = false;
-      }
+      if (e.code === 'Space') this.jump();
       const n = parseInt(e.code[5]);
       if (e.code.startsWith('Digit') && n >= 1 && n <= 9) this.hotbarIndex = n - 1;
     });
@@ -59,9 +56,32 @@ export class Player {
     });
   }
 
+  /** Jump off the ground (spring boots help). Shared by Space and touch. */
+  jump() {
+    if (!this.onGround) return;
+    const boost = this.hasTool('spring_boots') ? 2.5 : 1;
+    this.vel.y = JUMP_VEL * boost;
+    this.onGround = false;
+  }
+
+  /** Virtual joystick feed, normalized -1..1 (y = forward). First call wakes
+   *  the touch physics path; the WASD path is untouched. */
+  setTouchMove(nx, ny) {
+    this._touchMove = { x: nx, y: ny };
+  }
+
+  /** Touch look-drag — pixel deltas applied like mouse movementX/Y, at a
+   *  slightly hotter sensitivity (fingers travel less than mice). */
+  addLook(dx, dy) {
+    this.yaw  -= dx * 0.006;
+    this.pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01,
+      this.pitch - dy * 0.006));
+  }
+
   get activeItem() { return this.inventory[this.hotbarIndex]; }
 
   get isMoving() {
+    if (this._touchMove && (this._touchMove.x !== 0 || this._touchMove.y !== 0)) return true;
     return this._locked && (
       this._keys['KeyW'] || this._keys['KeyS'] ||
       this._keys['KeyA'] || this._keys['KeyD']
@@ -107,16 +127,24 @@ export class Player {
   }
 
   tick(dt, world) {
-    if (!this._locked) return;
+    if (!this._locked && !this._touchMove) return;
 
-    const fwd   = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
-    const right = new THREE.Vector3( Math.cos(this.yaw), 0, -Math.sin(this.yaw));
-    const want  = new THREE.Vector3();
+    // Reused basis vectors — tick() runs every frame; two Vector3s per call
+    // was steady per-frame churn on the integrated-GPU budget.
+    const fwd   = this._fwd || (this._fwd = new THREE.Vector3());
+    const right = this._right || (this._right = new THREE.Vector3());
+    fwd.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
+    right.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+    const want  = (this._want || (this._want = new THREE.Vector3())).set(0, 0, 0);
 
     if (this._keys['KeyW']) want.add(fwd);
     if (this._keys['KeyS']) want.sub(fwd);
     if (this._keys['KeyA']) want.sub(right);
     if (this._keys['KeyD']) want.add(right);
+    if (this._touchMove) {
+      want.addScaledVector(fwd,   this._touchMove.y);
+      want.addScaledVector(right, this._touchMove.x);
+    }
     const sprinting = this._keys['ShiftLeft'] || this._keys['ShiftRight'];
     const speed = SPEED * (this.hasTool('go_kart') ? 3 : (this.fuelBoosted || sprinting) ? 1.8 : 1);
     if (want.lengthSq() > 0) want.normalize().multiplyScalar(speed);
@@ -130,7 +158,8 @@ export class Player {
     const preVelY = this.vel.y;
     this.vel.y += GRAVITY * dt;
 
-    const newPos = this.pos.clone().addScaledVector(this.vel, dt);
+    const newPos = (this._newPos || (this._newPos = new THREE.Vector3()))
+      .copy(this.pos).addScaledVector(this.vel, dt);
     this._resolveCollision(newPos, world);
 
     // Landing bounce + fall damage (>12 m/s = painful)
@@ -152,7 +181,8 @@ export class Player {
     this._landBob = THREE.MathUtils.lerp(this._landBob, 0, dt * 12);
     const bob = Math.sin(this._bobTime) * (moving ? 0.038 : 0) + this._landBob;
 
-    const euler = new THREE.Euler(this.pitch, this.yaw, 0, 'YXZ');
+    const euler = (this._camEuler || (this._camEuler = new THREE.Euler(0, 0, 0, 'YXZ')))
+      .set(this.pitch, this.yaw, 0);
     this.camera.quaternion.setFromEuler(euler);
     this.camera.position.set(this.pos.x, this.pos.y + EYE_HEIGHT + bob, this.pos.z);
   }
