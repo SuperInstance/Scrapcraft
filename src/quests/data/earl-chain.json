@@ -1,0 +1,270 @@
+{
+  "quests": [
+    {
+      "id": "earl-1",
+      "arc": "earl",
+      "title": "Scrap Hunt",
+      "brief": "Right, rookie. Before you touch anything complicated, I need 5 iron scrap. Scrap piles are everywhere — don't overthink it.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "MINE", "item": "iron_scrap", "count": 5, "label": "Mine 5 iron scrap"}
+      ],
+      "prerequisites": {"quests": [], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "copper_wire", "qty": 3}, {"item": "iron_scrap", "qty": 2}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Materials — salvage and abundance", "kidPhrase": "In the real world, you can't always buy new. Engineers dig through the old, find what works, and build with it. That's called salvage engineering.", "memory": "Five piles of iron and a realization: there was a whole language in this junk that nobody taught us. Earl smiled. Barely. — with Earl"}
+    },
+    {
+      "id": "earl-2",
+      "arc": "earl",
+      "title": "First Tools",
+      "brief": "Iron scrap means nothing without a wrench. Head to the workbench and build one. You'll need wood plank too — check the wooden debris.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "CRAFT", "item": "wrench", "label": "Craft a wrench"}
+      ],
+      "prerequisites": {"quests": ["earl-1"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "battery_pack", "qty": 1}, {"item": "rubber_chunk", "qty": 3}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Tool-making — from scrap to purpose", "kidPhrase": "Every tool is two pieces of junk convinced to work together. A wrench is just leverage with an attitude.", "memory": "The wrench fit my hand like it was made for it. Maybe it was. Maybe that's how tools work — they wait in the scrap until someone who needs them shows up. — with Earl"}
+    },
+    {
+      "id": "earl-3",
+      "arc": "earl",
+      "title": "Power Up",
+      "brief": "The yard needs power and you need to stop freeloading off the main line. Build a Generator at the Forge. You'll need gears, scrap, and fuel.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "CRAFT", "item": "generator", "label": "Craft a generator"}
+      ],
+      "prerequisites": {"quests": ["earl-2"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "circuit_board", "qty": 2}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Power systems — energy, efficiency, autonomy", "kidPhrase": "Everything that moves needs power. A generator turns motion into electricity. The real trick is making electricity without burning through fuel like a teenager with a credit card.", "memory": "Built the generator. It hummed. Earl tested it, then nodded at the voltmeter like it had just earned his respect. Without saying it out loud, which is how Earl does respect. — with Earl"}
+    },
+    {
+      "id": "earl-4",
+      "arc": "earl",
+      "title": "Build a Friend",
+      "brief": "I'm getting old. My back won't let me lug scrap around all day. Build me a ScrapBot at the Smelter. Robot arms first, then put it together.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "CRAFT", "item": "robot_arm", "label": "Craft a robot arm"},
+        {"type": "CRAFT", "item": "robot_helper", "label": "Craft a ScrapBot"}
+      ],
+      "prerequisites": {"quests": ["earl-3"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "robot_arm", "qty": 1}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Automation — machines doing work", "kidPhrase": "A robot is just scrap with a job. Build it right and it works forever. Build it wrong and it works until someone looks at it sideways.", "memory": "The bot's first motion was clumsy, kind of beautiful. Earl watched it sort scrap for five minutes, then walked away without a word. That was the highest praise I've ever gotten from him. — with Earl"}
+    },
+    {
+      "id": "earl-5",
+      "arc": "earl",
+      "title": "Touch the Sky",
+      "brief": "You've done the impossible twice this week. Let's make it three. Build a Flying Machine. I told the other foremen it couldn't be done. Prove me right. Or wrong. I'm fine either way.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "CRAFT", "item": "flying_machine", "label": "Craft a flying machine"}
+      ],
+      "prerequisites": {"quests": ["earl-4"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "fuel_can", "qty": 1}, {"item": "gear_small", "qty": 2}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Complex engineering — integrating multiple systems", "kidPhrase": "A flying machine is every system you've learned so far, stacked and balanced and trusting three axes at once. Miss one and you're cleaning up a different kind of crash.", "memory": "The first flight lasted six seconds. It felt like forever. Earl grunted something that might have been pride. It definitely wasn't criticism. — with Earl"}
+    },
+    {
+      "id": "earl-6",
+      "arc": "earl",
+      "title": "Build a Brain",
+      "brief": "Alright, one more thing. There's a Maker Lab tucked behind the smelter. You need a Tin Brain — that's an ATmega microcontroller — to get started. Circuit boards and scrap. Go build it.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "CRAFT", "item": "tin_brain", "label": "Craft the tin brain"}
+      ],
+      "prerequisites": {"quests": ["earl-5"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "copper_wire", "qty": 5}, {"item": "circuit_board", "qty": 2}, {"item": "generator", "qty": 1}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Microcontrollers — programmable logic", "kidPhrase": "A microcontroller is a computer that fits on a postage stamp. It doesn't think like your laptop — it's way dumber and way more stubborn. That's the whole appeal.", "memory": "The Tin Brain was small and heavy, cold from the factory floor. Earl held it like it might break. He said, 'This is where it gets real.' I believed him. — with Earl"}
+    },
+    {
+      "id": "earl-7",
+      "arc": "earl",
+      "title": "First Program",
+      "brief": "Press [T] to open the Tile Editor. Drag some tiles into a program. Hit Run. Your bot should do something. I don't care what. Just prove it's not broken.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "RUN_PROGRAM", "count": 1, "label": "Run 1 tile program"}
+      ],
+      "prerequisites": {"quests": ["earl-6"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "circuit_board", "qty": 2}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Sense-think-act loop — the foundation of robotics", "kidPhrase": "Every robot works the same way: look around, decide what to do, do it. Fast. Repeat. That's the whole job. Make that loop work and you're an engineer.", "memory": "It moved. The bot actually moved. Just a step, just following a simple tile, but it moved because of something I told it to do. That was the moment everything clicked. — with Earl"}
+    },
+    {
+      "id": "earl-8",
+      "arc": "earl",
+      "title": "Go Real",
+      "brief": "The Tile Editor has a Wokwi button. Click it. That exports a diagram.json you can drop straight into Wokwi — the browser circuit simulator. Your game robot becomes a real one. Do it.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "STAT", "stat": "wokwiExported", "count": 1, "label": "Export a Wokwi diagram"}
+      ],
+      "prerequisites": {"quests": ["earl-7"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "battery_pack", "qty": 2}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Hardware abstraction — game to silicon", "kidPhrase": "Wokwi is a simulator that speaks the same language as real chips. You draw in a game, Wokwi understands it, a real chip can run it. No translation, no magic. That's good engineering.", "memory": "Saw my program in Wokwi for the first time. All the wiring, all the connections that the game never shows you. The bot was more complicated than I thought, and way more real. — with Earl"}
+    },
+    {
+      "id": "earl-9",
+      "arc": "earl",
+      "title": "Race Circuit",
+      "brief": "There's a track loop out by the wall at x=30-46, z=14-22. Load the Line Follower preset from the Maker Bench, run it on your bot, and watch it drive a lap. That's a real IR sensor algorithm. Go do it.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "LAP", "count": 1, "label": "Complete 1 bot lap on the track"}
+      ],
+      "prerequisites": {"quests": ["earl-8"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "ir_module", "qty": 4}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Closed-loop feedback — sensors guide action", "kidPhrase": "A line-following bot reads its sensors constantly. It says, 'I see the line, I'm on it, keep going.' Then: 'I see the line, I'm drifting, correct.' Every millisecond, feedback adjusting action. That's what keeps anything balanced.", "memory": "Watched the bot follow the line. It was clumsy at first, then it found the rhythm. By lap three it looked like it understood something. Maybe I understood something. Maybe that's the same thing. — with Earl"}
+    },
+    {
+      "id": "earl-10",
+      "arc": "earl",
+      "title": "Light It Up",
+      "brief": "The back of the yard is pitch dark at night. Craft a Floodlight — glass, copper wire, iron scrap at the workbench — and stick it somewhere useful. I'm done squinting.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "CRAFT", "item": "floodlight", "label": "Craft a floodlight"},
+        {"type": "STAT", "stat": "floodlightsPlaced", "count": 1, "label": "Place a floodlight in the world"}
+      ],
+      "prerequisites": {"quests": ["earl-9"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "scrap_magnet", "qty": 1}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Field deployment — building for real use", "kidPhrase": "A floodlight is just light with ambition. You build it, place it, and suddenly the dark part of the yard works. That's the moment engineering stops being a game.", "memory": "Placed the floodlight and it lit up everything. The Deep Yard looked different in the light — less mysterious, more real. Earl said it was efficient. High praise from him. — with Earl"}
+    },
+    {
+      "id": "earl-11",
+      "arc": "earl",
+      "title": "Into the Deep",
+      "brief": "You've been sticking to the front yard. The Deep Yard — that's Band 3, all the way north — that's where the weird stuff is. Crystal ore. Old robot carcasses. Something I don't like talking about. Go find it.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "VISIT", "biome": "band3", "label": "Reach the Deep Yard"},
+        {"type": "MINE", "item": "crystal_fragment", "count": 3, "label": "Mine 3 crystal ore"}
+      ],
+      "prerequisites": {"quests": ["earl-10"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "night_goggles", "qty": 1}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Exploration — discovering constraints and resources", "kidPhrase": "Every yard has a deep end. The one here has crystal and answers. Go find both. Only one of them is safe to touch.", "memory": "The Deep Yard felt wrong and right at the same time. Crystal fragments everywhere, catching the light like they were alive. Earl followed me out there, quiet. That meant something. — with Earl"}
+    },
+    {
+      "id": "earl-12",
+      "arc": "earl",
+      "title": "Headlamp Required",
+      "brief": "Craft a Headlamp — battery pack, glass shard, copper wire at the workbench. Then press G to toggle it. I don't care what you use it for. Stop bumping into things in the dark. That's my final answer.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "CRAFT", "item": "headlamp", "label": "Craft a headlamp"},
+        {"type": "STAT", "stat": "headlampUsed", "count": 1, "label": "Toggle the headlamp on"}
+      ],
+      "prerequisites": {"quests": ["earl-11"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "crystal_fragment", "qty": 5}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Portable lighting — power and visibility in field work", "kidPhrase": "A headlamp is just a battery with ambition and a lens. It lets you work anywhere. Real roboticists use them constantly. Now you know why.", "memory": "Turned on the headlamp and saw my own shadow for the first time in the Deep Yard. Felt like I'd claimed the place. Earl noticed. He always notices. — with Earl"}
+    },
+    {
+      "id": "earl-13",
+      "arc": "earl",
+      "title": "Waypoint Navigator",
+      "brief": "Here's your final test. Drop a Waypoint Flag with [Y]. Load the Waypoint Navigator preset in the Tile Editor. Run the bot. Watch it drive to the flag. That right there — that's GPS. That's real robotics. Do it.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "EVENT", "event": "waypoint_drop", "count": 1, "label": "Drop a waypoint flag"},
+        {"type": "STAT", "stat": "waypointReached", "count": 1, "label": "Bot reaches the waypoint"}
+      ],
+      "prerequisites": {"quests": ["earl-12"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "vision_brain", "qty": 1}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "GPS and dead reckoning — autonomous navigation", "kidPhrase": "Drop a flag, tell the bot where it is, watch it steer there by bearing and distance. That's how delivery drones navigate city streets. You just built that brain.", "memory": "The bot found the flag without being told the path. It just knew: bearing 45, distance 20, go. Like it was reading a map I couldn't see. That's when I understood — it's smarter than I am. — with Earl"}
+    },
+    {
+      "id": "earl-14",
+      "arc": "earl",
+      "title": "Crystal Sweep",
+      "brief": "One last trick. Load the Ore Hunter preset in the Maker Bench — you need a Spark Brain for this one. Run your bot in the Deep Yard. The magnetic sensor sniffs out crystal ore from 10 blocks away. Same chip a real mining robot uses. Hall-effect IC on I2C. Go find something.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "STAT", "stat": "oreDetections", "count": 1, "label": "Bot detects crystal ore"}
+      ],
+      "prerequisites": {"quests": ["earl-13"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "crystal_fragment", "qty": 8}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Hall-effect sensing — magnetic field detection", "kidPhrase": "A Hall-effect sensor doesn't see — it feels magnetic fields. It's the same chip a phone uses to detect a compass bearing. Point it at ore and it finds magnetism in rock.", "memory": "The ore detector blinked green and my bot stopped like it found treasure. It had. A real sensor reading real magnetism. Earl said that's how mining robots work. He knows. — with Earl"}
+    },
+    {
+      "id": "earl-15",
+      "arc": "earl",
+      "title": "Power the Sun",
+      "brief": "We're burning too much fuel, kid. Build a Solar Panel — glass shards, copper wire, circuit boards at the workbench. Place it somewhere the sun hits. Clean energy, no fumes. I hate it. But I love it.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "CRAFT", "item": "solar_panel", "label": "Craft a solar panel"},
+        {"type": "STAT", "stat": "solarPlaced", "count": 1, "label": "Place a solar panel in the world"}
+      ],
+      "prerequisites": {"quests": ["earl-14"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "crystal_fragment", "qty": 3}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Renewable energy and power budgets", "kidPhrase": "A solar panel turns light into electricity. You can't beat the supply cost — the sun does this for free every day. Real robots run on sun more than we admit.", "memory": "Placed the solar panel and it caught light like it was made for it. Earl actually smiled about that one. He's an old fuel guy, but he gets clean energy. — with Earl"}
+    },
+    {
+      "id": "earl-16",
+      "arc": "earl",
+      "title": "Deep Bore",
+      "brief": "The Deep Yard's metal walls are thick, and your arm's getting tired. I can see it from here. Build a Pneumatic Drill at the forge — iron scrap, gears, rubber, springs. Compressed air at 90 PSI. It'll go through metal like wet cardboard.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "CRAFT", "item": "pneumatic_drill", "label": "Craft a pneumatic drill"}
+      ],
+      "prerequisites": {"quests": ["earl-15"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "iron_scrap", "qty": 10}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Pneumatics — compressed air as a power source", "kidPhrase": "A pneumatic drill is air moving really fast and angry. At 90 PSI, angry air cuts metal faster than muscle ever could. That's engineering: letting machines do the hard work.", "memory": "Used the pneumatic drill on Deep Yard metal and it howled like it was alive. The drill wasn't pushing — it was barely containing the force. Respect. — with Earl"}
+    },
+    {
+      "id": "earl-17",
+      "arc": "earl",
+      "title": "Full Coverage",
+      "brief": "I need to know what's buried in my yard without walking there. Build a Radar Dish — circuit boards, copper wire, the antenna you already made. Your minimap will show every ore vein nearby. That's synthetic aperture radar, kid. In a scrapyard. Build it.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "CRAFT", "item": "radar_dish", "label": "Craft a radar dish"}
+      ],
+      "prerequisites": {"quests": ["earl-16"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "signal_amp", "qty": 1}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Remote sensing — radar and situational awareness", "kidPhrase": "A radar dish listens for echoes. Send out a signal, wait for it to bounce back, and the time it takes tells you what's out there. That's how ships see through fog.", "memory": "The radar lit up and the map transformed. Suddenly the whole yard had a skeleton — ore veins, metal concentrations, everything hidden. Earl called it 'industrial X-ray vision.' That stuck. — with Earl"}
+    },
+    {
+      "id": "earl-18",
+      "arc": "earl",
+      "title": "See the Code",
+      "brief": "You've been running programs in a game. It's time you looked at what's actually going on underneath. Hit [T], load any program, then click the ⚡ BUILD IT button. Read what comes out. That's real Arduino code. Real C++. It runs on a real chip.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "RECEIPT", "count": 1, "label": "View the firmware build receipt"}
+      ],
+      "prerequisites": {"quests": ["earl-17"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "circuit_board", "qty": 3}, {"item": "battery_pack", "qty": 2}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Cross-compilation — tiles to real code", "kidPhrase": "Your tiles become C++ becomes machine code. No translation, no magic layer. The game just whispers what you drew to the compiler and the compiler makes it real.", "memory": "Stared at the C++ and it suddenly made sense. Every loop, every condition, every line was something I told the tile editor to do. That code was mine. It was real. — with Earl"}
+    },
+    {
+      "id": "earl-19",
+      "arc": "earl",
+      "title": "Lean Machine",
+      "brief": "Any bot can move. A good bot moves efficiently. Run your tile program and aim for a grade of B or better on the efficiency meter — that's BUDGET under 50%. Lean code means longer battery life on a real robot. That matters.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "RECEIPT", "count": 2, "label": "View 2 build receipts with efficiency grade B or better"}
+      ],
+      "prerequisites": {"quests": ["earl-18"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "crystal_fragment", "qty": 4}, {"item": "copper_wire", "qty": 5}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Code efficiency and power budgets", "kidPhrase": "A lean program uses less CPU, runs faster, eats less battery. On a real robot with four AA batteries, that's the difference between two hours and twenty. Efficiency isn't luxury — it's survival.", "memory": "Optimized the code and watched the BUDGET number drop. It felt like math was actually listening. Earl called that 'real engineering' and meant it. No sarcasm. That was worth more than anything. — with Earl"}
+    },
+    {
+      "id": "earl-20",
+      "arc": "earl",
+      "title": "Finish the Chain",
+      "brief": "Last one. Flash your program to a real ESP32. Chrome browser, USB cable, WebSerial API. Click FLASH in the Tile Editor. Your tile program becomes machine code on actual hardware. That's the whole stack — game idea to silicon. Close the loop.",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "FLASH_BOARD", "count": 1, "label": "Flash firmware to real hardware"}
+      ],
+      "prerequisites": {"quests": ["earl-19"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "vision_brain", "qty": 1}, {"item": "crystal_fragment", "qty": 8}], "xp": 25, "bond": {}, "flags": []},
+      "teaching": {"concept": "Bootloaders and hardware flashing", "kidPhrase": "Dead chips wake up with bootloaders. It's how you load life into metal. USB cable, firmware file, click FLASH, and suddenly a chip that was asleep speaks your language.", "memory": "Clicked FLASH and the LED blinked. My program. On real hardware. The moment between 'game' and 'engineer' was that single blink. Earl watched without saying anything. He didn't need to. — with Earl"}
+    }
+  ]
+}

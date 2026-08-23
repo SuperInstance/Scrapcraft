@@ -389,9 +389,25 @@ export class UI {
     }
     if (streak) {
       const n = contract.streak?.count ?? 1;
-      streak.textContent = n > 1 ? `🔥×${n}` : '🔥';
-      streak.title = `${n}-day streak (best ${contract.streak?.best ?? n})`;
+      const shieldHeld = contract.streak?.shield !== false;
+      const mercy = contract.streak?.lastMercy;
+      streak.textContent = (n > 1 ? `🔥×${n}` : '🔥') + (shieldHeld || mercy ? ' 🛡️' : '');
+      streak.title = shieldHeld
+        ? `${n}-day streak (best ${contract.streak?.best ?? n}) — shield armed: one missed day is forgiven`
+        : `${n}-day streak (best ${contract.streak?.best ?? n}) — shield burned${mercy ? ' ' + mercy : ''}: a miss now resets the streak`;
+      streak.classList.toggle('shield-burned', !shieldHeld);
     }
+  }
+
+  /** Night-shift payout notice — lives in the comeback cluster, transient. */
+  notifyNightShift(result, botName = 'Your bot') {
+    const row = document.getElementById('dc-night');
+    if (!row || !result) return;
+    const total = Object.values(result.loot).reduce((a, b) => a + b, 0);
+    row.textContent = `🌙 ${botName} hauled ${total} items overnight — check the card`;
+    row.classList.add('show');
+    clearTimeout(this._dcNightTimer);
+    this._dcNightTimer = setTimeout(() => row.classList.remove('show'), 20000);
   }
 
   // ── Welcome Back card (returning sessions) ────────────────────────────

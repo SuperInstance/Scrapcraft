@@ -1,0 +1,78 @@
+{
+  "quests": [
+    {
+      "id": "rivet-1",
+      "arc": "rivet",
+      "title": "Hands Dirty",
+      "brief": "Get your hands dirty, yeah? Mine 10 iron scrap — that's the foundation stuff. Then patch up your bot with a repair. A bot that breaks and gets fixed is a bot that learns. And you learn with it.",
+      "affinity": "rivet",
+      "objectives": [
+        {"type": "MINE", "item": "iron_scrap", "count": 10, "label": "Mine 10 iron scrap"},
+        {"type": "REPAIR", "count": 1, "label": "Repair your bot"}
+      ],
+      "prerequisites": {"quests": ["earl-5"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "repair_kit", "qty": 1}], "xp": 35, "bond": {"rivet": 10}, "flags": []},
+      "teaching": {"concept": "Preventive maintenance and care", "kidPhrase": "A break is just feedback in loud font. Your bot crashes, you fix it, it works better because you learned what it needs. That's maintenance — and maintenance is where real engineers live.", "memory": "Fixed the bot's dents with Rivet watching. They showed me how to log it, how to remember. Fixing things is beautiful if you pay attention to why it broke. — with Rivet"}
+    },
+    {
+      "id": "rivet-2",
+      "arc": "rivet",
+      "title": "The Toolbox",
+      "brief": "Craft a Repair Kit — iron scrap, copper wire, circuit boards. Then repair your bot two more times. A good engineer carries good tools and knows how to use them. The difference between guessing and diagnosing is a repair kit.",
+      "affinity": "rivet",
+      "objectives": [
+        {"type": "CRAFT", "item": "repair_kit", "label": "Craft a repair kit"},
+        {"type": "REPAIR", "count": 2, "label": "Repair your bot 2 more times"}
+      ],
+      "prerequisites": {"quests": ["rivet-1"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "battery_pack", "qty": 2}, {"item": "spring", "qty": 5}], "xp": 38, "bond": {"rivet": 10}, "flags": []},
+      "teaching": {"concept": "Diagnosis and systematic repair", "kidPhrase": "A diagnosed repair beats a guessed one every time. You look, you measure, you understand, THEN you fix. That's how field techs think. That's how you keep things alive.", "memory": "The repair kit made it official. Not just fixing things — maintaining them. Rivet said every repair is a promise. Promises count. — with Rivet"}
+    },
+    {
+      "id": "rivet-3",
+      "arc": "rivet",
+      "title": "The Compass",
+      "brief": "Navigation time. Drop a waypoint flag with [Y]. Let your bot reach it using the Waypoint Navigator preset. Then ask Rivet about dead reckoning. That's bearing plus distance — no GPS, no satellites. Just math and guts.",
+      "affinity": "rivet",
+      "objectives": [
+        {"type": "EVENT", "event": "waypoint_drop", "count": 1, "label": "Drop a waypoint flag"},
+        {"type": "STAT", "stat": "waypointReached", "count": 1, "label": "Bot reaches the waypoint"}
+      ],
+      "prerequisites": {"quests": ["rivet-2"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "crystal_fragment", "qty": 4}, {"item": "copper_wire", "qty": 3}], "xp": 38, "bond": {"rivet": 10}, "flags": []},
+      "teaching": {"concept": "Dead reckoning and bearing/distance navigation", "kidPhrase": "Dead reckoning: bearing says which way, distance says how far. No lookups, no maps — just two numbers and a compass. That's how ships navigated before GPS. That's how your bot does it now.", "memory": "Watched the bot steer by numbers alone. Bearing 45, distance 20. It just... knew. Rivet said that's the oldest trick in navigation. Oldest tricks last the longest. — with Rivet"}
+    },
+    {
+      "id": "rivet-4",
+      "arc": "rivet",
+      "title": "Every Corner",
+      "brief": "Visit all four bands — the Gate, the Corridor, Circuit City, the Deep Yard. Then mine 3 crystal ore. You've been in parts, but now you know the whole yard. Every corner is a resource. Every zone teaches something different.",
+      "affinity": "rivet",
+      "objectives": [
+        {"type": "VISIT", "biome": "band0", "label": "Visit the Gate area"},
+        {"type": "VISIT", "biome": "band1", "label": "Visit the Industrial Corridor"},
+        {"type": "VISIT", "biome": "band2", "label": "Visit Circuit City"},
+        {"type": "VISIT", "biome": "band3", "label": "Visit the Deep Yard"},
+        {"type": "MINE", "item": "crystal_fragment", "count": 3, "label": "Mine 3 crystal ore"}
+      ],
+      "prerequisites": {"quests": ["rivet-3"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "night_goggles", "qty": 1}, {"item": "crystal_fragment", "qty": 6}], "xp": 38, "bond": {"rivet": 10}, "flags": []},
+      "teaching": {"concept": "Spatial reasoning and yards as memory palaces", "kidPhrase": "A yard is a memory palace if you know how to read it. Band 0 is where you start, Band 1 is industrial might, Band 2 is circuits and logic, Band 3 is mystery. The map becomes a story.", "memory": "Visited every corner and suddenly the yard made sense. Not as scrap piles — as zones. Each one a district. Each one teaching. Rivet said the map is memory. I'm building both. — with Rivet"}
+    },
+    {
+      "id": "rivet-5",
+      "arc": "rivet",
+      "title": "The Keeper's Round",
+      "brief": "Last patrol. Run 3 full laps on the oval, then repair your bot one more time. Keep it together and keep it moving. A keeper's round is how you know everything's working. Then ask Spark about systems thinking.",
+      "affinity": "rivet",
+      "objectives": [
+        {"type": "LAP", "count": 3, "label": "Complete 3 laps on the oval"},
+        {"type": "REPAIR", "count": 1, "label": "Repair your bot"},
+        {"type": "SPARK_ASK", "topic": "maintenance", "label": "Ask Spark about systems and maintenance"}
+      ],
+      "prerequisites": {"quests": ["rivet-4"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "vision_brain", "qty": 1}, {"item": "crystal_fragment", "qty": 7}], "xp": 40, "bond": {"rivet": 10}, "flags": []},
+      "teaching": {"concept": "Systems thinking and integrated maintenance", "kidPhrase": "A robot isn't just motors and code and sensors. It's all of it, working together. When one part breaks, the whole system feels it. Maintenance isn't fixing broken things — it's keeping systems alive.", "memory": "Three laps, a repair, one question. Rivet said I just became a keeper. Not an owner, not a builder — a keeper. The bot is kept. The yard is kept. I'm learning to keep things. — with Rivet"}
+    }
+  ]
+}

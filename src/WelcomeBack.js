@@ -11,6 +11,8 @@
  * Pure: build(snapshot) → rows for the UI. Headless-testable.
  */
 
+import { nightShiftQuip, nightShiftDuration } from './NightShift.js';
+
 export class WelcomeBack {
   /**
    * @param {object} snapshot collected by SaveSystem at save time:
@@ -32,6 +34,24 @@ export class WelcomeBack {
         text: `<b>${snap.botName}</b> waited by the shed${bits.length ? ' — ' + bits.join(', ') : ''}.`,
       });
       titleParts.push(snap.botName);
+    }
+
+    // Night Shift (comp-kimi) — what the bot dragged in while you were away.
+    // Sits directly under the bot row: it's the same character's work.
+    if (snap.nightShift?.loot && Object.keys(snap.nightShift.loot).length > 0) {
+      const ns = snap.nightShift;
+      const who = snap.botName ?? 'Your bot';
+      rows.push({
+        icon: '🌙',
+        text: `<b>${who} worked the night shift</b> (${nightShiftDuration(ns.minutes)}). <i>${nightShiftQuip(ns)}</i>`,
+      });
+      const lootText = Object.entries(ns.loot)
+        .map(([id, qty]) => `×${qty} ${id.replace(/_/g, ' ')}`)
+        .join(', ');
+      rows.push({
+        icon: '📦',
+        text: `Dragged to your locker: <b>${lootText}</b>.`,
+      });
     }
 
     // The open quest — where you left off.

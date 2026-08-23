@@ -1,0 +1,73 @@
+{
+  "quests": [
+    {
+      "id": "bolt-1",
+      "arc": "bolt",
+      "title": "Two Tenths Under",
+      "brief": "The test track isn't where the real racing lives. It's over at Circuit City — the oval. Load the Line Follower, run two clean laps, then ask Spark about PWM. That's pulse-width modulation. That's how you tell a motor to move fast without giving it permission to crash.",
+      "affinity": "bolt",
+      "objectives": [
+        {"type": "LAP", "count": 2, "label": "Complete 2 laps on the oval"},
+        {"type": "SPARK_ASK", "topic": "pwm", "label": "Ask Spark about PWM"}
+      ],
+      "prerequisites": {"quests": ["earl-9"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "motor_driver", "qty": 1}], "xp": 35, "bond": {"bolt": 10}, "flags": []},
+      "teaching": {"concept": "PWM (pulse-width modulation)", "kidPhrase": "Motors don't have a gas pedal — they have a very fast light switch. Flip it fast enough and the motor feels it as speed. The ratio of on-time to off-time IS the speed.", "memory": "Two laps at Circuit City. Bolt said the track finally respects us. PWM is how you whisper to a motor, and the motor listens. — with Bolt"}
+    },
+    {
+      "id": "bolt-2",
+      "arc": "bolt",
+      "title": "Speed Hardware",
+      "brief": "You've been thinking like a racer. Now build like one. Craft a Motor Driver or a Speed Coil — your choice, your bot, your risk. Then lap the oval under 28 seconds. That's sub-28. That's where the real drivers live.",
+      "affinity": "bolt",
+      "objectives": [
+        {"type": "CRAFT", "item": "motor_driver", "label": "Craft a motor driver (or speed coil)"},
+        {"type": "LAP", "underSecs": 28, "label": "Lap the oval under 28 seconds"}
+      ],
+      "prerequisites": {"quests": ["bolt-1"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "speed_coil", "qty": 1}, {"item": "ir_module", "qty": 2}], "xp": 38, "bond": {"bolt": 10}, "flags": []},
+      "teaching": {"concept": "Torque vs. speed — the racing engineer's dilemma", "kidPhrase": "More voltage means more speed, but less control at the corners. Less voltage means you turn tight but you're slow on the straight. Real racers live in that tension.", "memory": "The motor driver made everything louder and faster. Twenty-eight seconds felt like flying. Bolt said I hit corner two like I finally understood it was a corner, not a wall. — with Bolt"}
+    },
+    {
+      "id": "bolt-3",
+      "arc": "bolt",
+      "title": "The Ghost",
+      "brief": "There's something running the oval alone at midnight. Old bot. Fast bot. Dead bot. Its ghost runs the track over and over. Beat it. Get under 26 seconds and ask Spark what a ghost really is. No spoilers from me.",
+      "affinity": "bolt",
+      "objectives": [
+        {"type": "LAP", "underSecs": 26, "label": "Lap the oval under 26 seconds"},
+        {"type": "SPARK_ASK", "topic": "ghost", "label": "Ask Spark about the ghost"}
+      ],
+      "prerequisites": {"quests": ["bolt-2"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "crystal_fragment", "qty": 5}], "xp": 38, "bond": {"bolt": 10}, "flags": []},
+      "teaching": {"concept": "Line-following and sensor thresholds", "kidPhrase": "A line sensor has a threshold — how bright before it counts as 'on the line.' Too high and you miss drifts, too low and you see ghosts in the shadows. Racing is tuning that line.", "memory": "Beat the ghost by half a second. Bolt said that was the moment I stopped chasing somebody else's lap and started writing my own. The ghost was real — a memory. We race memories here. — with Bolt"}
+    },
+    {
+      "id": "bolt-4",
+      "arc": "bolt",
+      "title": "Consistency",
+      "brief": "Speed is noise. Consistency is signal. Run five full laps, all of them clean, none of them crashes. Let the track teach you the line. Perfection is boring. Repetition is everything.",
+      "affinity": "bolt",
+      "objectives": [
+        {"type": "LAP", "count": 5, "label": "Complete 5 clean laps on the oval"}
+      ],
+      "prerequisites": {"quests": ["bolt-3"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "battery_pack", "qty": 2}, {"item": "circuit_board", "qty": 2}], "xp": 38, "bond": {"bolt": 10}, "flags": []},
+      "teaching": {"concept": "Hysteresis and stability in feedback loops", "kidPhrase": "Consistent racing isn't about being perfect once. It's about being barely-good enough, over and over. That's hysteresis: the system remembers and resists change. Boring is fast.", "memory": "Five laps. Lap three was the best. Laps one, two, four, five copied lap three like they had a blueprint. Bolt called it 'boring like a champion.' That's a compliment from him. — with Bolt"}
+    },
+    {
+      "id": "bolt-5",
+      "arc": "bolt",
+      "title": "The Hot Lap",
+      "brief": "One lap. Perfect lap. Twenty-four seconds. Every corner dialed in, every apex hit, every straight given everything. Ask Spark about PID. That's proportional-integral-derivative. That's the three little judges that live in every racing bot's head.",
+      "affinity": "bolt",
+      "objectives": [
+        {"type": "LAP", "underSecs": 24, "label": "Lap the oval under 24 seconds"},
+        {"type": "SPARK_ASK", "topic": "pid", "label": "Ask Spark about PID"}
+      ],
+      "prerequisites": {"quests": ["bolt-4"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "vision_brain", "qty": 1}, {"item": "crystal_fragment", "qty": 6}], "xp": 40, "bond": {"bolt": 10}, "flags": []},
+      "teaching": {"concept": "PID control — proportional, integral, derivative feedback", "kidPhrase": "P judges where you are now, I remembers where you've been, D guesses where you're going. Together they keep a racing bot on the line without thinking. That's artificial wisdom.", "memory": "Twenty-four seconds and Bolt sat silent for a long time. Then he said, 'That line was tight enough to race.' From Bolt, that's forever. — with Bolt"}
+    }
+  ]
+}

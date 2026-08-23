@@ -359,6 +359,12 @@ export class Game {
     // Paint today's contract chip right away (progress may be mid-contract)
     this.ui?.updateDaily(this.dailyContract, this.dailyContract.progress, this.dailyContract.claimed);
 
+    // One comeback cluster, one voice: the night-shift payout is the chip's
+    // notification row (transient), the card carries the full loot table.
+    if (this._nightShiftResult) {
+      this.ui?.notifyNightShift(this._nightShiftResult, this.scrapBot?.personality?.name);
+    }
+
     // Classroom join prompt — shown if a Worker URL is configured and no session exists
     setTimeout(() => this.classRoom.showJoinPromptIfNeeded(), 2000);
 
@@ -1638,6 +1644,7 @@ export class Game {
       ovalBestMs: this._ovalLapState?.bestMs === Infinity ? this._comeback?.ovalBestMs : this._ovalLapState.bestMs,
       daysPlayed: this.dailyContract?.daysPlayed ?? this._comeback?.daysPlayed ?? 1,
       dayStreak:  this.dailyContract?.streak?.count ?? this._comeback?.dayStreak ?? 1,
+      nightShift: this._nightShiftResult ?? undefined,
     };
 
     // Open quest + its next actionable step, live from the foreman
@@ -1655,9 +1662,10 @@ export class Game {
     this.ui?.showWelcomeBack(report);
     this.foreman.say('welcome_back', { force: true });
 
-    // Then: the open quest comes back (4s), and today's contract gets its
-    // moment after Earl's speaking gate clears (11s) — one voice at a time.
+    // Then: the open quest comes back (4s), Night Shift gets its line (7.5s),
+    // and today's contract gets its moment (11s) — one voice at a time.
     setTimeout(() => this.foreman.resumeQuest(), 4000);
+    if (this._nightShiftResult) setTimeout(() => this.foreman.onEvent('night_shift', {}), 7500);
     setTimeout(() => this.dailyContract?.announce(), 11000);
   }
 

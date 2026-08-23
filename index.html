@@ -399,6 +399,14 @@
     #dc-bar-wrap { background:rgba(255,255,255,0.08); border-radius:3px; height:5px; overflow:hidden; }
     #dc-bar-fill { height:100%; width:0%; background:#c88a2a; border-radius:3px; transition:width 0.3s ease, background 0.3s; }
     #dc-counter { text-align:right; color:#c88a2a; margin-top:3px; font-size:9px; }
+    #dc-streak.shield-burned { opacity:0.6; }
+    /* Night-shift payout notice — transient member of the comeback cluster */
+    #dc-night {
+      display:none; margin-top:5px; padding-top:5px;
+      border-top:1px dashed rgba(240,180,41,0.25);
+      color:#cbb98f; font-size:9px; line-height:1.4; letter-spacing:0.3px;
+    }
+    #dc-night.show { display:block; }
 
     /* ── Welcome Back card (center, returning sessions) ── */
     #welcome-back {
@@ -1430,6 +1438,7 @@
       <div id="dc-label">…</div>
       <div id="dc-bar-wrap"><div id="dc-bar-fill"></div></div>
       <div id="dc-counter">0 / ?</div>
+      <div id="dc-night"></div>
     </div>
 
     <!-- Welcome Back card (returning sessions, minute 0 of day 2) -->

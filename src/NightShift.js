@@ -76,6 +76,20 @@ export function computeNightShift(elapsedMs, botHasBrain, seedKey = 'x') {
   return { minutes, loot, capped: elapsedMs > NS_CAP_MS };
 }
 
+/** The bot's own two cents on its shift (comp-kimi's voice, verbatim). */
+export function nightShiftQuip(result) {
+  if (!result) return null;
+  return result.capped
+    ? '"Hit the motherlode around hour eight. Had to stop — even I need to charge."'
+    : '"Sorted bolts, dodged raccoons, dragged the good stuff to your locker."';
+}
+
+/** "3h 12m" / "45m" — kid-readable absence. */
+export function nightShiftDuration(minutes) {
+  if (minutes >= 60) return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  return `${minutes}m`;
+}
+
 /**
  * The away-clock. Remembers when the kid was last seen (touched on every
  * save) and turns one session-start into one Night Shift payout.

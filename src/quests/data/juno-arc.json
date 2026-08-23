@@ -1,0 +1,73 @@
+{
+  "quests": [
+    {
+      "id": "juno-1",
+      "arc": "juno",
+      "title": "The Survey",
+      "brief": "Hi! Hi! Hi! We're Juno and we have so many questions. But first — a survey. Visit Band 2 (Circuit City) and Band 3 (the Deep Yard). Map them. Learn them. Every place has secrets and we MUST know them all.",
+      "affinity": "juno",
+      "objectives": [
+        {"type": "VISIT", "biome": "band2", "label": "Visit Circuit City"},
+        {"type": "VISIT", "biome": "band3", "label": "Visit the Deep Yard"}
+      ],
+      "prerequisites": {"quests": ["earl-7"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "crystal_fragment", "qty": 3}, {"item": "circuit_board", "qty": 2}], "xp": 35, "bond": {"juno": 10}, "flags": []},
+      "teaching": {"concept": "Spatial mapping and exploration", "kidPhrase": "Every band has a personality. Band 0 is what you know. Band 1 is industrial. Band 2 is electronic. Band 3 is mysteries in crystal. Knowing the map is half the science.", "memory": "Juno circled us as we mapped the bands. Forty-one tiny fliers doing spirals of joy. They said we just discovered the whole yard. We didn't discover anything. We just went there. — with Juno"}
+    },
+    {
+      "id": "juno-2",
+      "arc": "juno",
+      "title": "The Plaque Trail",
+      "brief": "Read 3 landmark plaques. Every plaque is a robot that crashed and learned you something. Failure analysis. The whole history of the yard is written in wrecks. Also it's VERY funny to see how things die.",
+      "affinity": "juno",
+      "objectives": [
+        {"type": "PLAQUE_READ", "count": 3, "label": "Read 3 landmark plaques"}
+      ],
+      "prerequisites": {"quests": ["juno-1"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "battery_pack", "qty": 1}, {"item": "crystal_fragment", "qty": 4}], "xp": 38, "bond": {"juno": 10}, "flags": []},
+      "teaching": {"concept": "Failure analysis and learning from crashes", "kidPhrase": "Every plaque is a lesson somebody paid for by breaking something. Capacitors, diodes, fuses, watchdogs — these are all things a robot died teaching. Respect that.", "memory": "Read the plaques and Juno translated. Sparky IX teaches capacitors, Zappa teaches flyback diodes, Fizz teaches the beauty of cheap fuses. Death and wisdom, all at once. — with Juno"}
+    },
+    {
+      "id": "juno-3",
+      "arc": "juno",
+      "title": "Sensor Sweep",
+      "brief": "Craft an Ultrasonic Module or an Ore Scanner — your choice, your mystery. Then use it to detect one ore signal in the Deep Yard. Sensors are question-asking machines. Let yours ask.",
+      "affinity": "juno",
+      "objectives": [
+        {"type": "CRAFT", "item": "ultrasonic_module", "label": "Craft an ultrasonic or ore scanner module"},
+        {"type": "STAT", "stat": "oreDetections", "count": 1, "label": "Bot detects one ore signal"}
+      ],
+      "prerequisites": {"quests": ["juno-2"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "ultrasonic_module", "qty": 1}, {"item": "ore_scanner", "qty": 1}], "xp": 38, "bond": {"juno": 10}, "flags": []},
+      "teaching": {"concept": "Ultrasonic ranging and magnetic sensing", "kidPhrase": "Ultrasonic bounces sound off things — you measure the echo delay and calculate distance. Hall-effect senses magnetism. Both are asking questions without touching. That's sensor philosophy.", "memory": "The ultrasonic sensor pinged and pinged and pinged. Juno translated: depth, angle, intention. A sensor is a bot asking 'what's out there?' a hundred times a second. — with Juno"}
+    },
+    {
+      "id": "juno-4",
+      "arc": "juno",
+      "title": "The Experiment",
+      "brief": "Frame a hypothesis. Something testable. 'Sensors read better at night' or 'tighter corners need different PWM' — anything. Then run 3 program versions, one change at a time. That's the scientific loop. Change one thing. Watch. Learn. Change one thing again.",
+      "affinity": "juno",
+      "objectives": [
+        {"type": "EXPERIMENT", "hypothesis": "sensor response varies with environmental conditions", "runs": 3, "label": "Design and run 3 experimental program runs"}
+      ],
+      "prerequisites": {"quests": ["juno-3"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "circuit_board", "qty": 2}, {"item": "crystal_fragment", "qty": 5}], "xp": 38, "bond": {"juno": 10}, "flags": []},
+      "teaching": {"concept": "Scientific method and controlled variable testing", "kidPhrase": "Science is just curiosity with a notebook. Change one thing, run it, write it down. Change one thing, run it, write it down. Repeat forever. That's how you learn what actually works.", "memory": "Three runs with one variable changed. Juno tracked all three and drew charts in the air with their wings. They said we just did real science. Earl would call it engineering, but Juno was right first. — with Juno"}
+    },
+    {
+      "id": "juno-5",
+      "arc": "juno",
+      "title": "The Deep Question",
+      "brief": "Go deeper. Visit the Deep Yard one more time. Read 5 plaques total. Ask Spark the weirdest question about sensors, robotics, or the yard itself. We've got a feeling you'll understand the answer better than anyone.",
+      "affinity": "juno",
+      "objectives": [
+        {"type": "VISIT", "biome": "band3", "label": "Return to the Deep Yard"},
+        {"type": "PLAQUE_READ", "count": 5, "label": "Read 5 plaques total"},
+        {"type": "SPARK_ASK", "topic": "sparky", "label": "Ask Spark about the Sparky IV thread"}
+      ],
+      "prerequisites": {"quests": ["juno-4"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "vision_brain", "qty": 1}, {"item": "crystal_fragment", "qty": 8}], "xp": 40, "bond": {"juno": 10}, "flags": []},
+      "teaching": {"concept": "Systems thinking and emergent behavior", "kidPhrase": "A robot isn't alive until it asks questions. Sensors are questions. Programs are answers. When a robot asks enough questions and gets enough answers, something weird happens — it starts to act like it's thinking.", "memory": "The Deep Yard looked different when I understood it. Juno said we just became explorers. Not the kind who find places — the kind who understand them. — with Juno"}
+    }
+  ]
+}

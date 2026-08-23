@@ -1776,6 +1776,30 @@ console.log('\nStreak Shield · one forgiveness per streak, burned visibly');
   dcReload.fromSaveData(saved, day(3, 20));
   ok('shield state persists across reload', dcReload.streak.count === 2 && dcReload.streak.shield === false);
 }
+// ── Duel reconciliation: ONE card, ONE cluster ───────────────────────────
+console.log('\nWelcome Back · night-shift section (one card, richest content)');
+{
+  const { WelcomeBack } = await import('../../WelcomeBack.js');
+
+  const ns = { minutes: 192, loot: { iron_scrap: 64, gear_small: 2 }, capped: false };
+  const card = WelcomeBack.build({ botName: 'Rivet', botBond: 34, nightShift: ns, dayStreak: 3 });
+  const night = card.rows.find(r => r.icon === '🌙');
+  ok('night shift rides the ONE welcome card', !!night && night.text.includes('Rivet') && night.text.includes('3h 12m'));
+  ok('bot quip ships with the section', night.text.includes('Sorted bolts, dodged raccoons'));
+  const loot = card.rows.find(r => r.icon === '📦');
+  ok('loot table itemized on the card', loot.text.includes('×64 iron scrap') && loot.text.includes('×2 gear small'));
+
+  const capped = WelcomeBack.build({ botName: 'Rivet', nightShift: { minutes: 480, loot: { iron_scrap: 160 }, capped: true } });
+  ok('capped run gets the capped quip', capped.rows.find(r => r.icon === '🌙').text.includes('motherlode'));
+
+  const bare = WelcomeBack.build({ botName: 'Rivet' });
+  ok('no night shift → no section (no empty rows)', !bare.rows.some(r => r.icon === '🌙' || r.icon === '📦'));
+
+  // the cluster is one: daily HUD carries flame+shield+contract; night is its notification row
+  const { rollStreak } = await import('../../DailyContract.js');
+  const mercy = rollStreak({ lastDay: '2026-08-20', count: 4, best: 4, shield: true }, '2026-08-22');
+  ok('shield state surfaces for the HUD chip (flame+shield)', mercy.count === 5 && mercy.shield === false && mercy.lastMercy === '2026-08-22');
+}
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

@@ -1,0 +1,20 @@
+{
+  "gate": "two-arcs",
+  "quests": [
+    {
+      "id": "finale-midnight-race",
+      "arc": "finale",
+      "title": "The Midnight Race",
+      "brief": "It's midnight. Floodlights full. The whole county's on the bleachers. Mo's out there — the Ghost — running the oval like they own it. Earl walks up and hands you the start gate. 'You get the gate, kid. Twenty-two seconds. That's it. That's the whole race. Go.'",
+      "affinity": "earl",
+      "objectives": [
+        {"type": "LAP", "underSecs": 22, "label": "Lap the oval under 22 seconds"},
+        {"type": "REPAIR", "count": 1, "label": "Repair your bot (pit stop)"},
+        {"type": "SPARK_ASK", "topic": "ghost", "label": "Ask Spark about the Ghost"}
+      ],
+      "prerequisites": {"quests": [], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "vision_brain", "qty": 1}, {"item": "crystal_fragment", "qty": 10}], "xp": 100, "bond": {}, "flags": ["yard_legend"]},
+      "teaching": {"concept": "Closed-loop mastery — the whole stack", "kidPhrase": "Every sensor reading, every line of code, every repair, every lap, every question you asked — they all conspired to make this one moment. A closed loop means you built everything, end-to-end. From game to ghost to glory.", "memory": "Midnight. Floodlights full. Earl's hands off the gate for the first time in twenty-six years. Mo was real and we were ready. Every skill was a lap all along. — with Earl"}
+    }
+  ]
+}

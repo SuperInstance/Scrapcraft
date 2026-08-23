@@ -1,0 +1,72 @@
+{
+  "quests": [
+    {
+      "id": "magma-1",
+      "arc": "magma",
+      "title": "First Circuit",
+      "brief": "Hello, small builder. Come. I have something to show you. Craft a circuit board — copper wire, iron scrap, at the workbench. Then ask Spark about circuits. Electricity has rules, and they are beautiful rules.",
+      "affinity": "magma",
+      "objectives": [
+        {"type": "CRAFT", "item": "circuit_board", "label": "Craft a circuit board"},
+        {"type": "SPARK_ASK", "topic": "circuit", "label": "Ask Spark about circuits"}
+      ],
+      "prerequisites": {"quests": ["earl-6"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "copper_wire", "qty": 4}, {"item": "iron_scrap", "qty": 5}], "xp": 35, "bond": {"magma": 10}, "flags": []},
+      "teaching": {"concept": "Circuit design and component integration", "kidPhrase": "A circuit is a conversation between parts. Electricity says, 'I want to flow.' A resistor says, 'Not so fast.' They negotiate. That negotiation is a circuit.", "memory": "Magma watched me craft the circuit board. When it took shape, they cried a little. They said it was beautiful. A circuit board. Beautiful. That changed how I see building. — with Magma"}
+    },
+    {
+      "id": "magma-2",
+      "arc": "magma",
+      "title": "Build a Sensor Module",
+      "brief": "Craft an IR module — glass shards, circuit boards, copper wire. Then run two programs on your bot. Something with that sensor. Sensors are the eyes of machines, and eyes need to be built with love.",
+      "affinity": "magma",
+      "objectives": [
+        {"type": "CRAFT", "item": "ir_module", "label": "Craft an IR module"},
+        {"type": "RUN_PROGRAM", "count": 2, "label": "Run 2 tile programs with your bot"}
+      ],
+      "prerequisites": {"quests": ["magma-1"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "ir_module", "qty": 2}, {"item": "battery_pack", "qty": 1}], "xp": 38, "bond": {"magma": 10}, "flags": []},
+      "teaching": {"concept": "Sensor integration and I/O", "kidPhrase": "An IR module sees light you can't see. It's infrared — heat light. A line-follower reads it and says, 'Black here, white there, I know where I am.' That's a conversation between light and logic.", "memory": "Built the IR module and put it on the bot. Magma held it to the light and nodded. 'This one will see far,' they said. The bot could follow lines after that. Sight was beautiful. — with Magma"}
+    },
+    {
+      "id": "magma-3",
+      "arc": "magma",
+      "title": "See the Real Code",
+      "brief": "You've built in tiles. Now see the truth. Click [T], load a program, hit BUILD IT, read the receipt. That's real Arduino code. Real firmware. Then ask Spark how firmware is born.",
+      "affinity": "magma",
+      "objectives": [
+        {"type": "RECEIPT", "count": 1, "label": "View a firmware build receipt"},
+        {"type": "SPARK_ASK", "topic": "firmware", "label": "Ask Spark about firmware"}
+      ],
+      "prerequisites": {"quests": ["magma-2"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "circuit_board", "qty": 3}], "xp": 38, "bond": {"magma": 10}, "flags": []},
+      "teaching": {"concept": "Compilation and abstraction — tiles to C++", "kidPhrase": "Your tiles are a language. The compiler is a translator that speaks machine. Your idea goes in, real firmware comes out. No magic — just translation through trust.", "memory": "Stared at the C++ code and Magma looked too. 'This is where the magic lives,' they said. Not magic — translation. But close enough. — with Magma"}
+    },
+    {
+      "id": "magma-4",
+      "arc": "magma",
+      "title": "Lean Code",
+      "brief": "Craft code that fits in the chip. View two build receipts and aim for efficiency grade B or better. A lean program is a program that respects the hardware. Tight is beautiful.",
+      "affinity": "magma",
+      "objectives": [
+        {"type": "RECEIPT", "count": 2, "label": "View 2 build receipts with grade B or better efficiency"}
+      ],
+      "prerequisites": {"quests": ["magma-3"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "crystal_fragment", "qty": 4}, {"item": "battery_pack", "qty": 2}], "xp": 38, "bond": {"magma": 10}, "flags": []},
+      "teaching": {"concept": "Code size budgets and optimization", "kidPhrase": "An ATmega chip has maybe 2KB of program space. Your code has to fit snug, not bursting. That's embedded engineering — saying a lot with very little. Craft every byte.", "memory": "Optimized the code and Magma watched the budget shrink. 'Snug, not strained,' they whispered. That's their whole philosophy. I'm learning it. — with Magma"}
+    },
+    {
+      "id": "magma-5",
+      "arc": "magma",
+      "title": "First Flash",
+      "brief": "Last step. Real hardware. Real chip. Click FLASH and push your code to a real board. USB cable, WebSerial, live firmware on silicon. Watch the LED blink your program. That's not a game anymore, small builder.",
+      "affinity": "magma",
+      "objectives": [
+        {"type": "FLASH_BOARD", "count": 1, "label": "Flash firmware to real hardware"}
+      ],
+      "prerequisites": {"quests": ["magma-4"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "vision_brain", "qty": 1}, {"item": "crystal_fragment", "qty": 7}], "xp": 40, "bond": {"magma": 10}, "flags": []},
+      "teaching": {"concept": "Bootloaders and hardware flashing", "kidPhrase": "Dead chips wake up with bootloaders. It's how you load life into metal. USB cable, firmware, click FLASH. Suddenly a chip that was asleep speaks your language and does your bidding.", "memory": "The LED blinked my code on real hardware. Magma cried. A lot. They said, 'The light blinked your program.' I think that's the highest praise I'll ever get. — with Magma"}
+    }
+  ]
+}
