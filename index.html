@@ -952,6 +952,7 @@
     /* Canvas */
     .te-canvas-wrap {
       flex:1; overflow:auto; padding:14px 18px;
+      position:relative;
     }
     #te-canvas {
       display:flex; flex-direction:column; align-items:flex-start; gap:0;
@@ -1106,6 +1107,30 @@
     .te-flash-btn[data-status="flashing"]  { color:#f0b429; border-color:#80600a; background:#181008; }
     .te-flash-btn[data-status="running"]   { color:#44ee88; border-color:#226633; }
     .te-flash-btn[data-status="error"]     { color:#ff6655; border-color:#661111; background:#140808; }
+
+    /* Hardware twin — Uno pin view */
+    #te-pin-panel { position:absolute; inset:0; z-index:40; background:rgba(6,10,8,.97);
+      display:flex; flex-direction:column; font:10px/1.5 'Courier New',monospace; color:#9fc; }
+    .tp-head { padding:8px 10px; color:#ffb020; letter-spacing:1px; font-weight:bold;
+      border-bottom:1px solid #234; display:flex; gap:10px; align-items:baseline; }
+    .tp-sub { font-weight:normal; color:#7a8; letter-spacing:0; }
+    .tp-body { display:flex; flex:1; overflow:auto; }
+    .tp-col { flex:1; padding:6px 10px; }
+    .tp-col + .tp-col { border-left:1px solid #234; }
+    .tp-row { display:flex; gap:8px; align-items:center; padding:2px 6px; border-radius:3px; }
+    .tp-row.tp-on   { background:#0a2d0a; color:#6f6; box-shadow:inset 2px 0 0 #4c4; }
+    .tp-row.tp-led  { background:#2d2d0a; color:#ff6; box-shadow:inset 2px 0 0 #cc4, 0 0 8px #cc4; }
+    .tp-pin  { width:34px; color:#ffb020; font-weight:bold; }
+    .tp-mode { width:34px; color:#69a; }
+    .tp-lvl  { width:44px; }
+    .tp-duty { color:#f0b429; }
+    .tp-tone { color:#f7a; }
+    .tp-volt { width:44px; color:#69a; }
+    .tp-src  { color:#7a8; }
+    .tp-pwmcap { color:#f0b429; margin-left:2px; }
+    .tp-legend { padding:6px 10px; border-top:1px solid #234; display:flex; flex-wrap:wrap; gap:6px; }
+    .tp-chip { background:#10241a; border:1px solid #234; border-radius:3px; padding:1px 6px; color:#8b9; }
+    .tp-warn { padding:6px 10px; border-top:1px solid #234; color:#ffd280; max-height:64px; overflow:auto; }
 
     /* ── Serial monitor panel ── */
     #te-serial-monitor {
@@ -1721,6 +1746,9 @@
         <button id="te-dl"       class="te-btn" style="margin-left:auto;">⬇ Download</button>
         <button id="te-dl-wokwi" class="te-btn" title="Download sketch + diagram.json for Wokwi simulator">🔌 Wokwi</button>
         <button id="te-flash"    class="te-btn te-flash-btn" title="Send MicroPython program to a real device via USB (Chrome only)" style="display:none;">⚡ Flash to Device</button>
+        <button id="te-hex-flash" class="te-btn te-flash-btn" title="Flash a compiled .hex to an AVR109/STM32duino board via USB — or keep simulating!" style="display:none;">🔥 Flash .hex</button>
+        <input type="file" id="te-hex-file" accept=".hex,.hexfile" style="display:none;" />
+        <button id="te-pin-view" class="te-btn" title="Hardware twin: see your program driving a virtual Arduino Uno's pins">📐 Wiring</button>
       </div>
       <pre id="te-code-pre"></pre>
       <div id="te-wiring-svg" style="display:none;overflow:auto;padding:8px;"></div>

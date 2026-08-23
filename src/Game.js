@@ -27,6 +27,7 @@ import { RaceBoard, NPC_GHOSTS, BEAT_QUIPS } from './RaceBoard.js';
 import { Codex } from './Codex.js';
 import { ClassRoom } from './ClassRoom.js';
 import { ChallengeSystem } from './ChallengeSystem.js';
+import { voiceOut, announceRaceStart, announceLap, announcePersonalBest, announceVictory, preloadAnnouncements } from './voice/index.js';
 
 export class Game {
   constructor(canvas) {
@@ -444,7 +445,10 @@ export class Game {
         this.player.yaw = 0;
         this.ui.notify('🏁 Respawned at the yard gate.');
       }
-      if (e.code === 'KeyM') this.audio.toggle();
+      if (e.code === 'KeyM') {
+        this.audio.toggle();
+        voiceOut.setMuted(!this.audio._enabled);
+      }
       if (e.code === 'KeyY' && document.pointerLockElement) {
         this._dropWaypoint();
       }
@@ -2126,12 +2130,18 @@ export class Game {
         this.challenge.onLapComplete();
         this.xpSystem.gain(improved ? 30 : 20);
         bot.speak(bot.personality.quip(improved ? 'lap_record' : 'lap_complete'));
+        // Voice announcements for race
+        this._lapCount = (this._lapCount ?? 0) + 1;
+        announceLap(this._lapCount);
+        if (improved) announcePersonalBest();
         if (improved) {
           this._bestOvalGhostFrames = this._ovalGhostFrames.slice();
           this.saveSystem.markDirty();
           // Update race board + announce beaten ghosts
           const beaten = this.raceBoard.setPlayerTime(ms, bot.personality.name, bot.personality.name);
           if (beaten.length) {
+            // Beating the top of the board is the announcer's big moment
+            if (beaten.includes(NPC_GHOSTS.length - 1)) announceVictory();
             for (const idx of beaten) {
               const ghost = NPC_GHOSTS[idx];
               setTimeout(() => {
@@ -2142,6 +2152,11 @@ export class Game {
           }
           setTimeout(() => this.foreman.onEvent('bot_lap_record', {}), 500);
         }
+      } else if (ls.lapStart === 0) {
+        // Race starting (first gate crossing)
+        this._lapCount = 0;
+        announceRaceStart();
+        preloadAnnouncements();
       }
       // New lap starting
       this._ovalGhostFrames     = [];

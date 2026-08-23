@@ -6,9 +6,12 @@
 import { TileProgram, EXAMPLE_WALL_AVOIDER, EXAMPLE_LIGHT_RUNNER, EXAMPLE_SQUARE, EXAMPLE_LINE_FOLLOWER, EXAMPLE_WAYPOINT_NAV, EXAMPLE_ORE_HUNTER, EXAMPLE_BATTERY_SAVER, EXAMPLE_BUMP_COUNTER } from './maker/TileProgram.js';
 import { SENSORS, ACTUATORS, BRAINS, withDefaults } from './maker/primitives.js';
 import { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG, compile, TileVM, VirtualRobot } from './maker/index.js';
+import { Avr109Flasher } from './maker/Avr109Flasher.js';
+import { UNO_WIRING } from './maker/PinModel.js';
 import { WebSerialBridge } from './maker/WebSerialBridge.js';
 import { Spark } from './Spark.js';
 import { BrainGallery } from './BrainGallery.js';
+import { voiceOut, voiceIn } from './voice/index.js';
 
 const BRAIN_ORDER = ['tin', 'spark', 'vision'];
 
@@ -325,6 +328,23 @@ export class TileEditor {
       }
     }
 
+    // AVR109 .hex flasher (Leonardo/Pro Micro/STM32duino) — degrades to "keep simulating"
+    this._hexBtn  = this._panel.querySelector('#te-hex-flash');
+    this._hexFile = this._panel.querySelector('#te-hex-file');
+    this._avr     = new Avr109Flasher();
+    if (this._hexBtn) {
+      if (!this._avr.isSupported) this._hexBtn.style.display = 'none';
+      else this._hexBtn.addEventListener('click', () => this._handleHexFlash());
+    }
+    this._hexFile?.addEventListener('change', () => this._onHexFile());
+
+    // Hardware twin — live wiring/pin view over the canvas
+    this._pinBtn = this._panel.querySelector('#te-pin-view');
+    this._pinOpen = false;
+    this._pinPanel = null;
+    this._pinTimer = null;
+    this._pinBtn?.addEventListener('click', () => this._togglePinView());
+
     this._botSel    = this._panel.querySelector('#te-bot-sel');
     this._presetSel = this._panel.querySelector('#te-preset-sel');
     if (this._presetSel) {
@@ -369,6 +389,8 @@ export class TileEditor {
     const sendBtn    = this._sparkPanel.querySelector('.sp-send');
 
     this._spark = new Spark(this);
+    this._sparkFirstOpen = true;
+    this._voiceInProgress = false;
 
     const send = async () => {
       const text = this._sparkInput.value.trim();
@@ -395,11 +417,133 @@ export class TileEditor {
       this._sparkLog.scrollTop = this._sparkLog.scrollHeight;
     };
 
+    // Mic button for voice input — click to start, click again to send.
+    // Hold V anywhere (while the Spark panel is open and you're not typing) works too.
+    const micBtn = document.createElement('button');
+    micBtn.textContent = '🎤';
+    micBtn.title = 'Click (or hold V) and speak your question';
+    micBtn.style.cssText = 'margin-right:8px;padding:4px 8px;cursor:pointer;background:#333;color:#0f0;border:1px solid #0f0;border-radius:4px;';
+    micBtn.addEventListener('click', () => {
+      if (this._voiceRecording) this._voiceStop();
+      else this._voiceStart();
+    });
+
+    const sendBtnParent = sendBtn.parentNode;
+    if (sendBtnParent) sendBtnParent.insertBefore(micBtn, sendBtn);
+
     sendBtn.addEventListener('click', send);
-    this._sparkInput.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+    this._sparkInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') send();
+    });
+
+    // Hold V for push-to-talk — global listener, only while the Spark panel is
+    // visible AND the player isn't typing (so the letter 'v' never hijacks chat).
+    this._voiceKeyDown = false;
+    document.addEventListener('keydown', e => {
+      if (e.code !== 'KeyV' || e.repeat) return;
+      if (!this._sparkPanel?.offsetParent) return;                       // panel closed
+      if (document.activeElement === this._sparkInput) return;           // typing
+      if (!this._voiceKeyDown && !this._voiceInProgress && !this._voiceRecording) {
+        this._voiceKeyDown = true;
+        this._voiceStart();
+      }
+    });
+    document.addEventListener('keyup', e => {
+      if (e.code === 'KeyV' && this._voiceKeyDown) {
+        this._voiceKeyDown = false;
+        if (this._voiceRecording) this._voiceStop();
+      }
+    });
 
     // Seed with a welcome line
     this._sparkLog.innerHTML = `<div class="sp-msg sp-spark">⚡ Tell me what your robot should do and I'll build it!</div>`;
+  }
+
+  // Push-to-talk: begin recording (hold V or first mic click)
+  async _voiceStart() {
+    if (this._voiceInProgress || this._voiceRecording) return;
+    this._voiceRecording = true;
+    const micBtn = this._sparkPanel?.querySelector('button[title^="Click"]');
+    if (micBtn) { micBtn.textContent = '⏹'; micBtn.style.background = '#0f0'; micBtn.style.color = '#000'; }
+    try {
+      await voiceIn.start();
+    } catch (err) {
+      console.debug('[voice] microphone unavailable', err);
+      this._voiceRecording = false;
+      if (micBtn) { micBtn.textContent = '🎤'; micBtn.style.background = '#333'; micBtn.style.color = '#0f0'; }
+    }
+  }
+
+  // Push-to-talk: release → stop recording, send the question to Spark
+  async _voiceStop() {
+    if (!this._voiceRecording) return;
+    this._voiceRecording = false;
+    this._voiceInProgress = true;
+    const micBtn = this._sparkPanel?.querySelector('button[title^="Click"]');
+    if (micBtn) { micBtn.textContent = '🎤'; micBtn.style.background = '#333'; micBtn.style.color = '#0f0'; }
+
+    let transcript = '';
+    try {
+      transcript = await voiceIn.stop();
+    } catch (err) {
+      console.debug('[voice] input failed', err);
+    }
+    if (!transcript) {
+      this._voiceInProgress = false;
+      return;
+    }
+    this._voiceHandleTranscript(transcript);
+  }
+
+  // Send a spoken (or typed) question through the voice dialogue loop: the
+  // worker's /dialogue answers + speaks it; if the worker is unreachable we
+  // still show the question in chat and let the in-game Spark answer in text.
+  _voiceHandleTranscript(text) {
+    this._sparkInput.value = text;
+    const send = async () => {
+      const q = this._sparkInput.value.trim();
+      if (!q) { this._voiceInProgress = false; return; }
+      this._sparkInput.value = '';
+      this._sparkLog.innerHTML += `<div class="sp-msg sp-user">${_esc(q)}</div>`;
+      const thinking = document.createElement('div');
+      thinking.className = 'sp-msg sp-spark sp-thinking';
+      thinking.textContent = '⚡ …';
+      this._sparkLog.appendChild(thinking);
+      this._sparkLog.scrollTop = this._sparkLog.scrollHeight;
+
+      let handled = false;
+      try {
+        // Preferred: full voice loop — Spark's answer comes back spoken.
+        const res = await voiceIn.ask(q);
+        if (res?.answer) {
+          thinking.remove();
+          this._sparkLog.innerHTML += `<div class="sp-msg sp-spark">⚡ ${_esc(res.answer)}</div>`;
+          this._sparkLog.scrollTop = this._sparkLog.scrollHeight;
+          if (res.playAudio) res.playAudio();
+          handled = true;
+        }
+      } catch (_) { /* worker down — fall through to in-game Spark */ }
+
+      if (!handled) {
+        try {
+          const reply = await this._spark.ask(q);
+          thinking.remove();
+          const cls = reply.kind === 'program' ? 'sp-msg sp-spark sp-built' : 'sp-msg sp-spark';
+          this._sparkLog.innerHTML += `<div class="${cls}">⚡ ${_esc(reply.text)}</div>`;
+          if (reply.kind === 'program') {
+            this._game.achievements?.track('spark_program', {});
+            this._game.xpSystem?.gain(10);
+          }
+          this._sparkLog.scrollTop = this._sparkLog.scrollHeight;
+          // Speak the in-game Spark's reply through the voice worker
+          voiceOut.speak(reply.text, { voice: 'spark' });
+        } catch (_) {
+          thinking.remove();
+        }
+      }
+      this._voiceInProgress = false;
+    };
+    setTimeout(send, 100);
   }
 
   _buildTray() {
@@ -1071,6 +1215,114 @@ export class TileEditor {
     }
   }
 
+  // ── AVR109 .hex flashing (hardware bridge milestone) ─────────────────────
+
+  async _handleHexFlash() {
+    if (!this._avr.isConnected) {
+      this._hexBtn.textContent = 'Connecting…';
+      const conn = await this._avr.connect();
+      this._hexBtn.textContent = '🔥 Flash .hex';
+      if (!conn.ok) {
+        // GRACEFUL DEGRADATION: the game never treats this as an error state.
+        // The sim keeps running; the kid gets a friendly, honest message.
+        this._game.ui?.notify(`🔌 ${conn.message}`);
+        this._game.audio?.error?.();
+        return;
+      }
+      this._game.ui?.notify(`✅ ${conn.message}`);
+    }
+    this._hexFile?.click();   // pick the .hex (compiled in Arduino IDE / Wokwi)
+  }
+
+  async _onHexFile() {
+    const file = this._hexFile?.files?.[0];
+    if (!file) return;
+    this._hexFile.value = '';
+    const hexText = await file.text();
+    this._hexBtn.textContent = 'Flashing…';
+    this._hexBtn.disabled = true;
+    const res = await this._avr.flash(hexText);
+    this._hexBtn.textContent = '🔥 Flash .hex';
+    this._hexBtn.disabled = false;
+    this._game.ui?.notify(res.ok ? `🚀 ${res.message}` : `⚠️ ${res.message}`);
+    if (res.ok) {
+      this._game.achievements?.track('hardware_flash', {});
+      this._game.foreman?.say('hardware_flash');
+    }
+  }
+
+  // ── Hardware twin: live Uno pin/wiring view ──────────────────────────────
+
+  _togglePinView() {
+    this._pinOpen = !this._pinOpen;
+    if (!this._pinOpen) {
+      clearInterval(this._pinTimer);
+      this._pinTimer = null;
+      this._pinPanel?.remove();
+      this._pinPanel = null;
+      this._pinBtn && (this._pinBtn.style.borderColor = '');
+      return;
+    }
+    this._pinPanel = document.createElement('div');
+    this._pinPanel.id = 'te-pin-panel';
+    this._pinPanel.innerHTML = `
+      <div class="tp-head">
+        <span>📐 HARDWARE TWIN — Arduino Uno</span>
+        <span class="tp-sub">your tiles, running on real pins</span>
+      </div>
+      <div class="tp-body">
+        <div class="tp-col" id="tp-digital"></div>
+        <div class="tp-col" id="tp-analog"></div>
+      </div>
+      <div class="tp-legend" id="tp-legend"></div>
+      <div class="tp-warn" id="tp-warn"></div>`;
+    this._canvas.parentElement.appendChild(this._pinPanel);
+    this._pinBtn && (this._pinBtn.style.borderColor = '#ffb020');
+    this._renderPinView();
+    this._pinTimer = setInterval(() => this._renderPinView(), 200);
+  }
+
+  _renderPinView() {
+    const bot = this._activeBot();
+    const pm = bot?.pinModel;
+    if (!pm || !this._pinPanel) return;
+    const snap = pm.snapshot();
+
+    const dEl = this._pinPanel.querySelector('#tp-digital');
+    dEl.innerHTML = snap.digital.map(p => {
+      const on = p.level === 1;
+      const duty = p.pwm !== undefined && p.pwm >= 0
+        ? `<span class="tp-duty">PWM ${p.pwm}</span>` : '';
+      const glow = on ? (p.isLed ? ' tp-led' : ' tp-on') : '';
+      const tone = p.tone ? `<span class="tp-tone">♪${p.tone}Hz</span>` : '';
+      const cap = p.isPwmCapable ? '<span class="tp-pwmcap">~</span>' : '';
+      return `<div class="tp-row${glow}"><span class="tp-pin">${p.pin}${cap}</span>` +
+             `<span class="tp-mode">${p.mode === 'OUTPUT' ? 'OUT' : p.mode === 'INPUT' ? 'IN' : 'PULL'}</span>` +
+             `<span class="tp-lvl">${on ? 'HIGH' : 'LOW'}</span>${duty}${tone}</div>`;
+    }).join('');
+
+    const aEl = this._pinPanel.querySelector('#tp-analog');
+    aEl.innerHTML = snap.analog.map((p, i) => {
+      const wire = Object.entries(UNO_WIRING.sensors).find(([, w]) => w.pin === `A${i}`);
+      return `<div class="tp-row"><span class="tp-pin">${p.pin}</span>` +
+             `<span class="tp-lvl">${p.counts}</span>` +
+             `<span class="tp-volt">${p.volts}V</span>` +
+             (wire ? `<span class="tp-src">${wire[1].label.split(' ')[0]}</span>` : '') + `</div>`;
+    }).join('');
+
+    const legend = this._pinPanel.querySelector('#tp-legend');
+    legend.innerHTML = Object.entries(UNO_WIRING.actuators)
+      .map(([k, w]) => `<span class="tp-chip">${w.pin.includes('D') || !Array.isArray(w.pin) ? (w.pin ?? '') : ''} ${w.label}</span>`)
+      .join('') +
+      `<span class="tp-chip">~ = PWM-capable pin (D3,5,6,9,10,11)</span>`;
+
+    const warnEl = this._pinPanel.querySelector('#tp-warn');
+    const ws = pm.warnings.slice(-3);
+    warnEl.innerHTML = ws.length
+      ? ws.map(w => `<div>💡 ${_esc(w)}</div>`).join('')
+      : '<div style="opacity:.5">Pin notes appear here — the Uno is honest about its own limits.</div>';
+  }
+
   async _connectAndFlash() {
     this._setFlashStatus('connecting');
     try {
@@ -1458,7 +1710,37 @@ export class TileEditor {
     this._sparkPanel.style.display = this._sparkOpen ? 'flex' : 'none';
     const btn = this._panel.querySelector('#te-spark-btn');
     if (btn) { btn.style.borderColor = this._sparkOpen ? '#00ccff' : ''; btn.style.color = this._sparkOpen ? '#00ccff' : ''; }
-    if (this._sparkOpen) this._showDailyChallenge();
+    if (this._sparkOpen) {
+      this._showDailyChallenge();
+      // Play greeting on first open per session
+      if (this._sparkFirstOpen) {
+        this._sparkFirstOpen = false;
+        this._playSparkGreeting();
+      }
+    }
+  }
+
+  async _playSparkGreeting() {
+    try {
+      const worker = localStorage.getItem('scrapcraft_voice_worker') ?? 'https://scrap-voice.casey-digennaro.workers.dev';
+      const res = await fetch(`${worker}/bank/spark-greeting`, { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        const blob = await res.blob();
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') ctx.resume();
+        const arrayBuf = await blob.arrayBuffer();
+        const audioData = await ctx.decodeAudioData(arrayBuf);
+        const source = ctx.createBufferSource();
+        source.buffer = audioData;
+        const gain = ctx.createGain();
+        gain.gain.value = 0.7;
+        source.connect(gain);
+        gain.connect(ctx.destination);
+        source.start(0);
+      }
+    } catch (_) {
+      // Silently fail if no greeting available
+    }
   }
 
   /** Fetch today's challenge + failure wall from scrap-spark; show once per open. */
