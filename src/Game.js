@@ -16,6 +16,7 @@ import { EXAMPLE_WALL_AVOIDER, EXAMPLE_LINE_FOLLOWER } from './maker/TileProgram
 import { getSensor } from './maker/primitives.js';
 import { TileEditor } from './TileEditor.js';
 import { SaveSystem } from './SaveSystem.js';
+import { PrestigeSystem } from './prestige/Prestige.js';
 import { XPSystem } from './XPSystem.js';
 import { WeatherSystem } from './WeatherSystem.js';
 import { ProjectileSystem } from './ProjectileSystem.js';
@@ -367,6 +368,10 @@ export class Game {
     // Tracker + Logbook over the same event stream the foreman quips and the
     // companions bond on. Old saves migrate: Earl's chain index → completed quests.
     this.quests = new QuestSystem(this, CAMPAIGN);
+    // Prestige — Earl's Back Room (marks from arc / Midnight-Race completion).
+    // Perk effects are read live from achievements, never stored twice.
+    this.prestige = new PrestigeSystem(this);
+    this.prestige.load();
     this.quests.migrateLegacySave(this.foreman._questIndex ?? 0);
 
     // ── Cold start: Earl conscripts at spawn (campaign Ch 1's heart) ──────
@@ -692,16 +697,22 @@ export class Game {
         this.ui.notify('🏁 Respawned at the yard gate.');
       }
       if (e.code === 'KeyM') {
-        this.audio.toggle();
-        voiceOut.setMuted(!this.audio._enabled);
+        if (e.shiftKey) {
+          // Shift+M → Earl's Back Room (the boxes marked M — ch11 lore)
+          this.prestige?.openBoard();
+        } else {
+          this.audio.toggle();
+          voiceOut.setMuted(!this.audio._enabled);
+        }
       }
       if (e.code === 'KeyY' && document.pointerLockElement) {
         this._dropWaypoint();
       }
       if (e.code === 'KeyB') {
         if (e.shiftKey) {
-          // Shift+B → second bot (requires Level 5 Engineer skill)
-          if (!this.xpSystem.hasSkill('engineer')) {
+          // Shift+B → second bot (Level 5 Engineer skill, OR the Back Room's
+          // second_bot_slot favor — comfort, not power: a bot is a bot)
+          if (!this.xpSystem.hasSkill('engineer') && !this.prestige?.owns('second_bot_slot')) {
             this.ui.notify('⚙️ Engineer skill (Level 5) required for a second bot.');
           } else if (!this.player.hasTool('robot_helper') || this.player.countItem('robot_helper') < 2) {
             this.ui.notify('Craft a second robot_helper to run two bots.');
@@ -1981,6 +1992,9 @@ export class Game {
     if (this._headlampOn && !this.player.hasTool('headlamp')) {
       this._headlampOn = false;
       this.renderer.setHeadlamp(false);
+    } else if (this._headlampOn) {
+      // Warm Glow perk (Field Guide 20) — a warmer lamp, same range
+      this.renderer.setHeadlamp(true, 2.8 + (this.prestige?.perkEffectsNow?.().lanternBrightness ?? 0));
     }
     // Waypoint flag animation + sparkle pulse
     if (this._waypoint) {
@@ -2003,8 +2017,10 @@ export class Game {
       this._spawnAirdrop();
     }
 
-    // Grapple hook: extends mining / targeting reach
-    this.renderer.raycaster.far = this.player.hasTool('grapple_hook') ? 10 : 6;
+    // Grapple hook: extends mining / targeting reach; the Long Arms perk
+    // (100-blocks milestone) adds +1 tile — comfort, never a quest gate
+    this.renderer.raycaster.far = (this.player.hasTool('grapple_hook') ? 10 : 6)
+      + (this.prestige?.perkEffectsNow?.().mineReachTiles ?? 0);
     this.particles.tick(dt);
     this.projectiles.tick(dt, this.world, (hit) => this._onProjectileHit(hit));
     this.achievements.tick(dt);

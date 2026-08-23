@@ -19,6 +19,7 @@ import {
 } from '../TileProgram.js';
 import { runQuestTests } from '../../quests/__tests__/quest-tests.mjs';
 import { runColdstartTests } from '../../onboarding/__tests__/coldstart-tests.mjs';
+import { runPrestigeTests } from '../../prestige/__tests__/prestige-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -1809,6 +1810,10 @@ runQuestTests(ok);
 // ── Cold-start: wizard, conscription gates, starter bot, config, trail ─────
 console.log('\nCold-start');
 runColdstartTests(ok);
+
+// ── Prestige: Earl's Back Room + achievement perks ──────────────────────
+console.log('\nPrestige & Perks');
+runPrestigeTests(ok);
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
