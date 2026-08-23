@@ -21,7 +21,43 @@ Scrapcraft is a browser-based 3D voxel game (à la Minecraft-lite) set in an ind
 
 **Target audience:** Middle schoolers, ages 10–14. Also: curious adults, STEM teachers, robotics clubs.
 
-**Stack:** Three.js · Vite · Vanilla ES modules · Web Audio API · Claude API (Spark AI)
+**Stack:** Three.js · Vite · Vanilla ES modules · Web Audio API · Workers AI (Spark, via the cached scrap-spark worker)
+
+---
+
+## What's New — The Four Revolutions (2026-08)
+
+### ⚡ scrap-spark — the fleet's cached brain
+
+Spark now runs through **[scrap-spark](https://github.com/SuperInstance/scrap-spark)** — a
+Cloudflare Worker implementing the pincher-cache doctrine: `SHA-256(question+context)` →
+R2/D1, `X-Cache: HIT|MISS`. The first kid pays the model call; every kid after gets the
+can. Also hosts the **shared build wall** (`/gallery` — builds AND failures), the daily
+challenge, and the **Most Interesting Failure of the Week**. Crashes are publishable art.
+
+### 🔌 The hardware bridge
+
+- **Hardware twin**: every program runs against a virtual Arduino Uno (14 digital pins,
+  6 analog, PWM on D3/5/6/9/10/11 only — real constraints). The **📐 Wiring** view shows
+  your tiles driving actual pins live.
+- **Browser flashing**: ⚡ MicroPython paste-mode (ESP32/Pico) and 🔥 AVR109 `.hex`
+  (Leonardo-class, STM32duino). No device? *"No device connected — keep simulating!"*
+  Nothing ever breaks. See [docs/HARDWARE_BRIDGE.md](docs/HARDWARE_BRIDGE.md) for the
+  board table and the **$5 shopping list**.
+
+### 🧾 The quilt view
+
+Flip the Tile Editor into a **live spreadsheet of your bot**: sensors, pose, motors,
+program flow, pin duties, and the bot's heart — every value flashes as it changes.
+Causality becomes visible.
+
+### 💛 The heart
+
+The first ScrapBot becomes a character: it gets a **name**, **dents** from crashes
+(with where + how fast), a **repair log** (repair_kit hammers them out), remembered
+**milestones** (first brain, first lap, crash-free streaks), and one day — when you're
+both ready — the **retirement shelf**, where a bot's stats freeze with an epitaph,
+honored forever. Open the 💛 BOT card in the Tile Editor.
 
 ---
 
