@@ -54,6 +54,7 @@ import { openMosLedgerPanel } from './quests/MosLedger.js';
 import { ConceptLedger } from './learning/ConceptLedger.js';
 import { TeachBack } from './learning/TeachBack.js';
 import { TouchControls, touchSupported } from './touch/TouchControls.js';
+import { createObserver } from './observer/ObserverMode.js';
 
 export class Game {
   /** @param {HTMLCanvasElement} canvas
@@ -126,6 +127,16 @@ export class Game {
   }
 
   init() {
+    // ── OBSERVER MODE (?observe=1) — the playtest observer's instrument. ──
+    // Fail-soft: returns null without the URL flag → every call site is a
+    // no-op in normal play. The facilitator watches the overlay and clicks
+    // EXPORT JSON at minute 30 (or reads window.__scrapcraftObserver).
+    this.observer = createObserver({
+      search: typeof location !== 'undefined' ? location.search : '',
+      seed: this.seed,
+      source: 'kid-session',
+    });
+
     this.world    = new World(128, 128, 10);
     this.world.generate(this.seed);
 
@@ -187,6 +198,10 @@ export class Game {
     this.craftingSystem = new CraftingSystem(this.player, this.foreman);
 
     this.xpSystem = new XPSystem();
+    // OBSERVER: level-ups — one listener on the XP event stream (fail-soft).
+    try {
+      this.xpSystem?.on?.('levelup', ({ level }) => this.observer?.levelUp?.(level));
+    } catch { /* observer is a garnish */ }
 
     this.scrapBot = new ScrapBot(this.renderer.scene, this.player);
     this.scrapBot._slotKey = 'bot1';
@@ -274,6 +289,7 @@ export class Game {
       speak: (companion, text, meta) => {
         voiceOut.speak(text, { voice: companion.persona.voice.name, emotion: meta?.event });
         this.ui?.notify(`${companion.persona.emoji} <b>${companion.name}:</b> ${text}`);
+        this.observer?.companion?.(companion.name, text);   // OBSERVER: companion lines
         if (companion.id === this.companions.activeId) {
           this.companionAvatar?.setTalking(Math.min(9000, 1500 + text.length * 55));
           this.companionAvatar?.react(meta?.mood);
@@ -524,6 +540,9 @@ export class Game {
     const selfReload = () => { try { return sessionStorage.getItem('scrapcraft.self_reload') === '1'; } catch { return false; } };
     window.addEventListener?.('beforeunload', () => { if (!selfReload()) this.saveSystem.saveOnExit(); });
     window.addEventListener?.('pagehide',     () => { if (!selfReload()) this.saveSystem.saveOnExit(); });
+    // OBSERVER (?observe=1): finalize the session log on tab close so the
+    // facilitator's minute-30 export is never stranded by a kid closing the tab.
+    window.addEventListener?.('pagehide', () => { try { this.observer?.endSession?.(); } catch { /* fail-soft */ } });
     document.addEventListener?.('visibilitychange', () => {
       if (document.visibilityState === 'hidden' && !selfReload()) this.saveSystem.saveOnExit();
     });
@@ -1191,6 +1210,7 @@ export class Game {
 
   _completeMine(x, y, z, id) {
     this.world.mine(x, y, z);
+    this.observer?.firstMine?.();   // OBSERVER: first block mined (once per session)
     this.audio.mine(id);
     this.particles.burst(x, y, z, 'mine', 10);
 
@@ -2072,6 +2092,7 @@ export class Game {
 
   onCraft(recipeId, output, qty) {
     const isNew = !this.achievements.stats.crafted.has(output);
+    this.observer?.firstBuild?.(output);   // OBSERVER: first build (once per session)
     this.achievements.track('craft', { id: output });
     this.challenge.onCraft();
     this.dailyContract?.onCraft();
@@ -2627,6 +2648,7 @@ export class Game {
     // Player death (hp = 0) or fall off world
     const fell = this.player.pos.y < -5;
     if ((this.player.hp <= 0 || fell) && !this._flyingMode) {
+      this.observer?.death?.();   // OBSERVER: death / respawn
       this.player.pos.set(8, 2, 5);
       this.player.vel?.set(0, 0, 0);
       this.player.hp = 40;  // respawn at 40 HP — don't start full
@@ -3513,6 +3535,7 @@ export class Game {
       } else if (ls.lapStart === 0) {
         // Race starting (first gate crossing)
         this._lapCount = 0;
+        this.observer?.firstRace?.();   // OBSERVER: first oval race start (once)
         announceRaceStart();
         preloadAnnouncements();
       }

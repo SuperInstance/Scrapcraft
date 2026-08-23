@@ -220,6 +220,7 @@ export class SaveSystem {
     } catch { /* storage optional */ }
     this._loadedRaw = null;
     this._game.ui?.notify('🗑 Save deleted. Reloading...');
+    this._game?.observer?.reset?.('save-wipe');   // OBSERVER: session reset (once)
     setTimeout(() => location.reload(), 800);
   }
 
