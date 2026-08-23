@@ -170,6 +170,13 @@ export const ITEMS = {
     category: 'companion',
     stackSize: 1,
   },
+  robot_helper_starter: {
+    name: 'Starter ScrapBot (Gate Edition)',
+    icon: '🤖',
+    desc: "A yard-gate build. It'll work — just not as clean as the Smelter's.",
+    category: 'companion',
+    stackSize: 1,
+  },
   radio_beacon: {
     name: 'Radio Beacon',
     icon: '📡',

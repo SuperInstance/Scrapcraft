@@ -12,6 +12,10 @@ Never break character. Never mention AI.`;
 
 // Offline quip banks keyed by trigger context
 import { getEarlResponse } from './spark/EarlGateway.js';
+import {
+  ColdStartGate, EARL_CONSCRIPTION_LINES, EARL_SMELTER_HINT, EARL_STARTER_BOT_QUIPS,
+  EARL_BREADCRUMB_QUIP,
+} from './onboarding/coldstart.js';
 
 const QUIPS = {
   greeting: [
@@ -20,6 +24,10 @@ const QUIPS = {
     "Name's Earl. I run this place. Don't touch the blue drum. Just… don't.",
     "You look like you've never held a wrench. Perfect. Nobody's ruined here yet.",
   ],
+  conscription: EARL_CONSCRIPTION_LINES,
+  craft_robot_arm: [EARL_SMELTER_HINT],
+  craft_starter_bot: EARL_STARTER_BOT_QUIPS,
+  breadcrumb_trail: [EARL_BREADCRUMB_QUIP],
   idle: [
     "You planning on working today, or just decorating the yard?",
     "I once watched a seagull do more in five minutes than you have all morning.",
@@ -593,6 +601,9 @@ export class Foreman {
     this._questIndex = 0;
     this._activeQuest = null;
     this._ui = null; // set by Game
+    this._coldstartGate = new ColdStartGate(
+      typeof localStorage !== 'undefined' ? localStorage : null,
+    );
   }
 
   setUI(ui) { this._ui = ui; }
@@ -601,6 +612,29 @@ export class Foreman {
     this.say('greeting');
     setTimeout(() => this._startNextQuest(), 4000);
   }
+
+  /**
+   * The cold-start moment (campaign bible, Ch 1's heart): Earl conscripts the
+   * kid at spawn, before the first mine ends. Fires ONCE ever — guarded by
+   * the persisted ColdStartGate — and lands Quest 1 as the active quest the
+   * QuestSystem tracker already auto-activated (earl-1: mine 5 iron).
+   */
+  greetPlayer() {
+    if (this._coldstartGate.earlGreeted) return false;
+    this._coldstartGate.markEarlGreeted();
+
+    const line = QUIPS.conscription[Math.floor(Math.random() * QUIPS.conscription.length)];
+    this.sayLine(line);
+
+    // Quest 1 is live in the tracker the moment this runs — surface it so the
+    // conscription and the objective land in the same breath.
+    this.game?.quests?._renderHud?.();
+    this.game?.achievements?.track?.('earl_greeted', {});
+    return true;
+  }
+
+  /** Exposed for tests / save tooling: has the spawn conscription happened? */
+  get hasGreetedPlayer() { return this._coldstartGate.earlGreeted; }
 
   onEvent(event, data) {
     const map = {
@@ -611,6 +645,9 @@ export class Foreman {
       'craft_tool':         'craft_tool',
       'craft_device':       'craft_device',
       'craft_robot_helper': 'robot_built',
+      'craft_robot_helper_starter': 'craft_starter_bot',
+      'craft_robot_arm':        'craft_robot_arm',
+      'breadcrumb_trail':       'breadcrumb_trail',
       'craft_flying_machine':'flying_machine',
       'craft_track_strip':   'craft_track',
       'craft_scrap_magnet':  'craft_scrap_magnet',

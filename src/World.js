@@ -196,6 +196,20 @@ export class World {
       for (let y = 1; y <= 4; y++) this.setBlock(48, y, bz, B.WALL_METAL);
       for (let y = 1; y <= 4; y++) this.setBlock(50, y, bz, B.WALL_METAL);
     }
+
+    // ── Junk-lantern breadcrumbs ── glowing markers along the east road from
+    //    spawn to the Smelter (cold-start fix: a kid with robot parts should
+    //    never be lost in their own yard). Earl rigged these years back.
+    //    Placed at the END of band 0 so scrap scatter can't bury the trail.
+    const trail = [
+      { x: 9,  z: 4 },
+      { x: 9,  z: 6 },
+      { x: 11, z: 7 },
+      { x: 13, z: 7 },
+      { x: 15, z: 7 },
+    ];
+    this.landmarks.smelter_trail = trail.map(t => ({ x: t.x, z: t.z }));
+    for (const t of trail) this.setBlock(t.x, 1, t.z, B.BEACON);
   }
 
   _band1(rng, W) {

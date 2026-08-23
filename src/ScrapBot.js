@@ -4,6 +4,7 @@ import { UnoPinModel } from './maker/PinModel.js';
 import { BotLedger } from './BotLedger.js';
 import { EXAMPLE_WALL_AVOIDER } from './maker/TileProgram.js';
 import { BotPersonality, randomBotName } from './BotPersonality.js';
+import { getEdition } from './data/botEditions.js';
 
 /**
  * ScrapBot — your robot companion, built from the robot_helper recipe.
@@ -102,13 +103,21 @@ export class ScrapBot {
 
   get isActive() { return this._active; }
 
+  /** Edition (standard | gate) — set BEFORE activate(). Slightly weaker
+   *  machine for the Gate Edition starter: slower, thirstier, rustier. */
+  setEdition(editionId) {
+    this.edition = getEdition(editionId);
+  }
+  get edition() { return this._edition ?? getEdition('standard'); }
+  set edition(e) { this._edition = e; }
+
   _buildMesh() {
     const group = new THREE.Group();
 
     const mat = (color, emissive = 0x000000) => new THREE.MeshLambertMaterial({ color, emissive, emissiveIntensity: 0.4 });
 
     // Body (store ref for neopixel tint)
-    const bodyMat = mat(0x7A8A9A);
+    const bodyMat = mat(this.edition.bodyColor);
     this._bodyMat = bodyMat;
     const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.55, 0.35), bodyMat);
     body.position.y = 0.8;
@@ -306,7 +315,7 @@ export class ScrapBot {
       const upgradeSpd = this._brainMode ? (this._game?.botUpgrades?.getMultiplier('speed') ?? 1) : 1;
       const panicSpd   = (this._panicBoostUntil && performance.now() < this._panicBoostUntil) ? 3 : 1;   // ROCKET OVERDRIVE
       const speedMult  = speedCoil * upgradeSpd * panicSpd;
-      moveDir.normalize().multiplyScalar(BOT_SPEED * speedMult * Math.min(1, (dist - FOLLOW_DIST + 1)));
+      moveDir.normalize().multiplyScalar(BOT_SPEED * this.edition.speedMult * speedMult * Math.min(1, (dist - FOLLOW_DIST + 1)));
       this._velocity.lerp(moveDir, 5 * dt);
     } else {
       this._velocity.multiplyScalar(0.9);
@@ -341,7 +350,7 @@ export class ScrapBot {
     const r0 = this._runtime?.robot;
     const driving    = r0 && Math.abs(r0.drivePower) > 0.08;
     const battLife   = this._game?.botUpgrades?.getMultiplier('battery_life') ?? 1;
-    this.battery = Math.max(0, this.battery - (dt * (driving ? 1.3 : 0.4)) / battLife);
+    this.battery = Math.max(0, this.battery - (dt * (driving ? 1.3 : 0.4)) * this.edition.batteryDrainMult / battLife);
     if (this.battery <= 0) {
       this.speak(this.personality.quip('battery_dead'));
       this._game?.ui?.notify('🔋 Bot battery depleted — use charging pad to recharge!');

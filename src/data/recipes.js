@@ -121,6 +121,22 @@ export const RECIPES = [
     foremanQuip: "It's alive! Or close enough. Don't get attached. (You're going to get attached.)",
   },
   {
+    // Gate Edition — the cold-start fast lane (critique §1 Friction D): same
+    // ingredients as the Smelter's bot, craftable at the Yard Gate workbench
+    // with a wrench. Slightly weaker machine (see data/botEditions.js), fully
+    // programmable. The gap between "I have a robot" and "I can program it"
+    // collapses to near-zero.
+    id: 'r_robot_helper_starter',
+    output: 'robot_helper_starter',
+    qty: 1,
+    ingredients: { robot_arm: 2, circuit_board: 4, gear_small: 6, battery_pack: 2, copper_wire: 5 },
+    station: 'workbench',
+    tool: 'wrench',
+    tier: 3,
+    unlockAfter: 'robot_arm',
+    foremanQuip: "It'll work, but not as clean as the Smelter's. Good enough for a first build, kid.",
+  },
+  {
     id: 'r_flying_machine',
     output: 'flying_machine',
     qty: 1,

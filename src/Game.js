@@ -26,6 +26,9 @@ import { NightShiftClock } from './NightShift.js';
 import { BotUpgrades, UPGRADE_DEFS } from './BotUpgrades.js';
 import { ScrapExchange, EXCHANGE_POS, EXCHANGE_RADIUS } from './ScrapExchange.js';
 import { OnboardingWizard } from './onboarding/OnboardingWizard.js';
+import { SettingsPanel } from './onboarding/SettingsPanel.js';
+import { ColdStartGate, sparkFirstGreeting } from './onboarding/coldstart.js';
+import { sparkGateway } from './spark/index.js';
 import { RaceBoard, NPC_GHOSTS, BEAT_QUIPS } from './RaceBoard.js';
 import { Codex } from './Codex.js';
 import { ClassRoom } from './ClassRoom.js';
@@ -107,11 +110,22 @@ export class Game {
 
     // Wrap addItem to feed the Codex — discover items as the player acquires them.
     // (this.codex is initialized below after the import is done)
+    // Cold-start gate: Spark's first hello fires on the FIRST item pickup —
+    // minute ~2, offline-safe, never gated on the Tile Editor again.
+    this._coldstart = new ColdStartGate(
+      typeof localStorage !== 'undefined' ? localStorage : null,
+    );
     const _origAdd = this.player.addItem.bind(this.player);
     this.player.addItem = (id, qty) => {
       this.codex?.discover(id) && this.achievements?.track('codex_discover', { count: this.codex.count });
       // Tutorial step 1: first item pickup advances mission
       if (this._tutorialActive && this._tutorialStep === 1) this._advanceTutorial();
+      // Spark's first appearance — campaign Ch 1's heart, pulled to minute 2
+      if (!this._coldstart.sparkGreeted) {
+        this._coldstart.markSparkGreeted();
+        const firstItem = id;
+        setTimeout(() => this._sparkFirstHello(firstItem), 600);
+      }
       return _origAdd(id, qty);
     };
 
@@ -309,12 +323,31 @@ export class Game {
     this._nearOvalSeen     = false;
     this._nightBonusShown  = false;
 
-    // ── Onboarding wizard (first-run only) ──
+    // ── Onboarding wizard (first-run only — 2 steps, no ceremony) ──
     this.onboarding = new OnboardingWizard(this);
     if (!this.onboarding.isComplete()) {
       setTimeout(() => this.onboarding.show(), 500);
     }
     this.onboarding.loadConfig();
+
+    // ── Settings → Advanced (post-spawn, optional): the old wizard's AI +
+    // Cloudflare steps live here now. Spark starts OFFLINE by default.
+    this.settings = new SettingsPanel(this);
+    {
+      const helpInner = document.getElementById('help-inner');
+      if (helpInner && !document.getElementById('help-settings-btn')) {
+        const btn = document.createElement('button');
+        btn.id = 'help-settings-btn';
+        btn.textContent = '⚙ Advanced Settings';
+        btn.style.cssText = 'margin-top:14px;width:100%;padding:9px 0;background:#0a0a0a;'
+          + 'border:1px solid #2a2a2a;border-radius:8px;color:#999;cursor:pointer;'
+          + "font-family:'Courier New',monospace;font-size:12px;letter-spacing:1px;";
+        btn.addEventListener('mouseenter', () => { btn.style.borderColor = '#f0b429'; btn.style.color = '#f0b429'; });
+        btn.addEventListener('mouseleave', () => { btn.style.borderColor = '#2a2a2a'; btn.style.color = '#999'; });
+        btn.addEventListener('click', () => { this._toggleHelp(false); this.settings.open(); });
+        helpInner.appendChild(btn);
+      }
+    }
 
     this._bindInput();
 
@@ -336,18 +369,25 @@ export class Game {
     this.quests = new QuestSystem(this, CAMPAIGN);
     this.quests.migrateLegacySave(this.foreman._questIndex ?? 0);
 
-    if (!loaded) {
-      setTimeout(() => this.foreman.greet(), 1200);
-      this._startTutorial();
-    } else {
+    // ── Cold start: Earl conscripts at spawn (campaign Ch 1's heart) ──────
+    // Fresh save + wizard already done → greet now. Fresh save + wizard
+    // pending → the wizard's finish() hands off via _onOnboardingComplete().
+    // Returning players: never re-greeted (the gate persists in localStorage).
+    this._freshGame = !loaded;
+    if (loaded) {
       this._returningSession = true;
+    } else if (this.onboarding.isComplete()) {
+      setTimeout(() => this.foreman.greetPlayer(), 1200);
+      this._startTutorial();
     }
 
     // Night Shift (comp-kimi port) — what the bot dragged in while away.
     // Runs at init, not on Start: the clock self-persists, so a tab refresh
-    // can't re-trigger a payout. Owning/braining a bot is the ticket in.
+    // can't re-trigger a payout. Owning/braining a bot is the ticket in —
+    // the Gate Edition starter counts (it's a real bot, just a rough one).
     const botHasBrain = !!this.scrapBot?._brainMode
-      || !!(this.player?.crafted?.has?.('robot_helper'));
+      || !!(this.player?.crafted?.has?.('robot_helper'))
+      || !!(this.player?.crafted?.has?.('robot_helper_starter'));
     this._nightShiftResult = this.nightShiftClock.sessionStart(botHasBrain);
     if (this._nightShiftResult) {
       for (const [id, qty] of Object.entries(this._nightShiftResult.loot)) {
@@ -385,6 +425,30 @@ export class Game {
   }
 
   // ── Mission Card tutorial (Phase A cold-open) ───────────────────────
+
+  /** The 2-step wizard finished (or was skipped): the yard takes over —
+   *  Earl conscripts at spawn, then the mission card walks the basics. */
+  _onOnboardingComplete() {
+    if (!this.foreman?.hasGreetedPlayer) {
+      setTimeout(() => this.foreman?.greetPlayer(), 600);
+    }
+    if (this._freshGame) this._startTutorial();
+  }
+
+  /** Spark's first hello — fires on the first item pickup (usually iron),
+   *  works fully offline, never repeats. Campaign Ch 1's heart at minute ~2. */
+  _sparkFirstHello(itemId) {
+    this.ui?.notify(`⚡ <b>Spark:</b> ${sparkFirstGreeting(itemId)}`);
+    this.audio?.spark?.();
+    this.achievements?.track?.('spark_met', {});
+  }
+
+  /** Settings → Advanced changed the config: hot-upgrade the yard's voices.
+   *  A key entered post-spawn upgrades Spark LIVE — no restart needed. */
+  onAdvancedConfigChanged() {
+    this.tileEditor?._spark?.refreshProvider?.();
+    sparkGateway.refresh();
+  }
 
   _startTutorial() {
     this._tutorialActive = true;
@@ -1623,6 +1687,17 @@ export class Game {
       setTimeout(() => this.scrapBot.activate(this.player.pos), 1000);
       this.rivet?.observe('bot_built');
     }
+    // Gate Edition starter bot — same parts, yard-gate workbench, slightly
+    // weaker machine. The point: press T and program it RIGHT NOW. The gap
+    // between "I have a robot" and "I can program it" is zero.
+    if (output === 'robot_helper_starter' && !this.scrapBot.isActive) {
+      this.scrapBot.setEdition('gate');
+      setTimeout(() => this.scrapBot.activate(this.player.pos), 1000);
+      this.rivet?.observe('bot_built');
+      setTimeout(() => {
+        this.ui?.notify('🧠 Press <b>T</b> anywhere — the Maker Lab can give your bot a brain right now.');
+      }, 2600);
+    }
     // First-time craft notifications
     if (output === 'wrench' && !this._notifiedWrench) {
       this._notifiedWrench = true;
@@ -2048,6 +2123,22 @@ export class Game {
     if (nearStation !== this._lastNearStation) {
       this._lastNearStation = nearStation;
       if (nearStation) this.foreman.onEvent(`near_${nearStation}`, {});
+    }
+
+    // Junk-lantern trail — once the kid has bot parts on hand and walks the
+    // lit east road, Earl tips his hat to his own handiwork (once per session).
+    if (!this._breadcrumbQuipShown && this.world.landmarks?.smelter_trail) {
+      const hasParts = this.player?.crafted?.has?.('robot_arm')
+        || this.player?.crafted?.has?.('robot_helper_starter');
+      if (hasParts) {
+        const nearLantern = this.world.landmarks.smelter_trail.some(
+          t => (p.x - t.x) ** 2 + (p.z - t.z) ** 2 < 9,
+        );
+        if (nearLantern) {
+          this._breadcrumbQuipShown = true;
+          this.foreman.onEvent('breadcrumb_trail', {});
+        }
+      }
     }
 
     // Scrap Exchange proximity — hint once per session when within range

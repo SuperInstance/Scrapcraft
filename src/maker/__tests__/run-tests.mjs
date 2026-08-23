@@ -18,6 +18,7 @@ import {
   EXAMPLE_BUMP_COUNTER,
 } from '../TileProgram.js';
 import { runQuestTests } from '../../quests/__tests__/quest-tests.mjs';
+import { runColdstartTests } from '../../onboarding/__tests__/coldstart-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -1804,6 +1805,10 @@ console.log('\nWelcome Back · night-shift section (one card, richest content)')
 // ── Quest framework: schema, tracker, logbook, migration, persistence ──────
 console.log('\nQuests');
 runQuestTests(ok);
+
+// ── Cold-start: wizard, conscription gates, starter bot, config, trail ─────
+console.log('\nCold-start');
+runColdstartTests(ok);
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);

@@ -1268,6 +1268,15 @@ export class TileEditor {
   _download() {
     if (this._codeLang === 'wiring') { this._downloadSVG(); return; }
     const isArd  = this._codeLang === 'arduino';
+    if (isArd) {
+      this._maybeRealityCheck(() => this._downloadFile());
+    } else {
+      this._downloadFile();
+    }
+  }
+
+  _downloadFile() {
+    const isArd  = this._codeLang === 'arduino';
     const text   = isArd ? toArduino(this._program) : toMicroPython(this._program);
     const ext    = isArd ? 'ino' : 'py';
     const name   = (this._program.name || 'brain').replace(/[^a-z0-9]+/gi, '_');
@@ -1280,6 +1289,10 @@ export class TileEditor {
   }
 
   _downloadWokwi() {
+    this._maybeRealityCheck(() => this._downloadWokwiNow());
+  }
+
+  _downloadWokwiNow() {
     const name   = (this._program.name || 'brain').replace(/[^a-z0-9]+/gi, '_');
     const sketch = toArduino(this._program);
     const diagram= toWokwiDiagram(this._program);
@@ -1305,11 +1318,53 @@ export class TileEditor {
   }
 
   async _handleFlash() {
-    if (!this._bridge || !this._bridge.isConnected) {
-      await this._connectAndFlash();
-    } else {
-      await this._doFlash();
-    }
+    this._maybeRealityCheck(async () => {
+      if (!this._bridge || !this._bridge.isConnected) {
+        await this._connectAndFlash();
+      } else {
+        await this._doFlash();
+      }
+    });
+  }
+
+  // ── Game ≠ Reality — the one-time pre-export briefing ─────────────────────
+
+  /**
+   * The virtual bot is a perfect world: 50% power spins the motor at exactly
+   * 50%. Real hardware has friction, noise, and opinions. This briefing fires
+   * ONCE (before the first Arduino/Wokwi/flash export) so a kid flashing real
+   * firmware meets reality prepared — then never interrupts again.
+   */
+  _maybeRealityCheck(then) {
+    let seen = false;
+    try { seen = localStorage.getItem('scrapcraft_reality_check') === '1'; } catch { /* ok */ }
+    if (seen) { then(); return; }
+    try { localStorage.setItem('scrapcraft_reality_check', '1'); } catch { /* ok */ }
+
+    const el = document.createElement('div');
+    el.id = 'reality-check-overlay';
+    el.style.cssText = 'position:fixed;inset:0;z-index:2300;background:rgba(4,4,4,0.92);'
+      + 'display:flex;align-items:center;justify-content:center;font-family:\'Courier New\',monospace;';
+    el.innerHTML = `
+      <div style="background:#121212;border:1px solid #2a2a2a;border-radius:14px;max-width:520px;width:92%;padding:26px 30px;box-shadow:0 8px 40px rgba(0,0,0,0.8);">
+        <h2 style="color:#f0b429;font-size:15px;letter-spacing:1.5px;margin:0 0 14px;">⚡ From Game to Reality</h2>
+        <p style="font-size:12px;color:#999;line-height:1.65;margin:6px 0;">This firmware will run on a <b style="color:#ddd;">real</b> microcontroller. Here's what to expect:</p>
+        <ul style="font-size:12px;color:#999;line-height:1.7;margin:10px 0;padding-left:18px;">
+          <li><b style="color:#ddd;">Motors:</b> real ones have friction — your 50% might spin like 40%. You'll tweak it. That's normal.</li>
+          <li><b style="color:#ddd;">Sensors:</b> real ones are noisy — 0.50, then 0.48, then 0.51. Thresholds are your friend.</li>
+          <li><b style="color:#ddd;">Debugging:</b> the real world can't be paused. Engineers print values and watch.</li>
+        </ul>
+        <p style="font-size:12px;color:#f0b429;margin:10px 0 0;">This is normal. Real engineers deal with this every day.</p>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
+          <button id="rc-continue" style="background:#f0b429;border:1px solid #f0b429;color:#000;font-weight:bold;border-radius:6px;padding:8px 18px;font-family:inherit;font-size:12px;cursor:pointer;letter-spacing:1px;">I understand — export</button>
+        </div>
+      </div>`;
+    document.body.appendChild(el);
+    el.querySelector('#rc-continue').addEventListener('click', () => {
+      el.remove();
+      this._game?.ui?.notify?.('🌍 Real hardware has friction — one knob at a time, and you\'ll be fine.');
+      then();
+    });
   }
 
   // ── AVR109 .hex flashing (hardware bridge milestone) ─────────────────────

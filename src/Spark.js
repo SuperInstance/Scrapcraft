@@ -235,6 +235,15 @@ export class Spark {
   get rateLimitRemaining() { return this._limiter.remaining; }
 
   /**
+   * Hot config change (Settings → Advanced): drop the cached provider so the
+   * next ask re-reads config. A key entered post-spawn upgrades Spark LIVE —
+   * offline recipes until then, no restart either way.
+   */
+  refreshProvider() {
+    this._provider = null;
+  }
+
+  /**
    * Resolve AI provider from onboarding config, env var, or fallback.
    * Returns { type, apiKey?, url?, provider? } or null for offline.
    */

@@ -21,6 +21,11 @@ export class SparkGateway {
     }
   }
 
+  /** Settings → Advanced changed the config: re-read it live (no restart). */
+  refresh() {
+    this._config = this._loadConfig();
+  }
+
   /** Returns the active provider config, or null if offline */
   getActiveProvider() {
     const config = this._config;
