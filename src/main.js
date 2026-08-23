@@ -11,7 +11,19 @@ const startBtn = document.getElementById('start-btn');
 // at page load, behind the start screen. On memory-fragile environments that
 // alone could tip the tab over. Now the yard is built lazily — CLOCK IN is
 // the "open" that spins up the renderer; the start screen itself is cheap DOM.
-const game = new Game(canvas);
+
+// World seed — ?seed=42 overrides the default yard (1337). Anything that
+// parses as an integer works; garbage falls back to the default.
+function seedFromURL() {
+  try {
+    const raw = new URLSearchParams(window.location.search).get('seed');
+    if (raw === null || raw === '') return undefined;
+    const n = Number.parseInt(raw, 10);
+    return Number.isFinite(n) ? n : undefined;
+  } catch { return undefined; }
+}
+
+const game = new Game(canvas, { seed: seedFromURL() });
 
 let booted = false;
 

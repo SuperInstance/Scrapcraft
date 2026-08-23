@@ -248,6 +248,48 @@ export class AudioSystem {
     this._noise(0.6, 0.03, 4000, t);
   }
 
+  // ── Ambient yard life (AmbientLife) — quiet, procedural, fail-soft ──────
+
+  /** Distant crane creak: something huge turning over, far away. */
+  craneCreak() {
+    this._ensure(); this._resume();
+    const t = this._ctx.currentTime;
+    // low groan: two detuned saws sliding down slowly
+    this._osc(48, 'sawtooth', t, 2.2, 0.028);
+    this._osc(51, 'sawtooth', t + 0.15, 2.0, 0.022);
+    // the creak proper: a thin squeak gliding high→low (frequency ramp via
+    // two short segments — _osc is fixed-freq, so step it)
+    this._osc(880, 'triangle', t + 0.3, 0.35, 0.02);
+    this._osc(660, 'triangle', t + 0.7, 0.4, 0.018);
+    this._osc(520, 'triangle', t + 1.15, 0.45, 0.015);
+  }
+
+  /** A bird leaving the piles: two bright blips, the second higher (gone). */
+  birdChirp() {
+    this._ensure(); this._resume();
+    const t = this._ctx.currentTime;
+    const f = 2300 + Math.random() * 500;
+    this._osc(f, 'sine', t, 0.09, 0.03);
+    this._osc(f * 1.35, 'sine', t + 0.11, 0.07, 0.025);
+    this._noise(0.14, 0.012, 6000, t);   // wing flutter
+  }
+
+  /** Wind gust: a low swell that leans in and lets go. */
+  windGust() {
+    this._ensure(); this._resume();
+    const t = this._ctx.currentTime;
+    this._noise(1.6, 0.035, 320, t);
+    this._noise(1.2, 0.028, 700, t + 0.35);
+  }
+
+  /** The yard cat: one small mew, almost polite. */
+  catMew() {
+    this._ensure(); this._resume();
+    const t = this._ctx.currentTime;
+    this._osc(620, 'sine', t, 0.22, 0.03);
+    this._osc(540, 'sine', t + 0.2, 0.18, 0.02);
+  }
+
   /** Zone ambient — called by Game when band changes */
   playBandAmbient(bandIdx) {
     if (!this._enabled) return;

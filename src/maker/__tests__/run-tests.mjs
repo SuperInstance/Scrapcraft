@@ -25,6 +25,7 @@ import { runNextStepTests } from '../../quests/__tests__/nextstep-tests.mjs';
 import { runPrestigeTests } from '../../prestige/__tests__/prestige-tests.mjs';
 import { runGeographyTests } from '../../world/__tests__/geography-tests.mjs';
 import { runWakesTests } from '../../story/__tests__/wakes-tests.mjs';
+import { runAmbientTests, runCompanionAmbientTests, runA11yPanelTests } from '../../world/__tests__/ambient-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -1841,6 +1842,12 @@ runPrestigeTests(ok);
 console.log('\nGeography');
 runGeographyTests(ok);
 runWakesTests(ok);
+
+// ── Ambient yard life + companion presence + a11y panels (beta P2s) ──────
+console.log('\nAmbient Yard Life');
+runAmbientTests(ok);
+runCompanionAmbientTests(ok);
+runA11yPanelTests(ok);
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
