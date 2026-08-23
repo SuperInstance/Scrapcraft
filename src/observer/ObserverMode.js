@@ -40,7 +40,7 @@ function isoNow() {
   try { return new Date().toISOString(); } catch { return null; }
 }
 
-const MILESTONE_KINDS = new Set(['first_mine', 'first_build', 'first_race']);
+const MILESTONE_KINDS = new Set(['first_mine', 'first_build', 'first_race', 'reset']);
 
 export class SessionObserver {
   /**
