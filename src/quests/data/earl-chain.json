@@ -136,21 +136,21 @@
       "id": "earl-11",
       "arc": "earl",
       "title": "Into the Deep",
-      "brief": "You've been sticking to the front yard. The Deep Yard — that's Band 3, all the way north — that's where the weird stuff is. Crystal ore. Old robot carcasses. Something I don't like talking about. Go find it.",
+      "brief": "You've been sticking to the front yard. The Deep Yard — that's Band 3, all the way north — is where the crystal ore blooms: thirty years of coolant and glass negotiating. Mine three. Don't ask what the formations assay as. (Glass. They assay as glass.) Go find it.",
       "affinity": "earl",
       "objectives": [
         {"type": "VISIT", "biome": "band3", "label": "Reach the Deep Yard"},
-        {"type": "MINE", "item": "crystal_fragment", "count": 3, "label": "Mine 3 crystal ore"}
+        {"type": "MINE", "item": "crystal_ore", "count": 3, "label": "Mine 3 crystal ore"}
       ],
       "prerequisites": {"quests": ["earl-10"], "flags": [], "companionTier": null},
       "rewards": {"loot": [{"item": "night_goggles", "qty": 1}], "xp": 25, "bond": {}, "flags": []},
-      "teaching": {"concept": "Exploration — discovering constraints and resources", "kidPhrase": "Every yard has a deep end. The one here has crystal and answers. Go find both. Only one of them is safe to touch.", "memory": "The Deep Yard felt wrong and right at the same time. Crystal fragments everywhere, catching the light like they were alive. Earl followed me out there, quiet. That meant something. — with Earl"}
+      "teaching": {"concept": "Exploration — discovering constraints and resources", "kidPhrase": "Every yard has a deep end. The one here has crystal and answers. Go find both. Only one of them is safe to touch.", "memory": "The Deep Yard felt wrong and right at the same time. Crystal formations everywhere, catching the light like they were alive — turns out they're glass, thirty years of chemistry. Earl wasn't surprised. He's never surprised. — with Earl"}
     },
     {
       "id": "earl-12",
       "arc": "earl",
       "title": "Headlamp Required",
-      "brief": "Craft a Headlamp — battery pack, glass shard, copper wire at the workbench. Then press G to toggle it. I don't care what you use it for. Stop bumping into things in the dark. That's my final answer.",
+      "brief": "Craft a Headlamp — battery pack, glass shard, copper wire, and two iron scrap at the workbench. Then hold it in hand and press G to toggle it. I don't care what you use it for. Stop bumping into things in the dark. That's my final answer.",
       "affinity": "earl",
       "objectives": [
         {"type": "CRAFT", "item": "headlamp", "label": "Craft a headlamp"},
@@ -191,7 +191,7 @@
       "id": "earl-15",
       "arc": "earl",
       "title": "Power the Sun",
-      "brief": "We're burning too much fuel, kid. Build a Solar Panel — glass shards, copper wire, circuit boards at the workbench. Place it somewhere the sun hits. Clean energy, no fumes. I hate it. But I love it.",
+      "brief": "We're burning too much fuel, kid. Build a Solar Panel — glass shards, copper wire, circuit boards, and two iron scrap at the forge. Place it somewhere the sun hits. Clean energy, no fumes. I hate it. But I love it.",
       "affinity": "earl",
       "objectives": [
         {"type": "CRAFT", "item": "solar_panel", "label": "Craft a solar panel"},
@@ -218,9 +218,10 @@
       "id": "earl-17",
       "arc": "earl",
       "title": "Full Coverage",
-      "brief": "I need to know what's buried in my yard without walking there. Build a Radar Dish — circuit boards, copper wire, the antenna you already made. Your minimap will show every ore vein nearby. That's synthetic aperture radar, kid. In a scrapyard. Build it.",
+      "brief": "I need to know what's buried in my yard without walking there. First wind yourself a Signal Antenna at the forge — copper wire, iron scrap, glass. Then the Radar Dish: circuit boards, copper wire, that antenna. Recipe book keeps the dish hidden till the antenna's real, so do that first. That's synthetic aperture radar, kid. In a scrapyard. Build it.",
       "affinity": "earl",
       "objectives": [
+        {"type": "CRAFT", "item": "antenna", "label": "Craft a signal antenna (the radar recipe unlocks at this point)"},
         {"type": "CRAFT", "item": "radar_dish", "label": "Craft a radar dish"}
       ],
       "prerequisites": {"quests": ["earl-16"], "flags": [], "companionTier": null},
