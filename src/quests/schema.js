@@ -49,6 +49,7 @@ export const ARC_SIZES = { earl: 20, bolt: 5, magma: 5, juno: 5, rivet: 5, final
 export const FINALE_ARC_GATE = 2;
 
 const ITEM_RE = /^[a-z0-9_]+$/;
+const STAT_RE = /^[a-zA-Z0-9_]+$/;   // game stats are camelCase
 const TOPIC_RE = /^[a-z0-9 -]+$/;
 
 /**
@@ -104,7 +105,7 @@ export function validateQuest(q) {
         need(Number.isInteger(o.runs) && o.runs > 0, `${where}: bad runs`);
         break;
       case 'STAT':
-        need(typeof o.stat === 'string' && ITEM_RE.test(o.stat), `${where}: bad stat`);
+        need(typeof o.stat === 'string' && STAT_RE.test(o.stat), `${where}: bad stat`);
         need(Number.isInteger(o.count) && o.count > 0, `${where}: bad count`);
         break;
       case 'EVENT':

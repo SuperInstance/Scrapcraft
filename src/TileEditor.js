@@ -433,6 +433,7 @@ export class TileEditor {
       this._sparkLog.scrollTop = this._sparkLog.scrollHeight;
 
       this._game?.companions?.observe('spark_consult', { note: String(text).slice(0, 30) });
+      this._game?.quests?.onSparkAsk?.(text);   // full question text — quest objectives match on it
       const reply = await this._spark.ask(text);
 
       thinking.remove();
@@ -620,6 +621,7 @@ export class TileEditor {
       if (!handled) {
         try {
           this._game?.companions?.observe('spark_consult', { note: String(q).slice(0, 30) });
+          this._game?.quests?.onSparkAsk?.(q);   // full question text — quest objectives match on it
           const reply = await this._spark.ask(q);
           thinking.remove();
           const cls = reply.kind === 'program' ? 'sp-msg sp-spark sp-built' : 'sp-msg sp-spark';

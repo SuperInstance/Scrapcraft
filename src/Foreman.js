@@ -721,6 +721,7 @@ export class Foreman {
   }
 
   _startNextQuest() {
+    if (this.game.quests) return;   // the QuestSystem owns quest-driving now
     if (this._questIndex >= QUESTS.length) return;
     this._activeQuest = QUESTS[this._questIndex];
     this._ui?.showQuest(this._activeQuest);
@@ -739,6 +740,7 @@ export class Foreman {
    * will complete on the next game event (satisfying, not jarring).
    */
   resumeQuest() {
+    if (this.game.quests) return false;   // the QuestSystem owns quest-driving now
     if (this._activeQuest) return false;
     const q = this.currentQuestDef();
     if (!q) return false;
@@ -750,6 +752,7 @@ export class Foreman {
   }
 
   _checkQuest() {
+    if (this.game.quests) return;   // the QuestSystem owns quest-driving now
     if (!this._activeQuest) return;
     const p = this.game.player;
     const done = this._activeQuest.steps.every(s => s.check(p, this.game));

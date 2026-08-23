@@ -37,6 +37,7 @@ import { voiceOut, voiceIn, announceRaceStart, announceLap, announcePersonalBest
 import { CompanionRoster, EARL_PAIRING_LINE } from './companion/registry.js';
 import { RivetAvatar } from './companion/avatar.js';
 import { CompanionGate, gateDeliveryLine } from './companion/entry.js';
+import { QuestSystem, CAMPAIGN } from './quests/index.js';
 
 export class Game {
   constructor(canvas) {
@@ -328,6 +329,13 @@ export class Game {
     // Load saved state — if none, show first-time greeting + tutorial.
     // Returning players get the Welcome Back flow after CLOCK IN (see start()).
     const loaded = this.saveSystem.load();
+
+    // ── QUEST FRAMEWORK (lau-style declarative quests) ─────────────────────
+    // Tracker + Logbook over the same event stream the foreman quips and the
+    // companions bond on. Old saves migrate: Earl's chain index → completed quests.
+    this.quests = new QuestSystem(this, CAMPAIGN);
+    this.quests.migrateLegacySave(this.foreman._questIndex ?? 0);
+
     if (!loaded) {
       setTimeout(() => this.foreman.greet(), 1200);
       this._startTutorial();
@@ -494,6 +502,10 @@ export class Game {
       }
       if (e.code === 'KeyG' && document.pointerLockElement && !this.ui.isOpen) {
         this._useActiveItem();
+      }
+      // The Logbook — the player's learning made visible (press L)
+      if (e.code === 'KeyL' && !this.ui.isOpen && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName ?? '')) {
+        this.quests?.openLogbook();
       }
       // ── Tutorial: detect E to advance step 2 ──
       if (e.code === 'KeyE') {

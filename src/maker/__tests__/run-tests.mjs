@@ -17,6 +17,7 @@ import {
   EXAMPLE_WALL_AVOIDER, EXAMPLE_LIGHT_RUNNER, EXAMPLE_SQUARE,
   EXAMPLE_BUMP_COUNTER,
 } from '../TileProgram.js';
+import { runQuestTests } from '../../quests/__tests__/quest-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -1800,6 +1801,10 @@ console.log('\nWelcome Back · night-shift section (one card, richest content)')
   const mercy = rollStreak({ lastDay: '2026-08-20', count: 4, best: 4, shield: true }, '2026-08-22');
   ok('shield state surfaces for the HUD chip (flame+shield)', mercy.count === 5 && mercy.shield === false && mercy.lastMercy === '2026-08-22');
 }
+// ── Quest framework: schema, tracker, logbook, migration, persistence ──────
+console.log('\nQuests');
+runQuestTests(ok);
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

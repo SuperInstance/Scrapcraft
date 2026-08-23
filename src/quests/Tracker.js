@@ -17,7 +17,7 @@
  * state adapter (injected) is the only window into the world.
  */
 
-import { validateCampaign } from './schema.js';
+import { validateCampaign, FINALE_ARC_GATE } from './schema.js';
 
 /** Spark topic aliases — a kid types it a dozen ways; all of them count. */
 const TOPIC_ALIASES = {
@@ -83,7 +83,8 @@ export class QuestTracker {
   register(quests) {
     const { ok, errors } = validateCampaign(quests);
     if (!ok) throw new Error(`campaign invalid: ${errors.join('; ')}`);
-    for (const q of quests) {
+    for (const def of quests) {
+      let q = def;
       if (q.arc !== 'earl' && q.arc !== 'finale' && !q.prerequisites?.companionTier) {
         q = {
           ...q,
@@ -147,9 +148,13 @@ export class QuestTracker {
   }
 
   /** Quests ready to walk (prereqs met, not done). They activate on sight —
-   *  this is a scoreboard, not paperwork. */
+   *  this is a scoreboard, not paperwork. The finale additionally gates on
+   *  FINALE_ARC_GATE completed companion arcs (engine-enforced, worldbible). */
   available() {
-    return this.questDefs.filter(q => !this.isCompleted(q.id) && this._prereqsMet(q));
+    return this.questDefs.filter(q =>
+      !this.isCompleted(q.id)
+      && this._prereqsMet(q)
+      && (q.arc !== 'finale' || this.completedArcs().length >= FINALE_ARC_GATE));
   }
 
   /** Everything currently in progress (auto-activated available quests). */
