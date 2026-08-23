@@ -99,18 +99,29 @@ export class CompanionGate {
     this._answers = [null, null];
     this._step = 0;
     this._el = null;
+    this._scrim = null;
     const mount = opts.mount ?? (typeof document !== 'undefined' ? document.body : null);
     if (mount) this._build(mount);
   }
 
   _build(mount) {
+    // Split-scrim siblings (HUD-ARCHITECTURE §1 + amendments): the scrim dims
+    // the 3D WORLD only — z:50 sits below the HUD layer (#hud z:90), and
+    // pointer-events:none lets clicks fall through to the world/HUD beneath.
+    this._scrim = document.createElement('div');
+    this._scrim.className = 'companion-gate-scrim';
+    this._scrim.style.cssText =
+      'position:fixed;inset:0;z-index:50;background:rgba(10,12,8,0.55);pointer-events:none;';
+    mount.appendChild(this._scrim);
+
+    // Card wrapper — transparent flex centering ABOVE the HUD (z:100). The
+    // inner card box below carries the opaque background, so the HUD between
+    // scrim and card keeps its full contrast during Earl's questions.
     this._el = document.createElement('div');
     this._el.id = 'companion-gate';
     this._el.style.cssText =
-      'position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;' +
-      // Translucent scrim — the yard drifts behind Earl's questions
-      // (world-before-menu); the card keeps the contrast.
-      'background:rgba(10,12,8,0.55);font-family:inherit;';
+      'position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;' +
+      'pointer-events:auto;font-family:inherit;';
     mount.appendChild(this._el);
     this._render();
   }
@@ -166,5 +177,10 @@ export class CompanionGate {
     this._onChosen(personaId, delivery);
   }
 
-  close() { this._el?.remove(); this._el = null; }
+  close() {
+    this._el?.remove();
+    this._scrim?.remove();
+    this._el = null;
+    this._scrim = null;
+  }
 }

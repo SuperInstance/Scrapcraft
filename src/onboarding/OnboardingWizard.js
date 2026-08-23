@@ -49,6 +49,7 @@ export class OnboardingWizard {
   constructor(game) {
     this.game = game;
     this.el = null;
+    this.scrim = null;
     this.currentStep = 0;
     this.config = {
       aiProvider: null,
@@ -92,6 +93,13 @@ export class OnboardingWizard {
       document.head.appendChild(style);
     }
 
+    // Split-scrim siblings (HUD-ARCHITECTURE §1 + amendments): the scrim dims
+    // the 3D world only (z:50, below the HUD's z:90, click-through); the card
+    // wrapper above (z:100) holds the opaque card. HUD stays at full contrast.
+    this.scrim = document.createElement('div');
+    this.scrim.className = 'ow-scrim';
+    document.body.appendChild(this.scrim);
+
     this.el = document.createElement('div');
     this.el.className = 'ow-overlay';
     this.el.id = 'onboarding-wizard';
@@ -120,8 +128,11 @@ export class OnboardingWizard {
     this.el.querySelector('#ow-back').addEventListener('click', () => this._prevStep());
     this.el.querySelector('#ow-skip').addEventListener('click', () => this.finish());
 
-    // Fade in
-    requestAnimationFrame(() => this.el.classList.add('ow-visible'));
+    // Fade in (both siblings)
+    requestAnimationFrame(() => {
+      this.scrim?.classList.add('ow-visible');
+      this.el.classList.add('ow-visible');
+    });
 
     this.renderStep();
   }
@@ -217,12 +228,15 @@ export class OnboardingWizard {
   finish() {
     this.markComplete();
 
-    // Animate out
+    // Animate out (both siblings), then remove both
     if (this.el) {
       this.el.classList.remove('ow-visible');
+      this.scrim?.classList.remove('ow-visible');
       setTimeout(() => {
         this.el?.remove();
         this.el = null;
+        this.scrim?.remove();
+        this.scrim = null;
         // Hand off: Earl conscripts at spawn, mission card starts, pointer locks.
         this.game._onOnboardingComplete?.();
         // Lock only if nothing else holds the opening — the yard gate may
@@ -241,13 +255,25 @@ export class OnboardingWizard {
   _css() {
     return `
 /* ── Onboarding Wizard — first-run overlay (2 steps, no ceremony) ── */
+/* Split scrim: dims the 3D world only — sits BELOW the HUD (z:50), clicks
+   pass through. The HUD (z:90) stays at full contrast behind the card. */
+.ow-scrim {
+  position: fixed; inset: 0;
+  background: rgba(8, 10, 6, 0.55);
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.ow-scrim.ow-visible {
+  opacity: 1;
+}
+/* Card wrapper: transparent flex centering ABOVE the HUD (z:100) — the
+   opaque .ow-card keeps its contrast over the bright HUD. */
 .ow-overlay {
   position: fixed; inset: 0;
-  /* Translucent scrim — the yard orbits behind the wizard (world-before-
-     menu); the card itself stays opaque so the copy keeps its contrast. */
-  background: rgba(8, 10, 6, 0.55);
   display: flex; align-items: center; justify-content: center;
-  z-index: 2000;
+  z-index: 100;
   font-family: 'Courier New', monospace;
   opacity: 0;
   transition: opacity 0.3s ease;
