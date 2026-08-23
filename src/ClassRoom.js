@@ -263,10 +263,10 @@ export class ClassRoom {
     #classroom-panel {
       position:fixed; inset:0; background:rgba(0,0,0,0.6);
       display:flex; align-items:center; justify-content:center;
-      z-index:210; opacity:0; transition:opacity 0.25s ease;
+      z-index:210; opacity:0; visibility:hidden; transition:opacity 0.25s ease, visibility 0.25s ease;
       font-family:'Courier New',monospace;
     }
-    #classroom-panel.show { opacity:1; }
+    #classroom-panel.show { opacity:1; visibility:visible; }
     .cr-card {
       background:#040c04; border:2px solid #226622;
       border-radius:12px; width:400px; max-width:95vw;

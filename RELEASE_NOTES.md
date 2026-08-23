@@ -45,7 +45,7 @@
 - **No multiplayer** — single-player only (localStorage saves are per-browser)
 - **No sound on some mobile browsers** — Web Audio requires user gesture; some browsers block autoplay context
 - **Save key is `scrapcraft_save_v6`** — resets on major save format changes
-- **World seed is fixed** (42) — no random seed or world customization options
+- **World seed is configurable** — default yard is `1337`; append `?seed=42` to the URL for a different world (any integer). No in-game seed picker yet
 - **No cloud saves** — localStorage is per-device
 - **AI requires API key** — Spark's live AI mode needs `VITE_ANTHROPIC_API_KEY` in `.env.local`; offline fallback covers common use cases
 - **Accessibility** — no screen reader support for tile editor; color-coded blocks lack alt text

@@ -407,9 +407,9 @@ export class BrainGallery {
       position: absolute; inset: 0;
       background: rgba(0,0,0,0.75);
       display: flex; align-items: center; justify-content: center;
-      opacity: 0; transition: opacity 0.2s ease;
+      opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease;
     }
-    .bg-overlay.bg-show { opacity: 1; }
+    .bg-overlay.bg-show { opacity: 1; visibility: visible; }
     .bg-card {
       background: #040c04; border: 2px solid #226622;
       border-radius: 12px; width: 760px; max-width: 96vw;

@@ -30,6 +30,7 @@ import { OnboardingWizard } from './onboarding/OnboardingWizard.js';
 import { SettingsPanel } from './onboarding/SettingsPanel.js';
 import { ColdStartGate, sparkFirstGreeting } from './onboarding/coldstart.js';
 import { DelightGate, delightLine, FIRST_DENT_RECOVERY, BATTERY_RECOVERY } from './onboarding/delights.js';
+import { AmbientLife, ambientLine, AMBIENT_NOTABLE } from './world/AmbientLife.js';
 import { sparkGateway } from './spark/index.js';
 import { RaceBoard, NPC_GHOSTS, BEAT_QUIPS } from './RaceBoard.js';
 import { Codex } from './Codex.js';
@@ -45,8 +46,12 @@ import { CompanionGate, gateDeliveryLine } from './companion/entry.js';
 import { QuestSystem, CAMPAIGN } from './quests/index.js';
 
 export class Game {
-  constructor(canvas) {
+  /** @param {HTMLCanvasElement} canvas
+   *  @param {object} [opts] { seed?: number } — world seed (?seed= in the
+   *  URL, see main.js). Default 1337, the yard kids know. */
+  constructor(canvas, opts = {}) {
     this.canvas = canvas;
+    this.seed = Number.isFinite(opts.seed) ? opts.seed : 1337;
     this._running = false;
     this._lastTime = 0;
 
@@ -60,6 +65,7 @@ export class Game {
     this._lastBandIndex   = -1;
     this._idleTimer       = 0;
     this._ambientTimer    = 0;
+    this._clock           = 0;   // session seconds — backs ambient chatter gaps
 
     // Tutorial state machine (shown on first load)
     this._tutorialActive  = false;
@@ -89,7 +95,7 @@ export class Game {
 
   init() {
     this.world    = new World(128, 128, 10);
-    this.world.generate(1337);
+    this.world.generate(this.seed);
 
     // Workshop OOM hardening — ?lite=1 flag / deviceMemory<4 heuristic decides
     // the render budget before anything heavy is built.
@@ -169,6 +175,17 @@ export class Game {
     this.weather = new WeatherSystem(this.renderer.scene, this.audio);
     // Expose weather to bot world adapters — updated by setGame() in ScrapBot
     this._weatherForBots = this.weather;
+
+    // Ambient yard life — the small weather between the spine's beats.
+    // Fail-soft by construction: missing systems no-op inside AmbientLife.
+    this.ambientLife = new AmbientLife({
+      scene: this.renderer?.scene ?? null,
+      audio: this.audio,
+      particles: this.particles,
+      dayNight: this.dayNight,
+      weather: this.weather,
+    });
+    this._lastAmbientReaction = -Infinity; // chatter budget for companion reactions
 
     this.projectiles = new ProjectileSystem(this.renderer.scene);
 
@@ -454,6 +471,24 @@ export class Game {
   }
 
   // ── First-hour delights — sound + visual + companion reaction, together ──
+
+  /** Ambient yard life said something notable (the cat crossed, the crane
+   *  sang). Occasionally the active companion has a feeling about it —
+   *  ≤1 reaction per 2 min, ~40% of notables, never mid-menu. */
+  _onAmbientEvent(id) {
+    if (!AMBIENT_NOTABLE.has(id)) return;
+    const now = this._clock ?? 0;
+    if (now - this._lastAmbientReaction < 120) return;
+    if (Math.random() >= 0.4) return;
+    try {
+      const c = this.companions?.active;
+      const line = ambientLine(id, this.companions?.activeId);
+      if (c && line) {
+        this._lastAmbientReaction = now;
+        c.say(line, { mood: 'happy', event: 'ambient', topic: id });
+      }
+    } catch { /* a cat comment must never crash the yard */ }
+  }
 
   /** A one-time wow beat: marks the gate, then lands audio + particles +
    *  the active companion's reaction. Fail-soft: any missing system no-ops. */
@@ -1994,6 +2029,8 @@ export class Game {
   }
 
   _update(dt) {
+    this._clock += dt;
+
     // Fuel boost timer
     if (this._fuelBoostTimer > 0) {
       this._fuelBoostTimer -= dt;
@@ -2045,6 +2082,15 @@ export class Game {
       this.foreman.onEvent(evtName, {});
       this.ui.setWeather(this.weather.state, this.weather.intensityValue);
     }
+
+    // Ambient yard life — one small event per 60–180s, fail-soft. The cat
+    // (and sometimes the crane) is worth a companion word; the rest stays
+    // wordless. Chatter budget: at most one ambient reaction per 2 min, and
+    // only ~40% of notables even get that.
+    try {
+      const fired = this.ambientLife?.tick(dt, this.player.pos);
+      if (fired) this._onAmbientEvent(fired.id);
+    } catch { /* the yard's small life never crashes the loop */ }
 
     // Player death (hp = 0) or fall off world
     const fell = this.player.pos.y < -5;

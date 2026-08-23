@@ -82,10 +82,10 @@
       background:rgba(0,0,0,0.82); border:1px solid #f0b429;
       padding:6px 20px; border-radius:20px;
       font-size:12px; color:#f0b429; letter-spacing:3px;
-      opacity:0; pointer-events:none;
-      transition: opacity 0.3s, transform 0.3s;
+      opacity:0; pointer-events:none; visibility:hidden;
+      transition: opacity 0.3s, transform 0.3s, visibility 0.3s;
     }
-    #zone-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    #zone-toast.show { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
 
     /* Block label — just above crosshair */
     #block-label {
@@ -215,9 +215,9 @@
       background:rgba(0,10,5,0.93); border:1px solid #1a5a2a;
       border-radius:6px; padding:8px 10px;
       font-family:'Courier New',monospace; font-size:9px;
-      opacity:0; transition:opacity 0.35s ease; pointer-events:none;
+      opacity:0; visibility:hidden; transition:opacity 0.35s ease, visibility 0.35s ease; pointer-events:none;
     }
-    #bot-speech-card.show { opacity:1; }
+    #bot-speech-card.show { opacity:1; visibility:visible; }
     #bsc-name {
       color:#00ff99; font-size:10px; font-weight:bold;
       letter-spacing:1px; margin-bottom:4px;
@@ -416,11 +416,11 @@
       width:min(420px, 88vw);
       background:rgba(10,12,16,0.94); border:1px solid #6a5a2a; border-radius:12px;
       padding:22px 26px 18px; z-index:600;
-      opacity:0; pointer-events:none;
-      transition:opacity 0.35s ease, transform 0.35s ease;
+      opacity:0; pointer-events:none; visibility:hidden;
+      transition:opacity 0.35s ease, transform 0.35s ease, visibility 0.35s ease;
       box-shadow:0 10px 40px rgba(0,0,0,0.6);
     }
-    #welcome-back.show { opacity:1; pointer-events:auto; transform:translate(-50%, -50%) scale(1); }
+    #welcome-back.show { opacity:1; visibility:visible; pointer-events:auto; transform:translate(-50%, -50%) scale(1); }
     #wb-title {
       font-size:20px; font-weight:bold; letter-spacing:2px; color:#f0b429;
       text-align:center; margin-bottom:2px;
@@ -483,12 +483,12 @@
       position:absolute; bottom:98px; left:50%; transform:translateX(-50%) translateY(6px);
       background:rgba(0,0,0,0.84); border:1px solid #444; border-radius:7px;
       padding:8px 18px; display:flex; align-items:center; gap:10px;
-      opacity:0; pointer-events:none;
-      transition:opacity 0.18s ease, transform 0.18s ease;
+      opacity:0; pointer-events:none; visibility:hidden;
+      transition:opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
       white-space:nowrap; max-width:340px;
     }
     #item-flash.show {
-      opacity:1; transform:translateX(-50%) translateY(0);
+      opacity:1; visibility:visible; transform:translateX(-50%) translateY(0);
     }
     .if-icon { font-size:26px; flex-shrink:0; }
     .if-text { display:flex; flex-direction:column; gap:2px; }
@@ -500,9 +500,9 @@
       position:absolute; bottom:90px; left:50%; transform:translateX(-50%);
       background:rgba(0,0,0,0.85); border:1px solid #555; border-radius:4px;
       padding:4px 10px; font-size:11px; color:#ddd; white-space:nowrap;
-      pointer-events:none; opacity:0; transition:opacity 0.1s;
+      pointer-events:none; opacity:0; visibility:hidden; transition:opacity 0.1s, visibility 0.1s;
     }
-    #hotbar-tip.show { opacity:1; }
+    #hotbar-tip.show { opacity:1; visibility:visible; }
 
     /* ── Notifications ── */
     #notifications {
@@ -581,10 +581,10 @@
     #flash-receipt {
       position:fixed; inset:0; background:rgba(0,0,0,0.75);
       display:flex; align-items:center; justify-content:center;
-      z-index:200; opacity:0; pointer-events:none;
-      transition:opacity 0.25s ease;
+      z-index:200; opacity:0; pointer-events:none; visibility:hidden;
+      transition:opacity 0.25s ease, visibility 0.25s ease;
     }
-    #flash-receipt.show { opacity:1; pointer-events:auto; }
+    #flash-receipt.show { opacity:1; pointer-events:auto; visibility:visible; }
     .fr-card {
       background:#040c04; border:2px solid #226622;
       border-radius:12px; width:560px; max-width:95vw; max-height:90vh;
@@ -717,10 +717,10 @@
       position:absolute; top:38%; left:50%; transform:translateX(-50%);
       background:rgba(0,0,0,0.92); border:2px solid #f0b429;
       border-radius:10px; padding:18px 36px; text-align:center;
-      pointer-events:none;
-      opacity:0; transition:opacity 0.25s ease;
+      pointer-events:none; visibility:hidden;
+      opacity:0; transition:opacity 0.25s ease, visibility 0.25s ease;
     }
-    #levelup-toast.show { opacity:1; }
+    #levelup-toast.show { opacity:1; visibility:visible; }
     #levelup-toast .lu-title { color:#f0b429; font-size:20px; font-weight:bold; letter-spacing:2px; }
     #levelup-toast .lu-skill { color:#ddd; font-size:13px; margin-top:6px; }
     #levelup-toast .lu-icon  { font-size:28px; margin-bottom:4px; }
@@ -732,7 +732,7 @@
       border-radius:10px 10px 10px 0; padding:5px 11px;
       font-size:12px; color:#eee; white-space:nowrap;
       transform:translate(-50%, -110%);
-      opacity:0; transition:opacity 0.2s;
+      opacity:0; visibility:hidden; transition:opacity 0.2s, visibility 0.2s;
       z-index:200;
     }
     .bot-speech::after {
@@ -741,7 +741,7 @@
     }
     .bot-speech.bot-speech-2 { border-color:#ff8c00; }
     .bot-speech.bot-speech-2::after { border-top-color:#ff8c00; }
-    .bot-speech.show { opacity:1; }
+    .bot-speech.show { opacity:1; visibility:visible; }
 
     /* ── Help overlay (H key) ── */
     #help-overlay {

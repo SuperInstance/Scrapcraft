@@ -25,6 +25,12 @@ import { getPersona } from './personas.js';
 const REACTIVE_DEBOUNCE_S = 5;     // min gap between reactive lines
 const IDLE_AFTER_S = 30;           // quiet this long → the companion notices things
 const OBSERVATION_COOLDOWN_S = 75; // don't narrate silence too eagerly
+// Hour-one presence: idle-only observations left moving kids in companion
+// silence — a first-hour kid NEVER stands still 30s. Ambient noticing fires
+// while moving too, at most once per ~3–4 min (the chatter-budget min-gap;
+// it shares OBSERVATION_COOLDOWN_S with the idle path so the two never stack).
+const AMBIENT_OBS_MIN_S = 180;
+const AMBIENT_OBS_JITTER_S = 60;
 const TALK_TIMEOUT_MS = 12000;
 
 export class Companion {
@@ -64,6 +70,8 @@ export class Companion {
     this._sinceReactive = Infinity;
     this._idleS = 0;
     this._sinceObservation = 0;
+    this._ambientS = 0;                     // moving-clock for hour-one presence
+    this._ambientGap = AMBIENT_OBS_MIN_S;   // first ambient notice at ~3 min in
     this._batteryWarned = false;
     this._talking = false;
 
@@ -224,6 +232,38 @@ export class Companion {
       }
     } else {
       this._idleS = 0;
+    }
+
+    // ambient noticing → hour-one presence. The kid is MOVING — mining,
+    // exploring, being new — and the companion still notices the world
+    // beside them. Hard min-gap (180–240s) + the shared observation cooldown
+    // + the chatter guard's unsolicited budget: one line per ~3–4 min,
+    // never mid-menu, never over the yard's chatter allowance.
+    if (ctx.locked && !ctx.midFlow) {
+      this._ambientS += dt;
+      if (this._ambientS >= this._ambientGap) {
+        const ready = this._sinceObservation >= OBSERVATION_COOLDOWN_S
+          && this._chatter.canSpeakUnsolicited();
+        const line = ready
+          ? (pickRoundnessIdle(this.persona, this.state, this._rng)
+            ?? pickObservationFresh(this.state, this._rng, this.persona.observations, this._memory, this.persona.ambient, this._ambientCtx, `${this.persona.id}:amb`))
+          : null;
+        if (line) {
+          this.say(line, { mood: 'idle', event: 'observation' });
+          this._chatter.commitUnsolicited();
+          this._syncMemory();
+          this._sinceObservation = 0;   // shared with the idle path — one budget
+          this._ambientS = 0;
+          this._ambientGap = AMBIENT_OBS_MIN_S + this._rng() * AMBIENT_OBS_JITTER_S;
+        } else {
+          // not speakable yet (chatter guard busy, cooldown running, or the
+          // bank drew a silent line) — hold the thought and re-check shortly:
+          // the moment isn't lost, just waiting its turn in the budget
+          this._ambientS = this._ambientGap - 12;
+        }
+      }
+    } else {
+      this._ambientS = 0;
     }
 
     // battery — one warning per low-charge episode (warnings bypass the
