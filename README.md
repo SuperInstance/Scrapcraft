@@ -709,6 +709,18 @@ The three-tier model: students start with **intent** ("follow the line"), gradua
 
 ---
 
+## The Rift (CNS integration)
+
+Scrapcraft is a first-class citizen of the fleet's central nervous system — the game is not a product but a **sensory organ**, and every nerve ending (bond points, radio discipline, tile-program genomes, spine chapters, yard wakes) is a signal the CNS can read. The junction is called **the Rift**:
+
+- **[`docs/cns/RIFT-MANIFESTO.md`](docs/cns/RIFT-MANIFESTO.md)** — the doctrine, in prose: the sensory-organ thesis, the Phase-1 findings, the proven feedback loop (Saddle field trial → judge → `c4afb31`), VHF half-duplex as comms law, and the kennel mapping (companions as dogs in training, tile programs as heritable bloodline).
+- **[`docs/cns/MAPPING-SPEC-V2.md`](docs/cns/MAPPING-SPEC-V2.md)** — the wiring diagram: the USCP transduction spec for social, equipment, and progression signals, plus the `lore://` registry skeleton aligned to the [scrapcraft-world](../scrapcraft-world) world bible. Every signal cites its source file; live vs proposed is labeled honestly.
+- **[`docs/cns/RIFT-PHASE-1.md`](docs/cns/RIFT-PHASE-1.md)** — the Phase-1 archive (agentic mapping, lore-RAG verification, the kinetic gap).
+
+The kennel doctrine itself lives fleet-side: [superinstance/THE_KENNEL.md](https://github.com/SuperInstance/superinstance) — companions are kennel dogs in training; a shared yard (Roblox-port multiplayer) is many sensory organs, one CNS.
+
+---
+
 ## Development
 
 ### Adding a new block
