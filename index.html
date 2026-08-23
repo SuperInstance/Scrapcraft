@@ -97,14 +97,14 @@
       white-space:nowrap;
     }
 
-    /* ── Health bar (bottom-left) ── */
+    /* ── Health bar (bottom-left) — contrast floor: opaque backdrop + shadow ── */
     #hud-health {
       position:absolute; bottom:90px; left:16px;
       display:flex; align-items:center; gap:6px;
-      background:rgba(0,0,0,0.55); padding:4px 8px;
+      background:rgba(0,0,0,0.75); padding:4px 8px;
       border-radius:6px; border:1px solid rgba(255,80,80,0.3);
     }
-    #hud-health-label { font-size:9px; color:#ff6666; letter-spacing:1px; }
+    #hud-health-label { font-size:9px; color:#ff6666; letter-spacing:1px; text-shadow:0 1px 3px rgba(0,0,0,0.9); }
     #hud-health-bar {
       width:80px; height:7px; background:#1a0000; border-radius:4px; overflow:hidden;
     }
@@ -115,7 +115,7 @@
     #hud-health-fill.warn { background:#cc7700; }
     #hud-health-fill.crit { background:#ff0000; animation:hp-pulse 0.5s ease-in-out infinite alternate; }
     @keyframes hp-pulse { from { opacity:0.6; } to { opacity:1; } }
-    #hud-health-num { font-size:9px; color:#ff9999; min-width:24px; text-align:right; }
+    #hud-health-num { font-size:10px; font-weight:bold; color:#ff9999; min-width:24px; text-align:right; text-shadow:0 1px 3px rgba(0,0,0,0.9); }
 
     /* ── Damage vignette ── */
     #damage-vignette {
@@ -333,17 +333,18 @@
     .bsh-title {
       color:#00cc66; letter-spacing:2px; font-size:9px;
       margin-bottom:5px; padding-bottom:4px; border-bottom:1px solid #0a2814;
+      text-shadow:0 1px 2px rgba(0,0,0,0.8);
     }
     .bsh-row { display:flex; align-items:center; gap:4px; margin:3px 0; }
-    .bsh-key  { color:#2a6040; min-width:62px; font-size:9px; letter-spacing:0.4px; flex-shrink:0; }
-    .bsh-val  { color:#00ff88; font-weight:bold; min-width:30px; font-size:10px; text-align:right; }
+    .bsh-key  { color:#2a6040; min-width:62px; font-size:10px; letter-spacing:0.4px; flex-shrink:0; font-weight:500; text-shadow:0 1px 2px rgba(0,0,0,0.8); }
+    .bsh-val  { color:#00ff88; font-weight:bold; min-width:30px; font-size:10px; text-align:right; text-shadow:0 1px 2px rgba(0,0,0,0.8); }
     .bsh-bar-wrap  { flex:1; height:4px; background:#0a1a10; border-radius:2px; overflow:hidden; }
     .bsh-bar-fill  { height:100%; background:#00cc66; border-radius:2px; transition:width 0.1s; }
     .bsh-bar-fill.warn  { background:#f0b429; }
     .bsh-bar-fill.alert { background:#ff4444; }
     .bsh-motors { margin-top:5px; padding-top:4px; border-top:1px solid #0a2814; }
     .bsh-motor-row { display:flex; align-items:center; gap:4px; margin:2px 0; }
-    .bsh-motor-key { color:#1e4a30; min-width:34px; font-size:9px; flex-shrink:0; }
+    .bsh-motor-key { color:#1e4a30; min-width:34px; font-size:10px; flex-shrink:0; text-shadow:0 1px 2px rgba(0,0,0,0.8); }
     .bsh-motor-bar-wrap {
       flex:1; height:4px; background:#0a1a10; border-radius:2px;
       position:relative; overflow:hidden;
@@ -352,7 +353,7 @@
       height:100%; position:absolute; top:0; border-radius:2px;
       transition:left 0.08s ease, width 0.08s ease;
     }
-    .bsh-motor-val { color:#007744; min-width:26px; font-size:9px; text-align:right; }
+    .bsh-motor-val { color:#007744; min-width:26px; font-size:10px; text-align:right; text-shadow:0 1px 2px rgba(0,0,0,0.8); }
 
     /* ── Weather HUD (top-left corner icon) ── */
     #weather-hud {
