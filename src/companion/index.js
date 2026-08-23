@@ -38,6 +38,10 @@ export {
   LineMemory, ChatterGuard, pickBanterFresh, pickObservationFresh, DEFAULT_RING_CAP,
 } from './variety.js';
 export {
+  BIG_MOMENT_EVENTS, isBigMoment, pickBigMomentFallback,
+  INITIATIVES, initiativeBankOf, pickInitiative,
+} from './liveliness.js';
+export {
   ENTRY_QUESTIONS, recommendCompanion, gateDeliveryLine, CompanionGate,
 } from './entry.js';
 export { storySummary, storySummaryText, quiltCells } from './story.js';

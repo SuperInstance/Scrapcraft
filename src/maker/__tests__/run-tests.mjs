@@ -1492,6 +1492,13 @@ console.log('\nCompanion variety — no line twice, cadence that respects the ki
   await runVarietyTests(ok);
 }
 
+// ── Companion liveliness suite (fast lane, initiative, variety, notice) ────
+console.log('\nCompanion liveliness — reactions that keep up, a friend who asks');
+{
+  const { runLivelinessTests } = await import('../../companion/__tests__/liveliness-tests.mjs');
+  await runLivelinessTests(ok);
+}
+
 // ── Render mode (?lite=1 / deviceMemory heuristic) ──────────────────────────
 console.log('\nRender mode — workshop OOM hardening');
 {

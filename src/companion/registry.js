@@ -256,7 +256,7 @@ export class CompanionRoster {
     line = line.replace(/\{(\w+)\}/g, (_, k) => (detail[k] !== undefined ? String(detail[k]) : `{${k}}`));
     this._sinceCrosstalk = 0;
     this.crosstalkCount++;
-    speaker.say(line, { event: 'crosstalk' });
+    speaker.say(line, { event: 'crosstalk', type: 'crosstalk' });
   }
 
   // ── ticking ────────────────────────────────────────────────────────────────
@@ -287,13 +287,13 @@ export class CompanionRoster {
         const loser = this.get(nudge.objection.id);
         const obj = pickObjection(nudge.objection.id, this._rng);
         if (loser && obj && loser.id !== nudge.id) {
-          loser.say(obj, { event: 'crosstalk', topic: nudge.objection.topic });
+          loser.say(obj, { event: 'crosstalk', topic: nudge.objection.topic, type: 'crosstalk' });
           this.crosstalkCount++;
           this._sinceCrosstalk = Math.min(this._sinceCrosstalk, CROSSTALK_COOLDOWN_S / 2);
         }
       }
       const speaker = this.get(nudge.id);
-      speaker.say(nudge.line, { mood: 'happy', event: 'nudge', topic: nudge.topic });
+      speaker.say(nudge.line, { mood: 'happy', event: 'nudge', topic: nudge.topic, type: 'nudge' });
     }
   }
 
