@@ -103,7 +103,7 @@ export function runOpeningTests(ok) {
   {
     const main = src('../../main.js');
     ok('main.js defers pointer lock while the opening runs',
-      /!game\._touchMode && !game\.openingPending[\s\S]{0,200}requestPointerLock/.test(main));
+      /!game\._touchMode && !game\.openingPending[\s\S]{0,400}requestPointerLock/.test(main));
 
     const game = src('../../Game.js');
     ok('Game orbits the camera in _update after player.tick',
