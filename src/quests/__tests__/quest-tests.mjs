@@ -7,10 +7,10 @@
  * DOM, no game imports.
  */
 
-import { validateQuest, validateCampaign, ARC_SIZES, FINALE_ARC_GATE } from '../schema.js';
+import { validateQuest, validateCampaign, validateSpine, ARC_SIZES, FINALE_ARC_GATE, SPINE_CHAPTERS, SPINE_ACT_LAYOUT, SPINE_BAND_NAMES } from '../schema.js';
 import { QuestTracker } from '../Tracker.js';
 import { Logbook } from '../Logbook.js';
-import { CAMPAIGN } from '../data/index.js';
+import { CAMPAIGN, SPINE } from '../data/index.js';
 import { ITEMS } from '../../data/items.js';
 
 export function runQuestTests(ok) {
@@ -299,5 +299,74 @@ export function runQuestTests(ok) {
        t2.data.progress['earl-9']?.events?.lap_complete === 1);
     ok('loaded tracker resumes the earl chain',
        new Set(t2.available().map(q => q.id)).has('earl-3'));
+  }
+
+  // ══ 9. The Spine: the twelve-chapter chapter map over the campaign ═══════
+  console.log('\nQuests · spine');
+  {
+    const v = validateSpine({ chapters: SPINE }, CAMPAIGN);
+    ok('spine passes validateSpine', v.ok, v.errors.join('; '));
+
+    // the task's three smoke assertions, explicit:
+    ok(`spine has exactly ${SPINE_CHAPTERS} chapters`, SPINE.length === SPINE_CHAPTERS);
+
+    const byId = new Map(CAMPAIGN.map(q => [q.id, q]));
+    const refs = SPINE.flatMap(c => c.quests);
+    ok('every referenced quest id exists in the campaign',
+       refs.every(id => byId.has(id)), refs.filter(id => !byId.has(id)).join(', '));
+
+    const bands = SPINE.map(c => c.unlockBand);
+    ok('unlock bands are monotonic (bands never re-lock)',
+       bands.every((b, i) => i === 0 || b >= bands[i - 1]), bands.join(','));
+
+    // structural: bible act layout, the earl chain fully regrouped, finale closes ch12
+    ok(`acts follow the bible's headers (${SPINE_ACT_LAYOUT.join(',')})`,
+       SPINE.every((c, i) => c.act === SPINE_ACT_LAYOUT[i]));
+    const earlRefs = refs.filter(id => id.startsWith('earl-'));
+    const uniqueEarl = new Set(earlRefs);
+    ok('all 20 earl-quests carry exactly one chapter each',
+       earlRefs.length === 20 && uniqueEarl.size === 20,
+       `referenced ${earlRefs.length}/${new Set(CAMPAIGN.filter(q => q.arc === 'earl').map(q => q.id)).size}, dupes: ${earlRefs.filter(id => earlRefs.indexOf(id) !== earlRefs.lastIndexOf(id)).join(',')}`);
+    ok('the Midnight Race closes the spine',
+       SPINE.at(-1).quests.includes('finale-midnight-race') &&
+       SPINE.slice(0, -1).every(c => !c.quests.includes('finale-midnight-race')));
+
+    // no quest carries two chapters (one chapter each, per schema)
+    const dupes = refs.filter((id, i) => refs.indexOf(id) !== i);
+    ok('no quest carries two chapters', dupes.length === 0, dupes.join(', '));
+
+    // band names ride the world's own vocabulary (World.js BANDS / yard-bible)
+    ok('band names match the world bands',
+       SPINE.every(c => SPINE_BAND_NAMES[c.band] === c.bandName));
+
+    // negative control: a spine that re-locks the yard must fail
+    const broken = structuredClone(SPINE);
+    broken[5].unlockBand = 1; // ch06 tries to re-lock Circuit City+
+    ok('validateSpine rejects band re-locking', !validateSpine({ chapters: broken }, CAMPAIGN).ok);
+    const ghost = structuredClone(SPINE);
+    ghost[3].quests = ['earl-1', 'no-such-quest']; // stale reference
+    ok('validateSpine rejects stale quest references', !validateSpine({ chapters: ghost }, CAMPAIGN).ok);
+  }
+
+  // ══ 10. Earl-chain rot regression: the fetch-middle tells the truth ══════
+  console.log('\nQuests · earl rot regression');
+  {
+    const q = id => byId.get(id);
+    // earl-17: radar dish is unlockAfter r_antenna — the quest must make the
+    // player wind the antenna first or the recipe never unlocks (was: "the
+    // antenna you already made" — no such step existed anywhere)
+    ok('earl-17 crafts the antenna before the radar dish',
+       q('earl-17').objectives.some(o => o.type === 'CRAFT' && o.item === 'antenna') &&
+       q('earl-17').objectives.some(o => o.type === 'CRAFT' && o.item === 'radar_dish'));
+    // earl-11: mining crystal ore counts via the crystalMined stat — the old
+    // objective asked for crystal_fragment, which crystal ore never drops
+    // (it assays as glass: drop glass_shard ×3, per the yard bible's lore)
+    ok('earl-11 counts crystal ORE mined (ore drops glass, not fragments)',
+       q('earl-11').objectives.some(o => o.type === 'MINE' && o.item === 'crystal_ore'));
+    // earl-15: the solar panel is a forge recipe — the brief used to say workbench
+    ok('earl-15 brief routes to the forge', /forge/.test(q('earl-15').brief) && !/workbench/.test(q('earl-15').brief));
+    // earl-12: full bill of materials + the G-key path (hold item, then use)
+    ok('earl-12 brief carries the full bill of materials',
+       /iron scrap/.test(q('earl-12').brief) && /hold/i.test(q('earl-12').brief));
   }
 }

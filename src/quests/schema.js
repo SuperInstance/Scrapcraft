@@ -48,6 +48,25 @@ export const ARC_SIZES = { earl: 20, bolt: 5, magma: 5, juno: 5, rivet: 5, final
  *  complete before the Midnight Race unlocks. The worldbible's campaign payoff. */
 export const FINALE_ARC_GATE = 2;
 
+/** The spine: the campaign bible's twelve chapters as a chapter map onto
+ *  existing quest ids — no new content. Acts follow the bible's own headers
+ *  (Act One Ch 1–4, Act Two Ch 5–10, Act Three Ch 11–12) — the prose line
+ *  "three acts of four" in campaign.md doesn't match its own act headers;
+ *  the headers are the authored truth. */
+export const SPINE_CHAPTERS = 12;
+
+/** Which act each chapter belongs to, ch01..ch12 (from campaign.md headers). */
+export const SPINE_ACT_LAYOUT = [1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3];
+
+/** Band names as the yard knows them (World.js BANDS / worldbible yard-bible.md — kept
+ *  literal here so schema.js stays headless: no game imports, pure data validation). */
+export const SPINE_BAND_NAMES = ['The Yard Gate', 'Industrial Corridor', 'Circuit City', 'The Deep Yard'];
+
+/** The companions that can lean into a chapter (personas.js pull-vector lens). */
+export const SPINE_COMPANIONS = ['bolt', 'magma', 'juno', 'rivet'];
+
+const CH_ID_RE = /^ch(0[1-9]|1[0-2])$/;
+
 const ITEM_RE = /^[a-z0-9_]+$/;
 const STAT_RE = /^[a-zA-Z0-9_]+$/;   // game stats are camelCase
 const TOPIC_RE = /^[a-z0-9 -]+$/;
@@ -201,6 +220,79 @@ export function validateCampaign(quests) {
   if (finales.length === 1 && (finales[0].prerequisites?.quests ?? []).length > 0) {
     errors.push('finale must gate on completed arcs (engine), not quest prereqs');
   }
+
+  return { ok: errors.length === 0, errors };
+}
+
+/**
+ * Validate the SPINE — the twelve-chapter chapter map (data/spine.json).
+ * Not a quest list: a chapter map that REFERENCES quests by id. Same doctrine
+ * as validateCampaign — declarative data, validated like it's load-bearing,
+ * because the whole game lay hangs off it.
+ *
+ * Invariants (docs/SPINE.md):
+ *  - exactly 12 chapters, ids ch01..ch12 in order, acts per SPINE_ACT_LAYOUT;
+ *  - bands: chapter geography 0..3 with bible band names;
+ *  - unlockBand (deepest band soft-unlocked when the chapter opens) is
+ *    monotonic non-decreasing — bands never re-lock (chapters may PLAY
+ *    anywhere already unlocked, hence ch07/ch11 sitting at band 0);
+ *  - 2–4 quest carriers per chapter, every id resolves into `quests`, no
+ *    quest carries two chapters, and the finale only ever closes ch12.
+ * @param {object} spine   { chapters: [...] } from data/spine.json
+ * @param {object[]} quests flat quest list the spine references (CAMPAIGN)
+ */
+export function validateSpine(spine, quests = []) {
+  const errors = [];
+  const need = (cond, msg) => { if (!cond) errors.push(msg); };
+  const byId = new Map(quests.map(q => [q.id, q]));
+  const chs = spine?.chapters;
+
+  need(Array.isArray(chs), 'spine.chapters must be an array');
+  if (!Array.isArray(chs)) return { ok: false, errors };
+  need(chs.length === SPINE_CHAPTERS, `spine has ${chs.length} chapters, expected ${SPINE_CHAPTERS}`);
+
+  const seenQuests = new Map(); // questId → chapterId (each quest carries at most one chapter)
+  let prevUnlock = -1;
+  chs.forEach((c, i) => {
+    const where = c?.id ?? `chapter[${i}]`;
+    need(typeof c?.id === 'string' && CH_ID_RE.test(c.id), `${where}: id must be ch01..ch12`);
+    need(c?.id === `ch${String(i + 1).padStart(2, '0')}`, `${where}: chapters must be ordered ch01..ch12`);
+    need(Number.isInteger(c?.act) && c.act === SPINE_ACT_LAYOUT[i], `${where}: act must be ${SPINE_ACT_LAYOUT[i]} (per campaign.md headers)`);
+    need(typeof c?.title === 'string' && c.title.length > 0, `${where}: missing title`);
+    need(typeof c?.bibleAnchor === 'string' && c.bibleAnchor.startsWith('worldbible/'), `${where}: bibleAnchor must point into the worldbible`);
+
+    // geography: band where the chapter's heart lives + deepest band unlocked so far
+    for (const k of ['band', 'unlockBand']) {
+      need(Number.isInteger(c?.[k]) && c[k] >= 0 && c[k] <= 3, `${where}: ${k} must be 0..3`);
+    }
+    need(c?.bandName === SPINE_BAND_NAMES[c?.band], `${where}: bandName "${c?.bandName}" ≠ band ${c?.band}'s name`);
+    need(c?.unlockBand >= prevUnlock, `${where}: unlockBand ${c?.unlockBand} re-locks the yard (was ${prevUnlock})`);
+    prevUnlock = c?.unlockBand ?? prevUnlock;
+
+    need(typeof c?.skill === 'string' && c.skill.length > 0, `${where}: missing skill`);
+    need(typeof c?.delight === 'string' && c.delight.length > 0, `${where}: missing delight`);
+    need(typeof c?.openingLine === 'string' && c.openingLine.length > 0 && c.openingLine.length <= 200,
+      `${where}: openingLine must be one Earl sentence (≤200 chars)`);
+
+    // carriers: 2–4 existing quests, referenced at most once campaign-wide
+    need(Array.isArray(c?.quests) && c.quests.length >= 2 && c.quests.length <= 4,
+      `${where}: needs 2–4 carrier quests (has ${c?.quests?.length})`);
+    for (const qid of c?.quests ?? []) {
+      if (!byId.has(qid)) errors.push(`${where}: carrier quest "${qid}" does not exist`);
+      if (seenQuests.has(qid)) errors.push(`${where}: quest "${qid}" already carries ${seenQuests.get(qid)} — one chapter each`);
+      seenQuests.set(qid, where);
+      if (qid === 'finale-midnight-race' && c.id !== 'ch12') errors.push(`${where}: the finale may only close ch12`);
+    }
+
+    // the lens: all four companions lean, one line each
+    const pv = c?.pullVector ?? {};
+    need(typeof pv === 'object' && SPINE_COMPANIONS.every(k => typeof pv[k] === 'string' && pv[k].length > 0),
+      `${where}: pullVector needs one line from each of ${SPINE_COMPANIONS.join('/')}`);
+  });
+
+  // the spine ends at the Midnight Race
+  const last = chs[chs.length - 1];
+  need(last?.quests?.includes('finale-midnight-race') === true, 'ch12 must carry the Midnight Race finale');
 
   return { ok: errors.length === 0, errors };
 }

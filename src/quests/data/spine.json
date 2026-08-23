@@ -1,0 +1,234 @@
+{
+  "_doc": "THE SPINE — the worldbible campaign's twelve chapters as a declarative chapter map riding the quest framework. This file is the MAP, not new quests: every chapter references existing quest ids (the earl chain regrouped across the acts + the companion arcs surfacing as the elastic middle). Data-only — Tracker already evaluates every referenced quest. See docs/SPINE.md.",
+
+  "chapters": [
+    {
+      "id": "ch01",
+      "act": 1,
+      "title": "The Gate Is Never Locked",
+      "bibleAnchor": "worldbible/campaign.md · Act One · Ch 1 — 'The Gate Is Never Locked'",
+      "band": 0,
+      "bandName": "The Yard Gate",
+      "unlockBand": 0,
+      "skill": "Salvage fundamentals — what the yard's blocks are, what they drop, why materials matter",
+      "delight": "The first dusk-to-floodlight transition seen from the gate — the yard lights up like a promise",
+      "quests": ["earl-1", "earl-3", "earl-10"],
+      "pullVector": {
+        "bolt": "Nothing to race yet — Bolt clocks your salvage pace anyway and files it under 'potential'.",
+        "magma": "The workshop hum starts here — Magma watches the first haul for heavy-metal promise.",
+        "juno": "Forty little fliers buzz the gate — Juno's already asking who you are and what you'll break.",
+        "rivet": "Arrived the same day you did — Rivet walks the Gate band at your shoulder, learning the yard as you learn it."
+      },
+      "openingLine": "You showed up with a wagon and no plan. Good — the yard's got plans enough for both of us."
+    },
+    {
+      "id": "ch02",
+      "act": 1,
+      "title": "Earn Your Tools",
+      "bibleAnchor": "worldbible/campaign.md · Act One · Ch 2 — 'Earn Your Tools'",
+      "band": 0,
+      "bandName": "The Yard Gate",
+      "unlockBand": 0,
+      "skill": "The crafting pipeline — inputs, stations, tiers; the right tool gates the right job",
+      "delight": "Your first hand-made wrench gets Earl's grudging nod — and Rivet's full-body slow-blink",
+      "quests": ["earl-2", "magma-1"],
+      "pullVector": {
+        "bolt": "Tools mean pit crew — Bolt mutters that a wrench is just a wheel wrench running slow.",
+        "magma": "Leans all the way in: the bench is Magma's church, and your first circuit board is the sermon.",
+        "juno": "Bored by benches — Juno drifts, but pockets a copper wire 'for a question I'm saving.'",
+        "rivet": "Certifies your first build by sleeping on it — the slow-blink is this chapter's whole grade."
+      },
+      "openingLine": "Bench is open, sympathy's closed — build yourself a wrench."
+    },
+    {
+      "id": "ch03",
+      "act": 1,
+      "title": "Something With Thumbs",
+      "bibleAnchor": "worldbible/campaign.md · Act One · Ch 3 — 'Something With Thumbs'",
+      "band": 0,
+      "bandName": "The Yard Gate",
+      "unlockBand": 1,
+      "skill": "System assembly — actuators, chassis, power; the moment a pile of parts becomes a someone",
+      "delight": "First boot beep — the yard anthem's first six notes, and every NPC in earshot glances over",
+      "quests": ["earl-4", "earl-5", "rivet-1"],
+      "pullVector": {
+        "bolt": "A bot with thumbs could hold a helmet — Bolt pretends not to care, then checks the actuators twice.",
+        "magma": "Actuators, chassis, power — Magma's home chapter; the lifter hands you the heavy parts.",
+        "juno": "The swarm escorts your battery delivery — to Juno, ceremony is just a very polite sensor reading.",
+        "rivet": "First shift with a teammate — Rivet logs the boot beep before it finishes."
+      },
+      "openingLine": "A pile of parts is just a pile, kid — right up until the day it beeps."
+    },
+    {
+      "id": "ch04",
+      "act": 1,
+      "title": "One Knob at a Time",
+      "bibleAnchor": "worldbible/campaign.md · Act One · Ch 4 — 'One Knob at a Time'",
+      "band": 0,
+      "bandName": "The Yard Gate",
+      "unlockBand": 1,
+      "skill": "The feedback loop — sense, think, act; one-variable-at-a-time debugging (the campaign's spine skill)",
+      "delight": "The first autonomous run — three obstacles avoided, a clean park, and Spark does a little flip",
+      "quests": ["earl-6", "earl-7", "juno-4"],
+      "pullVector": {
+        "bolt": "'A wall-avoider is a race program in diapers' — Bolt leans on the editor rail with old pit tricks.",
+        "magma": "Prefers the build bench to the editor, but goes flash-adjacent — Magma starts talking real boards.",
+        "juno": "The confound discipline IS a weird question — Juno leans in hard: hypothesis, run, watch.",
+        "rivet": "The balanced curriculum says program's next on the card — Rivet sits on the desk like a paperweight with opinions."
+      },
+      "openingLine": "One knob at a time, genius — change everything and you'll learn nothing but confusion."
+    },
+    {
+      "id": "ch05",
+      "act": 2,
+      "title": "The Oval Has Opinions",
+      "bibleAnchor": "worldbible/campaign.md · Act Two · Ch 5 — 'The Oval Has Opinions'",
+      "band": 2,
+      "bandName": "Circuit City",
+      "unlockBand": 2,
+      "skill": "Closed-loop feedback — line-following, thresholds, why repeatable beats fast",
+      "delight": "Your name on the chalkboard at the bottom, in a color June picked 'for visibility'",
+      "quests": ["earl-9", "juno-1", "bolt-1"],
+      "pullVector": {
+        "bolt": "Home turf — Bolt owns the pit wall, times your splits, and calls the 0.4 seconds 'a generous margin'.",
+        "magma": "Speed hardware is still hardware — Magma quietly upgrades your motor driver between heats.",
+        "juno": "Surveys the Oval's geometry for the swarm map — and asks June what the chalk colors mean.",
+        "rivet": "The curriculum says race — Rivet patrols the oval edge, keeping your bot together lap after lap."
+      },
+      "openingLine": "June runs it in twenty-three flat. You're about to lose by four tenths — go find out what a tenth is."
+    },
+    {
+      "id": "ch06",
+      "act": 2,
+      "title": "The Library of Almosts",
+      "bibleAnchor": "worldbible/campaign.md · Act Two · Ch 6 — 'The Library of Almosts'",
+      "band": 3,
+      "bandName": "The Deep Yard",
+      "unlockBand": 3,
+      "skill": "Sensor interpretation & calibration — the Deep Yard's hazards make sensors matter",
+      "delight": "Quill pays you in a crystal that hums when the weather's about to turn — and it's right",
+      "quests": ["earl-11", "earl-16", "juno-3"],
+      "pullVector": {
+        "bolt": "Nothing to race in the boneyard — Bolt hangs back, but tells you which ruts eat speed anyway.",
+        "magma": "The Deep Yard prototypes are Magma's lost cousins — the lifter reads the wrecks like family albums.",
+        "juno": "This is Juno's chapter — wind-chimes, weird questions, sensors that matter; the swarm goes in first.",
+        "rivet": "Walks point through the clutter — a repair drone's map of 'almost worked' is a parts list."
+      },
+      "openingLine": "Past the warehouses the pavement quits and the junk gets honest — that's the Deep Yard."
+    },
+    {
+      "id": "ch07",
+      "act": 2,
+      "title": "The Same Robot, Real",
+      "bibleAnchor": "worldbible/campaign.md · Act Two · Ch 7 — 'The Same Robot, Real'",
+      "band": 0,
+      "bandName": "The Yard Gate",
+      "unlockBand": 3,
+      "skill": "Hardware abstraction — game brain to real firmware; the three-tier ladder (intent → tiles → code)",
+      "delight": "Your own program scrolling past as real C++ — Spark vibrating: 'THAT'S YOUR BRAIN IN CODE LANGUAGE'",
+      "quests": ["earl-8", "magma-3", "earl-18", "earl-15"],
+      "pullVector": {
+        "bolt": "'Same brain, real chip' — Bolt watched this trick at Brightworks and still pretends it's routine.",
+        "magma": "All the way in — real code and real power are Magma's religion; the export header gets shown around the workshop.",
+        "juno": "Asks Spark who QA-Sticker #7 is — then goes quiet for exactly one second too long itself.",
+        "rivet": "Certifies the export the only way Rivet certifies: sleeps on the receipt, slow-blinks the diagram."
+      },
+      "openingLine": "Game robot, real robot, same program — today you find out I wasn't kidding."
+    },
+    {
+      "id": "ch08",
+      "act": 2,
+      "title": "Fail Loudly",
+      "bibleAnchor": "worldbible/campaign.md · Act Two · Ch 8 — 'Fail Loudly'",
+      "band": 2,
+      "bandName": "Circuit City",
+      "unlockBand": 3,
+      "skill": "Failure analysis — post-mortems as curriculum; debugging as reading the past",
+      "delight": "The Codex unlocks 'Fail Loudly' and every plaque-wreck's floodlight flickers on in sequence — failure, lit up like an honor guard",
+      "quests": ["juno-2", "rivet-4", "juno-5"],
+      "pullVector": {
+        "bolt": "Reads the crash plaques like race post-mortems — half these wrecks Bolt watched from the pits.",
+        "magma": "Brownout, stall current, thermals — Magma recites the plaques from memory; failures are workshop scripture.",
+        "juno": "The plaque trail is Juno's syllabus — every wreck is a question the yard already answered.",
+        "rivet": "Patrols plaque to plaque — the keeper's round was always this walk, just unnamed."
+      },
+      "openingLine": "Every wreck out there wrote a letter to whoever's next. You're next, kid — read your mail."
+    },
+    {
+      "id": "ch09",
+      "act": 2,
+      "title": "Candlelight at 11:58",
+      "bibleAnchor": "worldbible/campaign.md · Act Two · Ch 9 — 'Candlelight at 11:58'",
+      "band": 2,
+      "bandName": "Circuit City",
+      "unlockBand": 3,
+      "skill": "Sensing in low-signal regimes — light thresholds, filtering, night calibration; evidence discipline",
+      "delight": "Goosebumps as gameplay — floods dip to night mode, one candlelight beacon takes the first corner, and the yard goes silent except the timing post",
+      "quests": ["earl-12", "bolt-3"],
+      "pullVector": {
+        "bolt": "Midnight on the oval is Bolt's old shift — it teaches you to stand still and watch the corner.",
+        "magma": "Night goggles and floodlight wiring — Magma checks your lamp twice; dark workshops are its origin story.",
+        "juno": "Low-signal sensing is Juno's favorite mystery — the swarm dims its lights to watch with you.",
+        "rivet": "Sits at your boot the whole watch — the first to believe you about the candlelight."
+      },
+      "openingLine": "Floods dip at 11:58 — stand still, watch the candlelight corner, and don't you dare holler."
+    },
+    {
+      "id": "ch10",
+      "act": 2,
+      "title": "The Manifest of Midnights",
+      "bibleAnchor": "worldbible/campaign.md · Act Two · Ch 10 — 'The Manifest of Midnights'",
+      "band": 0,
+      "bandName": "The Yard Gate",
+      "unlockBand": 3,
+      "skill": "Data logging & signal analysis — the engineer-as-detective toolkit: compare, timestamp, correlate",
+      "delight": "The Ghost's tire tracks chalked onto the oval with the whole crew — lining up with nobody's steering but Earl's certification choreography",
+      "quests": ["earl-13", "rivet-3", "earl-14", "earl-17"],
+      "pullVector": {
+        "bolt": "Tire treads and steering patterns — Bolt can read a corner in a chalk line and proves it on the oval.",
+        "magma": "Builds the gear that gets numbers — radar, loggers, the antenna you wind yourself.",
+        "juno": "Correlation is a weird question asked forty ways — the swarm times the 11:58 clicks to the second.",
+        "rivet": "Walks the manifest route with Ox — twenty years of patrol finally has a reason."
+      },
+      "openingLine": "Hunches don't open shed doors — bring me numbers: treads, ticks, timestamps."
+    },
+    {
+      "id": "ch11",
+      "act": 3,
+      "title": "The Back Room",
+      "bibleAnchor": "worldbible/campaign.md · Act Three · Ch 11 — 'The Back Room'",
+      "band": 0,
+      "bandName": "The Yard Gate",
+      "unlockBand": 3,
+      "skill": "Integration — multi-system rebuild under constraint; every plaque lesson is one of Mo's rebuild tasks",
+      "delight": "Mo's two-note thank-you chirp, three times — 'she's been saving them up' — and urgent shed-business gets invented by everyone",
+      "quests": ["rivet-2", "earl-19", "rivet-5"],
+      "pullVector": {
+        "bolt": "Tuning Mo's line sensor like it's race day — because it is; the pit crew assembles itself.",
+        "magma": "The rebuild is Magma's masterclass — every plaque lesson is a bolt to torque and it knows them all.",
+        "juno": "The swarm stands honor guard at the back room door — even forty fliers know a somebody when she beeps.",
+        "rivet": "The keeper's round ends at the bench where it started — Rivet supervises the rebuild, then sleeps on it."
+      },
+      "openingLine": "Back room's open. First time in twenty-six years — mind the boxes marked M."
+    },
+    {
+      "id": "ch12",
+      "act": 3,
+      "title": "The Midnight Race",
+      "bibleAnchor": "worldbible/campaign.md · Act Three · Ch 12 — 'The Midnight Race'",
+      "band": 2,
+      "bandName": "Circuit City",
+      "unlockBand": 3,
+      "skill": "Everything, integrated — night racing, closed loops, tuned thresholds, race-day power checks",
+      "delight": "Mo's long tone rising at the finish — confetti, the anthem's six notes from every bot, and: LAP 1. TIME: TWENTY-SIX YEARS.",
+      "quests": ["bolt-5", "magma-5", "earl-20", "finale-midnight-race"],
+      "pullVector": {
+        "bolt": "One last hot lap before midnight — Bolt writes the pit board and finally says the word 'ready.'",
+        "magma": "Voltage checks before the finals — Magma taps the battery like a keg and calls it race-day-proof.",
+        "juno": "Times the anthem's six notes from every bot in the yard — the swarm's chorus, on cue at the line.",
+        "rivet": "Takes the last corner post with Earl — the certification slow-blink is already loaded for Mo."
+      },
+      "openingLine": "Floodlights, midnight, whole town in the bleachers — you get the gate, kid. I'll take the last corner."
+    }
+  ]
+}
