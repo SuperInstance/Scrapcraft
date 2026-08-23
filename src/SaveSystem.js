@@ -96,6 +96,7 @@ export class SaveSystem {
   /** Show a confirm then wipe. */
   wipe() {
     if (!confirm('Delete all saved progress? This cannot be undone.')) return;
+    try { sessionStorage.setItem('scrapcraft.self_reload', '1'); } catch { /* optional */ }
     this._backend.wipe().catch(() => {});
     this._game.ui?.notify('🗑 Save deleted. Reloading...');
     setTimeout(() => location.reload(), 800);

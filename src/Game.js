@@ -477,9 +477,13 @@ export class Game {
 
     // Never lose a session to a closed tab — save on exit / tab hide.
     // (Autosave is 60s; a kid yanking the power cord shouldn't lose a lap.)
-    window.addEventListener('beforeunload', () => this.saveSystem.saveOnExit());
+    // GUARD: self-initiated reloads (veteran ride / restore / wipe) carry a
+    // flag — exit-save during them would overwrite the just-written slot
+    // (rig v3 P0-1/P0-2: the veteran save never survived its own reload).
+    const selfReload = () => { try { return sessionStorage.getItem('scrapcraft.self_reload') === '1'; } catch { return false; } };
+    window.addEventListener('beforeunload', () => { if (!selfReload()) this.saveSystem.saveOnExit(); });
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') this.saveSystem.saveOnExit();
+      if (document.visibilityState === 'hidden' && !selfReload()) this.saveSystem.saveOnExit();
     });
 
     // Paint today's contract chip right away (progress may be mid-contract)
@@ -2268,6 +2272,7 @@ export class Game {
       localStorage.setItem(VETERAN_SAVE_KEY, raw);   // provenance slot
       localStorage.setItem(LIVE_SAVE_KEY, raw);      // THE profile switch
       localStorage.setItem('scrapcraft.profile', 'veteran');
+      try { sessionStorage.setItem('scrapcraft.self_reload', '1'); } catch { /* storage optional */ }
       location.reload();
       return true;
     } catch { /* a failed ride must never brick the boot */ }
@@ -2284,6 +2289,7 @@ export class Game {
       if (!raw) { localStorage.removeItem('scrapcraft.veteran.backup'); return false; }
       localStorage.setItem(LIVE_SAVE_KEY, raw);
       localStorage.removeItem('scrapcraft.veteran.backup');
+      try { sessionStorage.setItem('scrapcraft.self_reload', '1'); } catch { /* storage optional */ }
       location.reload();
       return true;
     } catch { /* restore is a garnish — never a crash */ }
