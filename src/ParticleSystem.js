@@ -2,6 +2,17 @@ import * as THREE from 'three';
 
 const MAX = 800;
 
+const PRESETS = {
+  mine:    { r:[1,0.5,0],    g:[0.6,0.3,0],    b:[0,0,0],      speed:3,   life:0.6, spread:0.4, gravity: 5 },
+  pickup:  { r:[0.4,0.6,0],  g:[1,0.9,0.5],    b:[0.4,0.5,0],  speed:2,   life:0.5, spread:0.2, gravity: 2 },
+  craft:   { r:[0.4,0.8,1],  g:[0.6,1,0.8],    b:[1,1,1],      speed:2.5, life:0.8, spread:0.5, gravity: 1 },
+  ember:   { r:[1,0.8,0],    g:[0.3,0.2,0],    b:[0,0,0],      speed:1.5, life:1.0, spread:0.3, gravity:-1 },
+  smoke:   { r:[0.5,0.5,0.5],g:[0.5,0.5,0.5],  b:[0.5,0.5,0.5],speed:0.5, life:2,   spread:0.2, gravity:-1 },
+  track:   { r:[1,1,0.6],    g:[0.8,0.6,0.1],  b:[0,0,0],      speed:1,   life:0.3, spread:0.3, gravity: 6 },
+  circuit: { r:[0,0.6,1],    g:[0.2,0.9,0.8],  b:[0.5,1,1],    speed:2,   life:0.6, spread:0.6, gravity: 0 },
+  confetti:{ r:[1,0,0.5],    g:[0.8,1,0],      b:[0,0.6,1],    speed:3,   life:1.2, spread:0.8, gravity: 3 },
+};
+
 export class ParticleSystem {
   constructor(scene) {
     this.scene = scene;
@@ -51,20 +62,7 @@ export class ParticleSystem {
    * type: 'mine' | 'pickup' | 'craft' | 'ember' | 'smoke'
    */
   burst(x, y, z, type = 'mine', count = 12) {
-    const presets = {
-      mine:    { r:[1,0.5,0],    g:[0.6,0.3,0],    b:[0,0,0],      speed:3,   life:0.6, spread:0.4, gravity: 5 },
-      pickup:  { r:[0.4,0.6,0],  g:[1,0.9,0.5],    b:[0.4,0.5,0],  speed:2,   life:0.5, spread:0.2, gravity: 2 },
-      craft:   { r:[0.4,0.8,1],  g:[0.6,1,0.8],    b:[1,1,1],      speed:2.5, life:0.8, spread:0.5, gravity: 1 },
-      ember:   { r:[1,0.8,0],    g:[0.3,0.2,0],    b:[0,0,0],      speed:1.5, life:1.0, spread:0.3, gravity:-1 },
-      smoke:   { r:[0.5,0.5,0.5],g:[0.5,0.5,0.5],  b:[0.5,0.5,0.5],speed:0.5, life:2,   spread:0.2, gravity:-1 },
-      // Bot on track — yellow sparks trailing low
-      track:   { r:[1,1,0.6],    g:[0.8,0.6,0.1],  b:[0,0,0],      speed:1,   life:0.3, spread:0.3, gravity: 6 },
-      // Brain load — cyan circuit burst
-      circuit: { r:[0,0.6,1],    g:[0.2,0.9,0.8],  b:[0.5,1,1],    speed:2,   life:0.6, spread:0.6, gravity: 0 },
-      // Lap complete — confetti colors
-      confetti:{ r:[1,0,0.5],    g:[0.8,1,0],      b:[0,0.6,1],    speed:3,   life:1.2, spread:0.8, gravity: 3 },
-    };
-    const p = presets[type] ?? presets.mine;
+    const p = PRESETS[type] ?? PRESETS.mine;
 
     for (let i = 0; i < count; i++) {
       const idx = this._alloc();
@@ -103,13 +101,15 @@ export class ParticleSystem {
   }
 
   tick(dt) {
-    let i = this._particles.length;
-    while (i--) {
+    let i = 0;
+    while (i < this._particles.length) {
       const p = this._particles[i];
       p.life -= dt;
       if (p.life <= 0) {
         this._release(p.idx);
-        this._particles.splice(i, 1);
+        // Swap-remove: move last to this position
+        this._particles[i] = this._particles[this._particles.length - 1];
+        this._particles.pop();
         continue;
       }
       p.vy -= p.gravity * dt;
@@ -125,6 +125,7 @@ export class ParticleSystem {
       this._colors[ii]     = p.cr * alpha;
       this._colors[ii + 1] = p.cg * alpha;
       this._colors[ii + 2] = p.cb * alpha;
+      i++;
     }
 
     this._geo.attributes.position.needsUpdate = true;

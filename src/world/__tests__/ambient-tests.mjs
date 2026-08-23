@@ -100,11 +100,11 @@ export function runAmbientTests(ok) {
     ok('a throwing sound system never crashes the yard', any !== null);
   }
 
-  // ══ 4. Cat lifecycle: builds, crosses, removes itself ═══════════════════
+  // ══ 4. Cat lifecycle: builds, crosses, hides itself (pooled) ═════════════
   console.log('\nAmbientLife · the yard cat');
   {
-    const added = [], removed = [];
-    const scene = { add: m => added.push(m), remove: m => removed.push(m) };
+    const added = [];
+    const scene = { add: m => added.push(m) };
     // rng schedule: [ctor gap, re-arm, pick] → 60s gap, then the weighted
     // roll (0.999) lands on the cat: crane 3 + bird 3 + stack 2 + wind 2 = 10
     // of 11.2 total — the cat takes the remainder
@@ -117,14 +117,14 @@ export function runAmbientTests(ok) {
     ok('cat mesh joins the scene at play time', added.length === 2);
 
     // rng cycles on: dur draw 0.0 → 6s, then wraps… all draws deterministic;
-    // burn generously — she takes her time, then she's gone
-    let removedAt = -1;
+    // burn generously — she takes her time, then she's hidden
+    let hiddenAt = -1;
     for (let s = 1; s <= 20; s++) {
       al.tick(1);
-      if (removed.length && removedAt === -1) removedAt = s;
+      if (!al._cat && hiddenAt === -1) hiddenAt = s;
     }
-    ok('cat crosses for several seconds before leaving', removedAt >= 4, `left at ~${removedAt}s`);
-    ok('cat removes herself after the crossing', removed.length === 1);
+    ok('cat crosses for several seconds before leaving', hiddenAt >= 4, `hid at ~${hiddenAt}s`);
+    ok('cat hides herself after the crossing', !al._cat);
     ok('one cat mesh per pass in the window', added.length === 2);
   }
 

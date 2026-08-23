@@ -117,6 +117,7 @@ export class AmbientLife {
     // transient event states
     this._flicker = null;   // { t, dur, x, y, z }
     this._cat     = null;   // { mesh, t, dur, from, to }
+    this._catMesh = null;   // pooled cat mesh, created lazily, hidden when not in use
   }
 
   /** Elapsed-event helper for tests. */
@@ -233,28 +234,35 @@ export class AmbientLife {
   /**
    * The yard cat crosses the road — a flat dark silhouette (two boxes and
    * a tail, primitives only) slipping between the stacks, gone in ~7s.
+   * Uses a pooled mesh: created once, hidden/shown each crossing.
    */
   _play_cat_pass(p) {
     if (!this.scene || this._cat) return;
     try {
-      const body = new THREE.Mesh(
-        new THREE.BoxGeometry(0.55, 0.22, 0.18),
-        new THREE.MeshBasicMaterial({ color: 0x14161a }),
-      );
-      const head = new THREE.Mesh(
-        new THREE.BoxGeometry(0.16, 0.16, 0.16),
-        new THREE.MeshBasicMaterial({ color: 0x14161a }),
-      );
-      head.position.set(0.33, 0.12, 0);
-      const tail = new THREE.Mesh(
-        new THREE.BoxGeometry(0.05, 0.05, 0.34),
-        new THREE.MeshBasicMaterial({ color: 0x14161a }),
-      );
-      tail.position.set(-0.32, 0.08, 0.05);
-      const cat = new THREE.Group();
-      cat.add(body, head, tail);
-      cat.position.y = 0.12;
+      // Build the cat mesh on first crossing, keep it pooled
+      if (!this._catMesh) {
+        const body = new THREE.Mesh(
+          new THREE.BoxGeometry(0.55, 0.22, 0.18),
+          new THREE.MeshBasicMaterial({ color: 0x14161a }),
+        );
+        const head = new THREE.Mesh(
+          new THREE.BoxGeometry(0.16, 0.16, 0.16),
+          new THREE.MeshBasicMaterial({ color: 0x14161a }),
+        );
+        head.position.set(0.33, 0.12, 0);
+        const tail = new THREE.Mesh(
+          new THREE.BoxGeometry(0.05, 0.05, 0.34),
+          new THREE.MeshBasicMaterial({ color: 0x14161a }),
+        );
+        tail.position.set(-0.32, 0.08, 0.05);
+        const cat = new THREE.Group();
+        cat.add(body, head, tail);
+        cat.position.y = 0.12;
+        this._catMesh = cat;
+        this.scene.add(cat);
+      }
 
+      const cat = this._catMesh;
       // a straight-ish crossing, 10–16 blocks out, perpendicular-ish to view
       const heading = this.rng() * Math.PI * 2;
       const dist = 10 + this.rng() * 6;
@@ -266,7 +274,7 @@ export class AmbientLife {
       const dur = 6 + this.rng() * 2.5;
       cat.position.set(cx - dx * half, Math.max(0.12, p.y - 1.4), cz - dz * half);
       cat.lookAt(cx + dx * half, cat.position.y, cz + dz * half);
-      this.scene.add(cat);
+      cat.visible = true;
       this._cat = { mesh: cat, t: 0, dur, from: { x: cx - dx * half, z: cz - dz * half }, to: { x: cx + dx * half, z: cz + dz * half }, bobSeed: this.rng() * 9 };
       this.audio?.catMew?.();
     } catch { /* no cat today — the yard goes on */ }
@@ -278,7 +286,7 @@ export class AmbientLife {
     c.t += dt;
     const k = Math.min(1, c.t / c.dur);
     if (k >= 1 || !c.mesh) {
-      try { this.scene?.remove?.(c.mesh); } catch { /* already gone */ }
+      c.mesh.visible = false;
       this._cat = null;
       return;
     }

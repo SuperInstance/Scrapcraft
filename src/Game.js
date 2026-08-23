@@ -45,7 +45,11 @@ import { CompanionRoster, EARL_PAIRING_LINE } from './companion/registry.js';
 import { RivetAvatar } from './companion/avatar.js';
 import { CompanionGate, gateDeliveryLine } from './companion/entry.js';
 import { QuestSystem, CAMPAIGN } from './quests/index.js';
+<<<<<<< HEAD
 import { openMosLedgerPanel } from './quests/MosLedger.js';
+=======
+import { TouchControls, touchSupported } from './touch/TouchControls.js';
+>>>>>>> e14bb43
 
 export class Game {
   /** @param {HTMLCanvasElement} canvas
@@ -94,8 +98,20 @@ export class Game {
     // Ghost-racer intro — shown once per game
     this._ghostRacerIntroShown = false;
 
+<<<<<<< HEAD
     // Opening cinematic — world-before-menu orbit (set up in start())
     this._openingCinematic = null;
+=======
+    // Touch layer — null until init() proves the device wants it. Desktop
+    // (touchSupported === false) never builds one, so its paths stay identical.
+    this.touch       = null;
+    this._touchMode  = false;
+
+    // Loop de-churn caches — floodlight throttle + last-skill badge cache
+    this._floodTimer     = 0;
+    this._lastSkillId    = null;
+    this._lastSkillCount = -1;
+>>>>>>> e14bb43
   }
 
   init() {
@@ -280,7 +296,12 @@ export class Game {
     this._towerActivated = false;
     this._towerNearNotified = false;
 
-    this.world.on('change', () => this.renderer.rebuildMeshes(this.world));
+    this.world.on('change', (d) => {
+      this.renderer.applyBlockChange(d.x, d.y, d.z, d.prev ?? d.oldId ?? B.AIR, d.id);
+      if (this.renderer.needsFullRebuild()) {
+        this.renderer.rebuildMeshes(this.world);
+      }
+    });
 
     // Speech bubble elements (screen-projected world-space)
     this._speechEl1 = document.getElementById('bot-speech-1');
@@ -457,6 +478,72 @@ export class Game {
     if (this.renderMode.auto && this.renderMode.lite) {
       this.ui.notify('🪫 Weak hardware detected — <b>LITE MODE</b> on: low-res render, shadows off. Reload with <b>?lite=0</b> for full detail.');
     }
+
+    this._initTouch();
+  }
+
+  // ── Touch layer (fail-soft, strictly feature-detected) ────────────────
+
+  /** Pointer lock doesn't exist on touch — phones get a virtual joystick +
+   *  look-drag instead. Every gesture rides the SAME mine/place paths the
+   *  mouse uses; nothing here runs (or changes) on a desktop env. */
+  _initTouch() {
+    let supported = false;
+    try {
+      supported = touchSupported({
+        maxTouchPoints: typeof navigator !== 'undefined' ? navigator.maxTouchPoints : 0,
+        ontouchstart: typeof window !== 'undefined' && 'ontouchstart' in window,
+        matchMedia: typeof window !== 'undefined' && window.matchMedia
+          ? window.matchMedia.bind(window) : undefined,
+      });
+    } catch { supported = false; }
+    if (!supported) return;
+
+    try {
+      this._touchMode = true;
+      this.touch = new TouchControls({
+        onLook:  (dx, dy) => this.player?.addLook(dx, dy),
+        onMove:  (nx, ny) => this.player?.setTouchMove(nx, ny),
+        // Same hold-to-mine flag the LMB handlers drive
+        onMineStart: () => { this._mineDown = true; },
+        onMineStop:  () => { this._mineDown = false; this._cancelMine(); },
+        onPlace: () => this._tryPlace(),          // the contextmenu place path
+        onJump:  () => this.player?.jump(),
+        onInteract: () => this._touchInteract(),
+        onHotbar: (i) => { if (this.player) this.player.hotbarIndex = i; },
+      });
+      this.touch.attach(document.body) || (() => {   // attach validated: no DOM, no touch mode
+        this._touchMode = false;
+        this.touch = null;
+      })();
+      if (!this.touch) return;
+      // Wake the touch physics path (gravity + camera follow) and tell the
+      // kid what the left thumb does — once.
+      this.player.setTouchMove(0, 0);
+      this.ui?.notify('📱 Touch controls on — left stick moves, drag right to look.');
+    } catch (e) {
+      this._touchMode = false;
+      this.touch = null;
+      console.warn('[Game] Touch layer failed to attach — mouse/keyboard only.', e);
+    }
+  }
+
+  /** The touch ⚒ button rides the E-key's core path: close if open, else
+   *  open the nearest station's workshop tab. */
+  _touchInteract() {
+    try {
+      if (!this.ui || !this.player) return;
+      if (this.ui.isOpen) { this.ui.closeInventory(); return; }
+      const p = this.player.pos;
+      const nearby = this.world.getNearbyInteractives?.(p.x, p.y, p.z, 3) ?? [];
+      this.ui.openInventory(nearby[0]?.station ?? 'any');
+    } catch { /* a button must never crash the yard */ }
+  }
+
+  /** "Hands on controls" — desktop pointer lock OR touch mode. Replaces the
+   *  raw document.pointerLockElement reads in the per-frame hot paths. */
+  _inputLocked() {
+    return !!document.pointerLockElement || !!this._touchMode;
   }
 
   // ── Mission Card tutorial (Phase A cold-open) ───────────────────────
@@ -2086,7 +2173,7 @@ export class Game {
 
   _tickRivet(dt) {
     if (!this.rivet) return;
-    const locked = Boolean(document.pointerLockElement);
+    const locked = this._inputLocked();
     const vel = this.player.vel;
     const moving = Boolean(vel && Math.hypot(vel.x, vel.z) > 0.35);
     const bot = this.scrapBot?.isActive ? this.scrapBot : null;
@@ -2234,15 +2321,22 @@ export class Game {
     this.projectiles.tick(dt, this.world, (hit) => this._onProjectileHit(hit));
     this.achievements.tick(dt);
 
-    // Drain newly unlocked skills → level-up toast + Earl quip
+    // Drain newly unlocked skills → level-up toast + Earl quip. The last-skill
+    // badge lookup is cached: recomputed only when new skills drain in or the
+    // set size changes (a save load), never by copying the Set per frame.
     for (const skill of this.xpSystem.drainNewSkills()) {
+      this._lastSkillId = skill.id;
       this.ui?.showLevelUp(this.xpSystem.level, skill);
       setTimeout(() => this.foreman.sayLine(skill.earlQuip), 2200);
     }
-    // Update XP bar (skill badge shows highest unlocked skill name)
-    const lastSkillId = [...this.xpSystem.skills].at(-1);
-    const lastSkillName = lastSkillId ? lastSkillId.toUpperCase() : '';
-    this.ui?.setXP(this.xpSystem.level, this.xpSystem.progress, lastSkillName);
+    if (this._lastSkillCount !== this.xpSystem.skills.size) {
+      this._lastSkillCount = this.xpSystem.skills.size;
+      let last = null;
+      for (const id of this.xpSystem.skills) last = id;   // insertion order = unlock order
+      this._lastSkillId = last;
+    }
+    this.ui?.setXP(this.xpSystem.level, this.xpSystem.progress,
+      this._lastSkillId ? this._lastSkillId.toUpperCase() : '');
 
     this.scrapBot.tick(dt, this.world);
     if (this.scrapBot2) this.scrapBot2.tick(dt, this.world);
@@ -2264,7 +2358,7 @@ export class Game {
     this.dailyContract?.tick(dt);
     this.challengeSystem.tick(dt);
 
-    const locked = !!document.pointerLockElement;
+    const locked = this._inputLocked();
 
     // Hold-to-mine
     if (this._mineDown && !this.ui.isOpen && locked) {
@@ -2273,7 +2367,9 @@ export class Game {
       this._cancelMine();
     }
 
-    // Block label + crosshair state
+    // Block label + crosshair state — ONE target raycast per frame feeds this,
+    // the selection box, and the ghost preview below. (Renderer.getTargetBlock
+    // returns a REUSED scratch object: read it this frame, never store it.)
     const target = this.renderer.getTargetBlock(this.world);
     if (!this.ui.isOpen && locked) {
       const id = target ? this.world.getBlock(target.x, target.y, target.z) : null;
@@ -2289,11 +2385,11 @@ export class Game {
       if (!this._mineDown) this.renderer.setTargetBlock(null);
     }
 
-    // Ghost block placement preview
+    // Ghost block placement preview (reuses the frame's `target`)
     {
       const activeItem = this.player.activeItem;
       const blockId    = activeItem ? ITEM_TO_BLOCK[activeItem.id] : null;
-      const tgt        = (!this.ui.isOpen && locked) ? this.renderer.getTargetBlock(this.world) : null;
+      const tgt        = (!this.ui.isOpen && locked) ? target : null;
       if (blockId && tgt) {
         const face = tgt.face;
         const px = tgt.x + Math.round(face.x);
@@ -2463,8 +2559,14 @@ export class Game {
 
     this.ui.updateHotbar(this.player);
 
-    // Update floodlight positions
-    this.renderer.updateFloodlights(this.world._placedBlocks, this.player.pos, B.FLOODLIGHT);
+    // Update floodlight positions — throttled to 4Hz: the lights only matter
+    // when the kid (or a placed block) moves, and the search still walks the
+    // placed-block list each time.
+    this._floodTimer += dt;
+    if (this._floodTimer >= 0.25) {
+      this._floodTimer = 0;
+      this.renderer.updateFloodlights(this.world._placedBlocks, this.player.pos, B.FLOODLIGHT);
+    }
 
     // Bot sensor dashboard
     this._updateBotSensorHUD();
