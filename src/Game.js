@@ -16,6 +16,7 @@ import { EXAMPLE_WALL_AVOIDER, EXAMPLE_LINE_FOLLOWER } from './maker/TileProgram
 import { getSensor } from './maker/primitives.js';
 import { TileEditor } from './TileEditor.js';
 import { SpectatorCoach } from './radio/SpectatorCoach.js';
+import { installUscp } from './cns/uscp.js';
 import { SaveSystem } from './SaveSystem.js';
 import { PrestigeSystem } from './prestige/Prestige.js';
 import { XPSystem } from './XPSystem.js';
@@ -466,6 +467,11 @@ export class Game {
     this.prestige = new PrestigeSystem(this);
     this.prestige.load();
     this.quests.migrateLegacySave(this.foreman._questIndex ?? 0);
+
+    // ── USCP TELEMETRY (the Rift) — fail-soft, OFF by default ──────────────
+    // Batches yard events into USCP packets for the fleet quilt. Opt-in via
+    // Settings → Advanced → Rift Telemetry; never affects gameplay.
+    this.uscp = installUscp(this);
 
     // Autosave insurance: every mutation path (XP gain, item add/remove,
     // damage/heal, achievement track) now dirties the save by construction.
