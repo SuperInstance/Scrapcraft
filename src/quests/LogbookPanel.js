@@ -47,16 +47,51 @@ export function renderQuestHud(system, quests, { finale, arcsDone, nextStep } = 
   if (!hud) {
     hud = document.createElement('div');
     hud.id = 'quest-log-hud';
+    hud.className = 'hud-panel';
+    // Static flex child of the top-right stacking column — no fixed offsets;
+    // the column owns position/gap/order (CSS order:-1 puts QUESTS on top).
     hud.style.cssText = `
-      position: fixed; top: 64px; right: 12px; width: 250px; z-index: 40;
+      width: 250px;
       font-family: 'Courier New', monospace; color: #e8dcc0;
       background: rgba(20, 16, 10, 0.82); border: 1px solid #6b5a33;
       border-radius: 8px; padding: 8px 10px; font-size: 11px; line-height: 1.45;
       pointer-events: auto;`;
-    document.getElementById('hud')?.appendChild(hud) ?? document.body.appendChild(hud);
+    // Column first, fail-soft down the ladder (#hud, then body).
+    (document.getElementById('hud-stack-top-right')
+      ?? document.getElementById('hud')
+      ?? document.body
+    ).appendChild(hud);
+    // ONE delegated collapse toggle on the column container — the dataset
+    // flag guards against double-wiring, and delegation survives every
+    // innerHTML re-render below. Covers all three .hud-panel members.
+    const column = hud.parentElement;
+    if (column && !column.dataset.hudCollapseWired) {
+      column.dataset.hudCollapseWired = '1';
+      column.addEventListener('click', e => {
+        if (e.target.closest('[data-no-collapse]')) return;   // [L] logbook link
+        const panel = e.target.closest('.hud-panel-header')?.closest('.hud-panel');
+        if (!panel) return;
+        const collapsed = !panel.classList.contains('collapsed');
+        panel.classList.toggle('collapsed', collapsed);
+        panel.setAttribute('data-collapsed', String(collapsed));
+      });
+    }
   }
+  // Session-only collapse state: capture before the innerHTML wipe, restore
+  // after (amendment #5 — nothing persisted across sessions).
+  const wasCollapsed = hud.classList.contains('collapsed');
+  const collapseState = hud.getAttribute('data-collapsed') || 'false';
+  const header = `
+    <div class="hud-panel-header">
+      <b style="letter-spacing:1px">📓 QUESTS</b>
+      <span id="ql-open" data-no-collapse style="cursor:pointer;color:#9fd0ff">[L] logbook</span>
+      <span class="collapse-toggle"></span>
+    </div>`;
   if (!quests.length && !finale) {
-    hud.innerHTML = `<div style="opacity:.7">📓 Quests: none on the books — explore the yard.</div>`;
+    hud.innerHTML = `${header}
+      <div class="hud-panel-body"><div style="opacity:.7">Quests: none on the books — explore the yard.</div></div>`;
+    hud.classList.toggle('collapsed', wasCollapsed);
+    hud.setAttribute('data-collapsed', collapseState);
     return;
   }
   const rows = quests.map(q => {
@@ -81,12 +116,11 @@ export function renderQuestHud(system, quests, { finale, arcsDone, nextStep } = 
          <div style="opacity:.7;font-size:10px;margin-top:1px">↳ ${nextStep.how}</div>
        </div>`
     : '';
-  hud.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
-      <b style="letter-spacing:1px">📓 QUESTS</b>
-      <span id="ql-open" style="cursor:pointer;color:#9fd0ff">[L] logbook</span>
-    </div>
-    ${nextLine}${rows}${finaleLine}`;
+  hud.innerHTML = `${header}
+    <div class="hud-panel-body">${nextLine}${rows}${finaleLine}</div>`;
+  // restore the collapse state the innerHTML re-render just wiped
+  hud.classList.toggle('collapsed', wasCollapsed);
+  hud.setAttribute('data-collapsed', collapseState);
   hud.querySelector('#ql-open')?.addEventListener('click', () => system.openLogbook());
   hud.querySelector('#ql-finale')?.addEventListener('click', () => system.openLogbook());
 }
