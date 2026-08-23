@@ -184,6 +184,7 @@ export class SpectatorCoach {
     this._keys = {};
 
     this._spawnCrew();
+    this._log = [];  // clear log from any previous session
     this._buildHud();
     if (this._hud) this._hud.style.display = 'flex';
     this._hudDirty = true;
@@ -357,6 +358,8 @@ export class SpectatorCoach {
   get _radio() { return this.stack.radios[this.channel] ?? this.stack.radios.coach; }
 
   _switchChannel() {
+    // Doctrine: channel switch only from IDLE (not while TRANSMITTING or RECEIVING)
+    if (this._radio.isBusy()) { this._flashBusy(); return; }
     this.channel = this.channel === 'coach' ? 'chatter' : 'coach';
     this._hudDirty = true;
     this._logLine(`📻 switched to <b>${this.channel === 'coach' ? 'CH-1 COACH' : 'CH-2 CHATTER'}</b>`);
@@ -552,7 +555,8 @@ export class SpectatorCoach {
       this._ack = session;
     } else {
       // Channel busy (e.g. our own TX burst hasn't ended yet) — retry in tick.
-      this._ackPending = session;
+      // Only queue if not already pending to avoid overwriting queued acks.
+      if (!this._ackPending) this._ackPending = session;
       return;
     }
     voiceOut.speak(text, { voice: bot.ttsVoice ?? 'rivet' });
