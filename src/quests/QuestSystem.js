@@ -185,6 +185,9 @@ export class QuestSystem {
     this.game.audio?.questComplete?.();
     this.game.achievements?.track?.('quest', {});
     if (entry) this.game.ui?.notify?.(`📓 ${entry.memory}`);
+
+    // Prestige — arc / Midnight-Race completion may have earned a mark
+    this.game.prestige?.onQuestCompleted?.(q, this.tracker);
   }
 
   // ── the finale gate (worldbible: any two arcs → the Midnight Race) ───────

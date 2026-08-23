@@ -214,7 +214,20 @@ export function openLogbookPanel(system) {
            🏁 Two arcs walked. The Midnight Race is on — ask Earl about the county letter.</div>`
       : `<div style="opacity:.55;margin-top:10px;font-size:11px">
            Arcs complete: ${arcs.length}/2 to unlock the Midnight Race. Bolt ⚡ · Magma 🌋 · Juno ✨ · Rivet 🔩</div>`;
-    body.innerHTML = rail + html + gate;
+
+    // Sticker Row perk (full Field Guide) — one extra row to pin the good
+    // days. Additive: the logbook reads exactly the same without it.
+    let stickers = '';
+    const stickerRows = system.game?.prestige?.perkEffectsNow?.().stickerRows ?? 0;
+    if (stickerRows > 0) {
+      const pins = arcs.map(a => ARC_BADGE[a]?.icon ?? '⭐');
+      pins.push('📚');   // the Field Guide itself, fully read
+      stickers = `<div style="border:1px dashed #6b5a33;border-radius:8px;padding:6px 12px;margin-top:10px">
+        <div style="font-size:11px;opacity:.6;letter-spacing:1px">STICKER ROW — the good days, pinned</div>
+        <div style="font-size:20px;letter-spacing:8px;margin-top:2px">${pins.join('')}</div>
+      </div>`;
+    }
+    body.innerHTML = rail + html + gate + stickers;
   };
   render();
 

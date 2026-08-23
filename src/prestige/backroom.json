@@ -1,0 +1,96 @@
+{
+  "_doc": "EARL'S BACK ROOM — the prestige board. Finishing the Midnight Race (spine ch12) or any companion arc earns a Prestige Mark; marks spend here on cosmetic + gentle-utility rewards. Data-driven like spine.json: this file is the CATALOG, Prestige.js is the engine. Doctrine: no dark patterns — prices are flat, nothing expires, nothing is time-limited, no reward gates quest completion or race outcomes. Total earnable marks (6) < total catalog cost (9) — choices matter, hoarding is impossible, FOMO is impossible.",
+
+  "paintSchemes": [
+    {
+      "id": "paint_rust_sunset",
+      "label": "Rust Sunset Paint",
+      "icon": "🎨",
+      "cost": 1,
+      "desc": "Orange fading to deep red, like the yard at closing time.",
+      "earlLine": "Rust never looked that good on purpose before."
+    },
+    {
+      "id": "paint_circuit_green",
+      "label": "Circuit Green Paint",
+      "icon": "🟢",
+      "cost": 1,
+      "desc": "The exact green of a happy circuit board.",
+      "earlLine": "Board-green. Magma will think it's one of its own."
+    },
+    {
+      "id": "paint_midnight_blue",
+      "label": "Midnight Blue Paint",
+      "icon": "🔵",
+      "cost": 1,
+      "desc": "For the bot that runs the 11:58 watch.",
+      "earlLine": "Same blue as the sky at the candlelight corner."
+    },
+    {
+      "id": "paint_candlelight_gold",
+      "label": "Candlelight Gold Paint",
+      "icon": "🕯️",
+      "cost": 1,
+      "desc": "Warm gold, one beacon's worth. You know the one.",
+      "earlLine": "Careful with that one. Some corners remember it."
+    }
+  ],
+
+  "yardDecorations": [
+    {
+      "id": "decor_tire_garden",
+      "label": "Tire Plant Garden",
+      "icon": "🪴",
+      "cost": 1,
+      "desc": "Stacked tires, soil, and whatever Juno's swarm seeds in them.",
+      "earlLine": "First garden this yard's ever grown. Don't tell the inspectors."
+    },
+    {
+      "id": "decor_flag_collection",
+      "label": "Flag Collection",
+      "icon": "🚩",
+      "cost": 1,
+      "desc": "Every waypoint flag you've ever planted, on one proud pole.",
+      "earlLine": "Twenty-six years of corners, on one pole. Looks about right."
+    }
+  ],
+
+  "lanternColors": [
+    {
+      "id": "lantern_warm_amber",
+      "label": "Warm Amber Lantern",
+      "icon": "🏮",
+      "cost": 1,
+      "desc": "Soft amber headlamp light. Kind to night eyes.",
+      "earlLine": "Amber's easier on the eyes than flood-white. Ask any owl."
+    }
+  ],
+
+  "botSlots": [
+    {
+      "id": "second_bot_slot",
+      "label": "Second Bot Slot (Back Room favor)",
+      "icon": "🤖",
+      "cost": 2,
+      "desc": "A second ScrapBot without needing the Level 5 Engineer skill. Comfort, not power — a bot is a bot.",
+      "earlLine": "Box M had a cradle in it. Turns out it was for a second somebody."
+    }
+  ],
+
+  "earlBoardLines": [
+    "Back room's been locked twenty-six years. Now it ain't. Don't make me regret that.",
+    "Everything in here's earned, not bought. Mo keeps count. Mo don't lie.",
+    "Ain't fancy back here. But it's yours if you worked for it."
+  ],
+
+  "earlFirstMarkLine": "Well look at that. First mark. Mo's writing your name down in the good book.",
+
+  "earlCantAffordLine": "Not yet. That's alright — it'll keep. Ain't going anywhere.",
+
+  "earlPurchaseLines": {
+    "paint": "New coat of paint. Wear it proud, keep it clean.",
+    "decor": "Nice touch. Place needed a little more you in it.",
+    "lantern": "Good light. A yard's only as warm as its lantern.",
+    "botSlot": "Two bots now. Twice the trouble, twice the help. Mo approves."
+  }
+}

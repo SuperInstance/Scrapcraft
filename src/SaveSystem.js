@@ -198,6 +198,9 @@ export class SaveSystem {
       // Daily Salvage Contract — progress, streak, lifetime count
       daily: g.dailyContract?.toSaveData() ?? null,
 
+      // Prestige — Earl's Back Room marks + owned rewards
+      prestige: g.prestige?.toSaveData() ?? null,
+
       // Welcome Back snapshot — what day-2-you needs to remember at a glance.
       // Live ledger first (session truth); a throwaway ledger re-reads
       // localStorage when no brain ran yet this session.
@@ -313,6 +316,9 @@ export class SaveSystem {
 
     // Daily Salvage Contract — progress survives the reload (finish tomorrow)
     if (data.daily) g.dailyContract?.fromSaveData(data.daily);
+
+    // Prestige — marks and board purchases survive the reload
+    if (data.prestige) g.prestige?.fromSaveData(data.prestige);
 
     // Night Shift away-clock: local truth wins if fresher; a cloud save only
     // restores when this browser has no clock of its own yet.
