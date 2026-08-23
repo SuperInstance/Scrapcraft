@@ -35,6 +35,11 @@ const ARC_BADGE = {
 
 const ACT_NAMES = { 1: 'ACT ONE', 2: 'ACT TWO', 3: 'ACT THREE' };
 
+/** Teach-back askers — persona ids (TeachBack.ASKERS) → yard faces. */
+const ASKER_FACE = {
+  rivet: '🔩 Rivet', bolt: '⚡ Bolt', magma: '🌋 Magma', juno: '✨ Juno', spark: '🤖 Spark',
+};
+
 // ── Quest-log HUD widget (always-on scoreboard) ─────────────────────────────
 
 export function renderQuestHud(system, quests, { finale, arcsDone, nextStep } = {}) {
@@ -251,12 +256,14 @@ export function openLogbookPanel(system) {
     const entries = system.logbook.recentFirst();
     const arcs = system.tracker.completedArcs();
     const rail = spineRailHtml(system);
+    const tbSlot = '<div id="lb-teachback"></div>';   // filled below (garnish)
     if (!entries.length && !rail) {
-      body.innerHTML = `<div style="opacity:.7">Empty so far. The first completed quest writes
+      body.innerHTML = tbSlot + `<div style="opacity:.7">Empty so far. The first completed quest writes
         the first memory — the logbook is how the yard remembers what you learned.</div>`;
+      renderTeachback();
       return;
     }
-    if (!entries.length) { body.innerHTML = rail; return; }
+    if (!entries.length) { body.innerHTML = tbSlot + rail; renderTeachback(); return; }
     const html = entries.map(e => {
       const b = ARC_BADGE[e.arc] ?? ARC_BADGE.earl;
       return `
@@ -288,7 +295,55 @@ export function openLogbookPanel(system) {
         <div style="font-size:20px;letter-spacing:8px;margin-top:2px">${pins.join('')}</div>
       </div>`;
     }
-    body.innerHTML = rail + html + gate + stickers;
+    body.innerHTML = tbSlot + rail + html + gate + stickers;
+    renderTeachback();
+  };
+
+  /** The teach-back moment: a companion asks a naive question, the kid
+   *  answers as the teacher (TeachBack grades + records the rung). Pure
+   *  garnish — any error leaves the panel exactly as it was. */
+  const renderTeachback = () => {
+    try {
+      const slot = panel.querySelector('#lb-teachback');
+      if (!slot) return;
+      const tb = system.game?.teachBack;
+      if (!tb || typeof tb.available !== 'function' || tb.available() === 0) {
+        slot.innerHTML = '';
+        return;
+      }
+      const moment = tb.nextMoment();
+      if (!moment) { slot.innerHTML = ''; return; }
+      const who  = ASKER_FACE[moment.question.asker] ?? '🔩 a friend';
+      const escS = s => String(s ?? '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      slot.innerHTML = `
+      <div style="border:1px solid #7a5a2f;border-radius:6px;padding:10px 14px;margin:0 0 14px;background:#120d06">
+        <div style="letter-spacing:2px;font-size:12px;color:#c9e8b0;margin-bottom:4px">🔩 TEACH-BACK — you're the teacher</div>
+        <div style="font-style:italic;margin-bottom:8px">${who} asks: “${escS(moment.question.naiveQuestion)}”</div>
+        <div id="lb-tb-opts" style="display:flex;flex-direction:column;gap:6px">
+          ${moment.options.map((o, i) =>
+            `<button class="lb-tb-opt" data-i="${i}" style="font:inherit;font-size:12px;text-align:left;background:#1c150b;color:#e8dcc0;border:1px solid #6b5a33;border-radius:5px;padding:6px 10px;cursor:pointer">${escS(o.text)}</button>`).join('')}
+        </div>
+      </div>`;
+      slot.querySelectorAll('.lb-tb-opt').forEach(btn => {
+        btn.addEventListener('click', () => {
+          try {
+            const res = tb.answer(moment.question.id, Number(btn.dataset.i));
+            const box = slot.querySelector('#lb-tb-opts');
+            if (!box) return;
+            const color = res.correct ? '#8ef7c1' : '#ffd97a';
+            const line  = res.correct
+              ? (res.taughtLine ?? 'Taught. The yard keeps it.')
+              : (res.retryLine ?? 'Close — try it again after two more practice runs.');
+            box.innerHTML = `<div style="color:${color};line-height:1.6">${escS(line)}</div>`
+              + (!res.correct && res.misconception
+                ? `<div style="opacity:.7;font-size:11px;margin-top:2px">(${escS(res.misconception)})</div>` : '')
+              + (tb.available() > 0
+                ? '<button id="lb-tb-more" style="font:inherit;font-size:11px;background:#2a2214;color:#ffd97a;border:1px solid #6b5a33;border-radius:4px;padding:3px 10px;cursor:pointer;margin-top:6px">another question</button>' : '');
+            box.querySelector('#lb-tb-more')?.addEventListener('click', () => renderTeachback());
+          } catch { /* answering is garnish */ }
+        });
+      });
+    } catch { /* teach-back never breaks the logbook */ }
   };
   render();
 

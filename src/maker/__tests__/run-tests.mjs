@@ -30,6 +30,7 @@ import { runOpeningTests } from '../../world/__tests__/opening-tests.mjs';
 import { runLedgerTests } from '../../quests/__tests__/ledger-tests.mjs';
 import { runInstanceLedgerTests } from '../../render/__tests__/ledger-tests.mjs';
 import { runTouchTests } from '../../touch/__tests__/touch-tests.mjs';
+import { runLearningTests } from '../../learning/__tests__/learning-tests.mjs';
 import { runPerfGuardTests } from '../../__tests__/perf-guards.mjs';
 
 let pass = 0, fail = 0;
@@ -1864,6 +1865,9 @@ runLedgerTests(ok);
 
 // ── InstanceLedger: incremental instancing bookkeeping ──────────────────────
 runInstanceLedgerTests(ok);
+
+// ── Learning: the concept ladder (ledger, teach-back, broken-bot clinics) ──
+runLearningTests(ok);
 
 // ── Touch layer: detection truth table, joystick math, gesture decisions ───
 runTouchTests(

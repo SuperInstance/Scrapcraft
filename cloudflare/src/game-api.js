@@ -237,9 +237,11 @@ export default async function handleGameApi(request, env, ctx) {
   }
 
   // ── Single brain ──────────────────────────────────────────────
-  const brainMatch = url.pathname.match(/^\/api\/v1\/brains\/([^/]+)$/);
-  if (request.method === 'GET' && brainMatch) {
-    return handleGetBrain(brainMatch[1], db);
+  // (renamed from brainMatch — the classroom-student route above already
+  //  declared that const in this scope, which broke module parsing)
+  const singleBrainMatch = url.pathname.match(/^\/api\/v1\/brains\/([^/]+)$/);
+  if (request.method === 'GET' && singleBrainMatch) {
+    return handleGetBrain(singleBrainMatch[1], db);
   }
 
   return new Response(JSON.stringify({ error: 'Not found' }), {
@@ -710,7 +712,10 @@ async function handleStudentBrain(classCode, sessionId, url, db) {
 
     const saveData = JSON.parse(save.data);
     const brain = saveData.tileEditor ?? null;
-    return json({ brain, displayName: sess.display_name });
+    // Concept ladder (learning engine) rides the same payload — the teacher
+    // dashboard's CONCEPT COVERAGE panel aggregates it. Older saves → null.
+    const concepts = saveData.concepts ?? null;
+    return json({ brain, concepts, displayName: sess.display_name });
   } catch (err) { return json({ error: err.message }, 500); }
 }
 

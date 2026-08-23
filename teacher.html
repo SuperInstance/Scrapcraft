@@ -219,6 +219,67 @@
   .pending-grade { color: var(--text-dim); font-size: 10px; }
   .empty-row td { color: var(--text-dim); text-align: center; padding: 24px; font-size: 11px; }
 
+  /* ── Concept coverage panel ── */
+  .concept-panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; margin-top: 16px;
+  }
+  .concept-legend {
+    display: flex; gap: 14px; flex-wrap: wrap; font-size: 9px;
+    color: var(--text-dim); letter-spacing: 1px; margin-bottom: 12px;
+  }
+  .legend-chip { display: inline-flex; align-items: center; gap: 5px; }
+  .legend-swatch { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+  .concept-tier-title {
+    font-size: 9px; color: var(--green); letter-spacing: 3px;
+    margin: 12px 0 6px; border-bottom: 1px solid var(--border); padding-bottom: 3px;
+  }
+  .concept-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px;
+  }
+  .concept-cell {
+    background: #020802; border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; font-size: 10px; line-height: 1.5;
+  }
+  .concept-cell.nodata { opacity: 0.45; }
+  .concept-name { color: var(--text); letter-spacing: 0.05em; }
+  .concept-taught { color: var(--text-dim); font-size: 9px; float: right; }
+  .concept-phrase { color: var(--text-dim); font-size: 9px; margin: 2px 0 6px; font-style: italic; }
+  .cbar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: #0a140a; }
+  .cbar span { display: block; height: 100%; }
+  .c-unseen   { background: #1c2a1c; }
+  .c-seen     { background: var(--gold); }
+  .c-practiced{ background: #2f8844; }
+  .c-taught   { background: var(--green); }
+  .concept-loading { color: var(--text-dim); font-size: 11px; font-style: italic; padding: 12px 0; }
+
+  /* ── Mission cards (print overlay) ── */
+  .cards-overlay {
+    display: none; position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,0,0.85); overflow-y: auto; padding: 24px;
+  }
+  .cards-overlay.show { display: block; }
+  .cards-toolbar {
+    position: sticky; top: 0; z-index: 2; display: flex; gap: 10px;
+    justify-content: center; padding: 10px; background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .cards-sheet {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    max-width: 900px; margin: 18px auto;
+  }
+  .print-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px; font-size: 11px; line-height: 1.55;
+    color: var(--text);
+  }
+  .pc-chapter { font-size: 8px; color: var(--green); letter-spacing: 3px; }
+  .pc-title { font-size: 15px; color: var(--green); margin: 2px 0 6px; letter-spacing: 1px; }
+  .pc-skill { color: var(--text); margin-bottom: 8px; }
+  .pc-label { font-size: 8px; color: var(--text-dim); letter-spacing: 2px; margin: 8px 0 3px; }
+  .pc-prompt { color: var(--text-dim); margin: 2px 0 2px 12px; }
+  .pc-home { color: var(--text); margin-top: 4px; }
+
   /* ── Refresh indicator ── */
   .refresh-bar {
     height: 2px; background: var(--border); border-radius: 1px;
@@ -238,6 +299,29 @@
     transition: opacity 0.3s;
   }
   .toast.show { opacity: 1; }
+
+  /* ── Print: mission cards only, 4 per page, ink-friendly ── */
+  @media print {
+    @page { margin: 12mm; }
+    body { background: #fff !important; }
+    body > *:not(.cards-overlay) { display: none !important; }
+    .cards-overlay {
+      display: block !important; position: static; overflow: visible;
+      background: #fff; padding: 0;
+    }
+    .cards-toolbar { display: none !important; }
+    .cards-sheet { grid-template-columns: 1fr 1fr; gap: 8mm; max-width: none; margin: 0; }
+    .print-card {
+      background: #fff; border: 1px solid #999; color: #111;
+      break-inside: avoid; page-break-inside: avoid;
+    }
+    .print-card:nth-child(4n+1) { break-before: page; page-break-before: always; }
+    .print-card:nth-child(4n+1):first-child { break-before: auto; page-break-before: avoid; }
+    .pc-chapter, .pc-title { color: #111; }
+    .pc-skill, .pc-home { color: #222; }
+    .pc-label { color: #555; }
+    .pc-prompt { color: #333; }
+  }
 </style>
 </head>
 <body>
@@ -344,6 +428,8 @@
       <div class="roster-header">
         <div class="panel-title" style="margin-bottom:0">📋 CLASS ROSTER</div>
         <div class="roster-count" id="roster-count"></div>
+        <button id="btn-concepts" class="btn-small" title="Concept mastery across the class">📊 CONCEPTS</button>
+        <button id="btn-cards" class="btn-small" title="Print one mission card per spine chapter">🖨 MISSION CARDS</button>
         <button id="btn-csv" class="btn-small" title="Download progress as spreadsheet">⬇ CSV</button>
       </div>
       <table>
@@ -363,7 +449,27 @@
       <div class="refresh-bar"><div class="refresh-fill" id="refresh-fill" style="width:0%"></div></div>
     </div>
 
+    <div class="concept-panel" id="concepts-panel" style="display:none">
+      <div class="panel-title">📊 CONCEPT COVERAGE <span style="color:var(--text-dim);letter-spacing:0">— who has seen, practiced, or can teach each idea</span></div>
+      <div class="concept-legend">
+        <span class="legend-chip"><span class="legend-swatch c-unseen"></span>UNSEEN</span>
+        <span class="legend-chip"><span class="legend-swatch c-seen"></span>SEEN</span>
+        <span class="legend-chip"><span class="legend-swatch c-practiced"></span>PRACTICED</span>
+        <span class="legend-chip"><span class="legend-swatch c-taught"></span>TAUGHT (taught it back)</span>
+        <span class="legend-chip" style="opacity:.6">hover a card for per-student states</span>
+      </div>
+      <div id="concepts-body"><div class="concept-loading">Loading concept data…</div></div>
+    </div>
+
   </div>
+</div>
+
+<div class="cards-overlay" id="cards-overlay">
+  <div class="cards-toolbar">
+    <button class="btn btn-primary" id="btn-print-cards">🖨 PRINT</button>
+    <button class="btn btn-dim" id="btn-cards-close">✕ CLOSE</button>
+  </div>
+  <div class="cards-sheet" id="cards-sheet"></div>
 </div>
 
 <div class="modal-overlay" id="brain-modal">
@@ -551,6 +657,7 @@ async function refresh() {
     if (!r.ok) { setStatus(false, 'Sync error'); return; }
     const data = await r.json();
     renderRoster(data);
+    refreshConcepts();   // concept coverage rides the same refresh cycle
     setStatus(true, 'Live · ' + new Date().toLocaleTimeString());
   } catch { setStatus(false, 'Offline'); }
 }
@@ -560,6 +667,7 @@ async function refresh() {
 function renderRoster(data) {
   const students = data.students ?? [];
   currentChallenge = data.challenge ?? null;
+  lastRoster = students;
 
   // Stats
   const saves = students.filter(s => s.has_save).length;
@@ -809,6 +917,249 @@ document.getElementById('btn-csv').addEventListener('click', () => {
   a.download = `scrapcraft_${classCode}.csv`;
   a.click();
 });
+
+// ── Concept coverage ──────────────────────────────────────────────────────────
+// Mirror of src/learning/concepts.js (the fixed 17-concept ladder). The
+// aggregation reads `concepts` out of each student's cloud save (Job A payload)
+// via the same brain endpoint the 👁 button uses; cached per session id.
+
+const TIER_ORDER = ['SENSE', 'THINK', 'ACT', 'ENGINEER'];
+const CONCEPTS = [
+  { id: 'sensors-overview', tier: 'SENSE', name: 'Sensors',
+    kidPhrase: `A sensor is how a robot asks the world a question.` },
+  { id: 'thresholds', tier: 'SENSE', name: 'Thresholds',
+    kidPhrase: `A threshold is the line where 'enough' becomes 'too much.'` },
+  { id: 'calibration', tier: 'SENSE', name: 'Calibration',
+    kidPhrase: `Calibration is teaching a sensor what 'normal' means today.` },
+  { id: 'conditionals', tier: 'THINK', name: 'Conditionals',
+    kidPhrase: `If this, then that — the robot's version of making a choice.` },
+  { id: 'loops-forever', tier: 'THINK', name: 'Forever Loops',
+    kidPhrase: `Forever means again. And again. And again.` },
+  { id: 'loops-counted', tier: 'THINK', name: 'Counted Loops',
+    kidPhrase: `Repeat N times when you know exactly how many.` },
+  { id: 'loops-until', tier: 'THINK', name: 'Loops Until',
+    kidPhrase: `Keep going until the world tells you to stop.` },
+  { id: 'variables', tier: 'THINK', name: 'Variables',
+    kidPhrase: `A variable is a labeled box the robot remembers a number in.` },
+  { id: 'subroutines', tier: 'THINK', name: 'Subroutines',
+    kidPhrase: `Teach it once, call it by name — a saved trick.` },
+  { id: 'actuation', tier: 'ACT', name: 'Actuation',
+    kidPhrase: `Actuation is metal that moves because code said so.` },
+  { id: 'feedback-loop', tier: 'ACT', name: 'Feedback Loops',
+    kidPhrase: `Sense, decide, act, repeat — the loop that runs the whole show.` },
+  { id: 'optimization', tier: 'ACT', name: 'Optimization',
+    kidPhrase: `Optimization is the same job with less — less code, less power, less time.` },
+  { id: 'debugging', tier: 'ENGINEER', name: 'Debugging',
+    kidPhrase: `Debugging is detective work: one clue, one change, one test.` },
+  { id: 'firmware-export', tier: 'ENGINEER', name: 'Firmware Export',
+    kidPhrase: `Your tiles can become real code for real chips.` },
+  { id: 'failure-analysis', tier: 'ENGINEER', name: 'Failure Analysis',
+    kidPhrase: `Every wreck wrote a letter. Reading it is the cheapest education.` },
+  { id: 'power-systems', tier: 'ENGINEER', name: 'Power Systems',
+    kidPhrase: `Everything that moves eats power — budget it like snack money.` },
+  { id: 'integration', tier: 'ENGINEER', name: 'Integration',
+    kidPhrase: `Integration is making every system work as one robot.` },
+];
+
+let lastRoster = [];
+let conceptsOpen = false;
+const brainCache = new Map();   // sessionId → { name, concepts } | null
+
+document.getElementById('btn-concepts').addEventListener('click', () => {
+  conceptsOpen = !conceptsOpen;
+  document.getElementById('concepts-panel').style.display = conceptsOpen ? '' : 'none';
+  document.getElementById('btn-concepts').style.color = conceptsOpen ? 'var(--green)' : '';
+  if (conceptsOpen) refreshConcepts();
+});
+
+/** Re-fetch every brained student's concepts (stale cache serves instantly,
+ *  the refresh cycle revalidates). Fail-soft: a failed fetch keeps the last
+ *  known entry; students with no concept data render as "no data". */
+async function refreshConcepts() {
+  if (!conceptsOpen) return;
+  const withSave = lastRoster.filter(s => s.has_save);
+  const body = document.getElementById('concepts-body');
+  if (!withSave.length) {
+    body.innerHTML = '<div class="concept-loading">No saved progress yet — concept mastery appears once students save to the cloud.</div>';
+    return;
+  }
+  if (!brainCache.size) body.innerHTML = '<div class="concept-loading">Loading concept data…</div>';
+  await Promise.all(withSave.map(async s => {
+    try {
+      const url = workerUrl + `/api/v1/class/${classCode}/student/${encodeURIComponent(s.id)}/brain?key=` + encodeURIComponent(teacherKey);
+      const r = await fetch(url);
+      if (!r.ok) { if (!brainCache.has(s.id)) brainCache.set(s.id, null); return; }
+      const d = await r.json();
+      brainCache.set(s.id, { name: d.displayName ?? s.display_name, concepts: d.concepts ?? null });
+    } catch { if (!brainCache.has(s.id)) brainCache.set(s.id, null); }
+  }));
+  renderConcepts();
+}
+
+function renderConcepts() {
+  const body = document.getElementById('concepts-body');
+  const withSave = lastRoster.filter(s => s.has_save);
+  const rows = withSave.map(s => brainCache.get(s.id) ?? null);
+  const html = TIER_ORDER.map(tier => {
+    const cells = CONCEPTS.filter(c => c.tier === tier).map(c => {
+      const counts = { unseen: 0, seen: 0, practiced: 0, taught: 0 };
+      const perStudent = [];
+      let dataN = 0;
+      for (const row of rows) {
+        const rec = row?.concepts?.concepts?.[c.id];
+        if (!rec) continue;                       // no save / no concept data
+        dataN++;
+        const st = typeof rec.state === 'string' ? rec.state : 'unseen';
+        counts[st] = (counts[st] ?? 0) + 1;
+        perStudent.push(`${row.name}: ${st}`);
+      }
+      const nodata = withSave.length - dataN;
+      const nodataTip = nodata > 0 ? `&#10;(${nodata} student${nodata !== 1 ? 's' : ''} with no concept data)` : '';
+      const tip = perStudent.length
+        ? perStudent.map(p => esc(p)).join('&#10;') + nodataTip
+        : 'no concept data yet';
+      if (!dataN) {
+        return `<div class="concept-cell nodata" title="${tip}">
+          <span class="concept-name">${esc(c.name)}</span>
+          <div class="concept-phrase">${esc(c.kidPhrase)}</div>
+        </div>`;
+      }
+      const seg = (cls, n) => n > 0 ? `<span class="${cls}" style="width:${(n / dataN) * 100}%"></span>` : '';
+      return `<div class="concept-cell" title="${tip}">
+        <span class="concept-name">${esc(c.name)}</span>
+        <span class="concept-taught">${counts.taught}/${dataN} taught</span>
+        <div class="concept-phrase">${esc(c.kidPhrase)}</div>
+        <div class="cbar">${seg('c-seen', counts.seen)}${seg('c-practiced', counts.practiced)}${seg('c-taught', counts.taught)}</div>
+      </div>`;
+    }).join('');
+    return `<div class="concept-tier-title">${tier}</div><div class="concept-grid">${cells}</div>`;
+  }).join('');
+  body.innerHTML = html || '<div class="concept-loading">No students with saved progress.</div>';
+}
+
+// ── Printable mission cards ───────────────────────────────────────────────────
+// Card text sourced from docs/mission-cards.md (one card per spine chapter).
+
+const MISSION_CARDS = [
+  { n: 1, title: `The Gate Is Never Locked`,
+    skill: `Salvage fundamentals — what the yard's blocks are, what they drop, why materials matter`,
+    prompts: [
+      `Why does the game give you scrap instead of brand-new parts? What does that teach about engineering in the real world?`,
+      `If you were building your first robot, what would you scavenge first — power, structure, or sensors? Why?`,
+      `The yard lit up at dusk. What moment made you feel like you belonged there?`,
+    ],
+    home: `"Scrap Hunt" — Give your kid a room and 10 minutes to collect "building materials" (socks, pencils, paper, blocks). They bring the pile to you. Ask: "What could we BUILD with this?" No wrong answers. This is what engineers do — see potential in waste.` },
+  { n: 2, title: `Earn Your Tools`,
+    skill: `The crafting pipeline — inputs, stations, tiers; the right tool gates the right job`,
+    prompts: [
+      `Why make your own wrench instead of just finding one? What do you learn from building tools?`,
+      `What's a tool you use every day? Where did it come from, and how would you make it from scratch?`,
+      `Rivet's slow-blink felt like a compliment. What's a small moment that told you someone believed in your work?`,
+    ],
+    home: `"Tool Ceremony" — Pick a simple tool (wooden spoon, paintbrush, pencil). Ask your kid to tell its story: What would it take to MAKE this? Where would you get the materials? This builds respect for the crafted object.` },
+  { n: 3, title: `Something With Thumbs`,
+    skill: `System assembly — actuators, chassis, power; the moment a pile of parts becomes a someone`,
+    prompts: [
+      `The first boot beep was a big moment. When does a pile of parts become a robot? (Hint: when it moves.)`,
+      `What's harder — building the body or giving it power? Which one makes it "alive"?`,
+      `That six-note anthem played when your bot woke up. What sound would make YOUR bot come to life?`,
+    ],
+    home: `"Bring It to Life" — Build something from household items (cardboard, string, tape) that has exactly one job: pick up a penny, ring a bell, or roll across a table. The moment it WORKS, it's alive. Celebrate that moment.` },
+  { n: 4, title: `One Knob at a Time`,
+    skill: `The feedback loop — sense, think, act; one-variable-at-a-time debugging (the campaign's spine skill)`,
+    prompts: [
+      `You crashed once, fixed one knob, and it worked. That's the Mellon Loop. When did you use it (even before the game)?`,
+      `What's harder: understanding what's broken, or trusting yourself to change just ONE thing?`,
+      `Earl says "change everything and you'll learn nothing but confusion." Where else is this true?`,
+    ],
+    home: `"One Change at a Time" — Set up a simple challenge (knock over a cup with a ball roll). Kid gets three tries: each time, ONE change only (speed, angle, or height). Which single change worked best? That's the loop.` },
+  { n: 5, title: `The Oval Has Opinions`,
+    skill: `Closed-loop feedback — line-following, thresholds, why repeatable beats fast`,
+    prompts: [
+      `June's name went on the board. Does seeing someone else's name make you faster, or just more present?`,
+      `What's the difference between going fast once and going fast EVERY lap?`,
+      `A tenth of a second. How long is that? What's it worth?`,
+    ],
+    home: `"The Oval" — Mark a lap on the floor (tape or chalk). Race a toy car three times and time each lap. How much faster/slower? Consistency or speed — which did you get? What if you tried a third time?` },
+  { n: 6, title: `The Library of Almosts`,
+    skill: `Sensor interpretation & calibration — the Deep Yard's hazards make sensors matter`,
+    prompts: [
+      `Quill paid you in a crystal that hums when weather turns. How do real sensors "know" things?`,
+      `Why does a sensor need calibration? (Hint: the world is messier than a lab.)`,
+      `That Deep Yard felt different — less mysterious, more real. What changes when you understand the hazards?`,
+    ],
+    home: `"Sensor Walk" — Go outside. Point out five things a sensor COULD read: temperature (hot/cold), light (bright/dim), distance (near/far), sound (loud/quiet), moisture (wet/dry). Why would a robot need to know each one?` },
+  { n: 7, title: `The Same Robot, Real`,
+    skill: `Hardware abstraction — game brain to real firmware; the three-tier ladder (intent → tiles → code)`,
+    prompts: [
+      `Your game program scrolled past as real C++. Does that change how you think about the code?`,
+      `A microcontroller is small and stubborn. What's the difference between a computer brain and a chip brain?`,
+      `Spark vibrated. When does the game feel REAL to you?`,
+    ],
+    home: `"The Three Brains" — Draw three boxes: (1) "What I want the robot to do," (2) "Tiles/blocks I use," (3) "Real code the chip runs." Connect them. This is abstraction — three ways of saying the same thing.` },
+  { n: 8, title: `Fail Loudly`,
+    skill: `Failure analysis — post-mortems as curriculum; debugging as reading the past`,
+    prompts: [
+      `Every wreck had a plaque. Why light up failures instead of hiding them?`,
+      `Crashes tell stories. What did a crash teach you about your bot, your code, or yourself?`,
+      `That honor-guard floodlight moment. Was failure being celebrated, or was it mourning? Or both?`,
+    ],
+    home: `"The Plaque Ceremony" — Build something simple (marble run, Jenga tower, domino line). When it fails, stop and write one sentence on a card: "It failed because___." Post it. Do it three times. You're building a failure library.` },
+  { n: 9, title: `Candlelight at 11:58`,
+    skill: `Sensing in low-signal regimes — light thresholds, filtering, night calibration; evidence discipline`,
+    prompts: [
+      `The candlelight corner with the floods down. What's scarier — the dark, or the things you can't see?`,
+      `A bot racing at night with one light source. Why is that harder than racing in daylight?`,
+      `Goosebumps as gameplay. When did the game stop feeling like a game?`,
+    ],
+    home: `"Candlelight Navigation" — Lights off, one candle or flashlight. Your kid navigates to a spot you describe (the couch, the kitchen, etc.). How does sight change? How do they rely on memory?` },
+  { n: 10, title: `The Manifest of Midnights`,
+    skill: `Data logging & signal analysis — the engineer-as-detective toolkit: compare, timestamp, correlate`,
+    prompts: [
+      `Numbers never lied — treads, ticks, timestamps. How is data like handwriting?`,
+      `Earl lined up chalk with "her" old tire tracks. What was Earl remembering?`,
+      `Evidence gathering. When do you trust data over your gut feeling?`,
+    ],
+    home: `"Tire Tracks" — Roll a toy car through flour or sand three times. Measure the tracks — distance, width, depth. Are they identical? Variations? This is data: the world leaves evidence. Read it.` },
+  { n: 11, title: `The Back Room`,
+    skill: `Integration — multi-system rebuild under constraint; every plaque lesson is one of Mo's rebuild tasks`,
+    prompts: [
+      `Mo's been waiting in the back room for twenty-six years. What are YOU waiting to wake up?`,
+      `A rebuild brings together everything you've learned. What feels hardest to integrate?`,
+      `The moment she chirped. How did you know she was happy?`,
+    ],
+    home: `"The Rebuild" — Give your kid a broken object (old toy, busted remote, etc.) and let them take it apart. No pressure to fix it — just document where each piece goes. Respect the complexity. This is integration.` },
+  { n: 12, title: `The Midnight Race`,
+    skill: `Everything, integrated — night racing, closed loops, tuned thresholds, race-day power checks`,
+    prompts: [
+      `Twenty-six years on the lap timer. What makes a race moment more than just a lap?`,
+      `Floodlights, midnight, the whole town watching. What's the difference between practice and showtime?`,
+      `The yard knows your name now. What did that feel like?`,
+    ],
+    home: `"Victory Lap" — Set up one final challenge using everything you've learned (or built) this whole time. Not to win — to remember. Then celebrate: why do humans need finish lines? What makes an ending feel like a beginning?` },
+];
+
+function renderMissionCards() {
+  document.getElementById('cards-sheet').innerHTML = MISSION_CARDS.map(c => `
+    <div class="print-card">
+      <div class="pc-chapter">SCRAPCRAFT · CHAPTER ${c.n} OF 12</div>
+      <div class="pc-title">${esc(c.title)}</div>
+      <div class="pc-skill"><b>SKILL:</b> ${esc(c.skill)}</div>
+      <div class="pc-label">FIELD NOTES FOR DISCUSSION</div>
+      ${c.prompts.map((p, i) => `<div class="pc-prompt">${i + 1}. ${esc(p)}</div>`).join('')}
+      <div class="pc-label">TRY AT HOME (UNPLUGGED)</div>
+      <div class="pc-home">${esc(c.home)}</div>
+    </div>`).join('');
+}
+
+document.getElementById('btn-cards').addEventListener('click', () => {
+  renderMissionCards();
+  document.getElementById('cards-overlay').classList.add('show');
+});
+document.getElementById('btn-cards-close').addEventListener('click', () => {
+  document.getElementById('cards-overlay').classList.remove('show');
+});
+document.getElementById('btn-print-cards').addEventListener('click', () => window.print());
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

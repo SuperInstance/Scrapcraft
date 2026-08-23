@@ -192,6 +192,8 @@ export class QuestSystem {
   }
 
   _completeQuest(q) {
+    // Concept ladder — completion is the objective-evidence rung (fail-soft).
+    try { this.game.concepts?.observe({ type: 'quest_done', questId: q.id }); } catch { /* garnish */ }
     const day = this.game.dailyContract?.daysPlayed ?? null;
     const entry = this.logbook.record(q, { day });
     const r = q.rewards ?? {};
@@ -224,6 +226,10 @@ export class QuestSystem {
 
     // Prestige — arc / Midnight-Race completion may have earned a mark
     this.game.prestige?.onQuestCompleted?.(q, this.tracker);
+
+    // A finished quest may have made a concept teach-back-eligible — one
+    // gentle pointer at the Logbook, then silence (fail-soft).
+    try { this.game._maybeTeachBackNudge?.(); } catch { /* garnish */ }
   }
 
   // ── the finale gate (worldbible: any two arcs → the Midnight Race) ───────
@@ -256,6 +262,17 @@ export class QuestSystem {
   _renderHud() {
     if (typeof document === 'undefined') return;
     const show = this.displayQuests();
+    // Concept ladder — a quest surfacing in the log IS a sighting (once per
+    // quest per session; the ledger does the counting). DOM-only on purpose:
+    // headless construction stays inert.
+    try {
+      this._conceptsSeen ??= new Set();
+      for (const q of show) {
+        if (this._conceptsSeen.has(q.id)) continue;
+        this._conceptsSeen.add(q.id);
+        this.game.concepts?.observe({ type: 'quest_seen', questId: q.id });
+      }
+    } catch { /* the ladder is garnish */ }
     renderQuestHud(this, show.map(q => ({
       id: q.id,
       title: q.title,

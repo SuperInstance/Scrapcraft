@@ -1,12 +1,13 @@
 /**
  * Campaign data — the whole quest campaign as declarative JSON (lau-quest
- * pattern: quests are data files, not code). 63 quests: Earl's 20-quest chain
+ * pattern: quests are data files, not code). 65 quests: Earl's 20-quest chain
  * (converted), four companion arcs of 5 (Bolt's racing, Magma's workshop,
  * Juno's exploration, Rivet's yard), the Midnight Race finale gated on any
  * two completed arcs (the worldbible's campaign payoff), nine lived chapter
- * quests (ch7–9, Earl-voiced), twelve companion side-quests (3 beats × 4
- * personas, friend-gated), and the second-arc hook yard-1. (The spec's
- * "64" miscounts its own breakdown: 20+20+1+9+12+1 = 63.)
+ * quests (ch7–9, Earl-voiced), fourteen companion side-quests (3 beats × 4
+ * personas, friend-gated, plus Rivet's debug clinic and Bolt's optimization
+ * dare), and the second-arc hook yard-1. (The spec's "64" miscounts its own
+ * breakdown: 20+20+1+9+14+1 = 65.)
  *
  * Import attributes (`with { type: 'json' }`) work in both Vite and Node 22,
  * so the same loader serves the game and the test harness.

@@ -46,6 +46,8 @@ import { RivetAvatar } from './companion/avatar.js';
 import { CompanionGate, gateDeliveryLine } from './companion/entry.js';
 import { QuestSystem, CAMPAIGN } from './quests/index.js';
 import { openMosLedgerPanel } from './quests/MosLedger.js';
+import { ConceptLedger } from './learning/ConceptLedger.js';
+import { TeachBack } from './learning/TeachBack.js';
 import { TouchControls, touchSupported } from './touch/TouchControls.js';
 
 export class Game {
@@ -207,6 +209,15 @@ export class Game {
 
     this.tileEditor = new TileEditor(this);
     this.saveSystem   = new SaveSystem(this);
+
+    // ── LEARNING ENGINE — the concept ladder ─────────────────────────────
+    // Constructed BEFORE saveSystem.load(): the v6 payload carries `concepts`
+    // (cloud state_json), and _apply() hands them back here. The ledger also
+    // keeps its own localStorage copy (scrapcraft_concepts_v1, spine-style).
+    this.concepts = new ConceptLedger();
+    this.concepts.load();
+    this.teachBack = new TeachBack({ ledger: this.concepts });
+
     this.challenge    = new Challenge(this);
     this.dailyContract = new DailyContract(this);   // before load() — state restores below
     this.nightShiftClock = new NightShiftClock();    // away-clock (own localStorage key)
@@ -606,6 +617,20 @@ export class Game {
       if (bp) this.particles?.burst(bp.x, bp.y + 0.8, bp.z, 'circuit', 18);
     } catch { /* particles optional */ }
     this._delightCeremony('first_program_run');
+  }
+
+  /** A teach-back moment is waiting (a companion has a question only the
+   *  kid-who-is-the-teacher can answer). One gentle toast, at most every few
+   *  minutes — the Logbook [L] holds the actual question. Fail-soft garnish. */
+  _maybeTeachBackNudge() {
+    try {
+      if ((this.teachBack?.available?.() ?? 0) === 0) return;
+      const now = Date.now();
+      if (now - (this._teachBackNudgeAt ?? -Infinity) < 5 * 60_000) return;
+      this._teachBackNudgeAt = now;
+      const who = this.companions?.active?.name ?? 'Rivet';
+      this.ui?.notify(`🔩 <b>${who} has a question</b> only the teacher can answer — open the Logbook [L].`);
+    } catch { /* the ladder never interrupts the yard */ }
   }
 
   /** First lap the bot drove by itself — bigger confetti + the announcer's
