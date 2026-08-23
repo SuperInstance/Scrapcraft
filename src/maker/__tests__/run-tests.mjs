@@ -40,6 +40,7 @@ import { runSaveRoundTripTests } from '../../__tests__/save-roundtrip.mjs';
 import { runZoneGateTransitionTests } from '../../__tests__/zonegate-transition.mjs';
 import { runPerfGuardTests } from '../../__tests__/perf-guards.mjs';
 import { runHudLayerTests } from '../../__tests__/hud-layer-tests.mjs';
+import { runObserverTests } from '../../observer/__tests__/observer-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -1930,6 +1931,10 @@ await runUscpTests(
 // ── HUD layer: scrim z-ladder, stacking column, contrast floor ────────────
 console.log('\nHUD layer');
 runHudLayerTests(ok);
+
+// ── Observer mode: the playtest instrument (?observe=1) — URL gate, ───────
+// fail-soft, milestones-once, export payload, headless hardening ───────────
+runObserverTests(ok);
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);

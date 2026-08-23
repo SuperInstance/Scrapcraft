@@ -357,6 +357,7 @@ export class UI {
 
   setPaused(paused) {
     this._paused = paused;
+    this.game?.observer?.pause?.(paused);   // OBSERVER: pause / resume
     if (this._pauseOverlay) {
       this._pauseOverlay.style.display = paused ? 'flex' : 'none';
     }

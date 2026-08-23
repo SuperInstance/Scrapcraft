@@ -229,6 +229,8 @@ export class QuestSystem {
   _completeQuest(q) {
     // Concept ladder — completion is the objective-evidence rung (fail-soft).
     try { this.game.concepts?.observe({ type: 'quest_done', questId: q.id }); } catch { /* garnish */ }
+    // OBSERVER (?observe=1): quest completes with timestamps (fail-soft).
+    try { this.game.observer?.quest?.(q); } catch { /* observer is a garnish */ }
     const day = this.game.dailyContract?.daysPlayed ?? null;
     const entry = this.logbook.record(q, { day });
     const r = q.rewards ?? {};
