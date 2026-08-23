@@ -786,6 +786,13 @@
     #pause-inner h2 { font-size:36px; letter-spacing:8px; color:#f0b429; margin-bottom:12px; }
     #pause-inner p { font-size:13px; color:#888; letter-spacing:2px; }
     #pause-inner .pause-hint { margin-top:24px; font-size:11px; color:#444; }
+    #coach-mode-btn {
+      margin-top:18px; padding:8px 22px; background:#141414; color:#f0b429;
+      border:1px solid #5a4a1a; font-family:inherit; font-size:11px;
+      letter-spacing:2px; cursor:pointer; border-radius:6px;
+      transition:all 0.2s;
+    }
+    #coach-mode-btn:hover { background:#241f12; border-color:#f0b429; }
 
     /* ══ Achievement toast ══════════════════════════════════════════════ */
     #achieve-toast {
@@ -1376,6 +1383,14 @@
     }
     #start-btn:hover { background:#ffd060; transform:scale(1.05); box-shadow:0 4px 30px #f0b42966; }
     #start-btn:active { transform:scale(0.98); }
+    #spectator-btn {
+      margin-top:12px; padding:8px 26px; background:#141414; color:#f0b429;
+      border:1px solid #5a4a1a; font-family:inherit; font-size:11px;
+      letter-spacing:2px; cursor:pointer; border-radius:6px;
+      transition:all 0.2s;
+    }
+    #spectator-btn:hover { background:#241f12; border-color:#f0b429; }
+    #spectator-btn:active { transform:scale(0.98); }
     .controls-hint { margin-top:36px; color:#333; font-size:11px; line-height:2.2; text-align:center; }
     .controls-hint span { color:#666; }
     .bands-hint { margin-top:18px; color:#2a2a2a; font-size:10px; letter-spacing:2px; }
@@ -1389,6 +1404,7 @@
     <h1>SCRAPCRAFT</h1>
     <div class="tagline">JUNK NEVER LOOKED SO GOOD</div>
     <button id="start-btn">CLOCK IN</button>
+    <button id="spectator-btn">SPECTATOR</button>
     <div class="controls-hint">
       <span>WASD</span> Move &nbsp;|&nbsp; <span>MOUSE</span> Look &nbsp;|&nbsp; <span>SPACE</span> Jump<br>
       <span>HOLD LEFT CLICK</span> Mine &nbsp;|&nbsp; <span>E</span> Workshop &nbsp;|&nbsp; <span>T</span> Maker Bench &nbsp;|&nbsp; <span>F</span> Earl<br>
@@ -1728,6 +1744,7 @@
     <div id="pause-inner">
       <h2>PAUSED</h2>
       <p>CLICK ANYWHERE TO CONTINUE</p>
+      <button id="coach-mode-btn">📻 COACH MODE</button>
       <div class="pause-hint">[ M ] MUTE &nbsp;·&nbsp; [ E ] WORKSHOP OPENS ON RESUME</div>
     </div>
   </div>

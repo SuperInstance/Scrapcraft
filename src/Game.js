@@ -15,6 +15,7 @@ import { getItem } from './data/items.js';
 import { EXAMPLE_WALL_AVOIDER, EXAMPLE_LINE_FOLLOWER } from './maker/TileProgram.js';
 import { getSensor } from './maker/primitives.js';
 import { TileEditor } from './TileEditor.js';
+import { SpectatorCoach } from './radio/SpectatorCoach.js';
 import { SaveSystem } from './SaveSystem.js';
 import { PrestigeSystem } from './prestige/Prestige.js';
 import { XPSystem } from './XPSystem.js';
@@ -206,6 +207,10 @@ export class Game {
     this.projectiles = new ProjectileSystem(this.renderer.scene);
 
     this.tileEditor = new TileEditor(this);
+    // ── Spectator/coach mode (radio) ──
+    this.radio = new SpectatorCoach(this);
+    this._spectator = false;
+    this._demoBots = [];   // demo crew — SpectatorCoach manages the contents
     this.saveSystem   = new SaveSystem(this);
     this.challenge    = new Challenge(this);
     this.dailyContract = new DailyContract(this);   // before load() — state restores below
@@ -756,6 +761,10 @@ export class Game {
 
   _bindInput() {
     document.addEventListener('keydown', e => {
+      // ── Spectator/coach mode (radio) ── coach keys come FIRST — the
+      // play-mode handlers below (KeyB/KeyR/…) assume the kid is driving.
+      if (this._spectator) { this.radio?.onKeyDown(e); return; }
+
       // Any keypress resets the auto-help timer
       this._helpAutoTimer = -1;
 
@@ -942,6 +951,11 @@ export class Game {
           }
         }
       }
+    });
+
+    // ── Spectator/coach mode (radio) ── PTT key-up ends the transmission
+    document.addEventListener('keyup', e => {
+      if (this._spectator) this.radio?.onKeyUp(e);
     });
 
     // Hold-to-mine: track button state, do work in update loop
@@ -2188,6 +2202,19 @@ export class Game {
 
   _update(dt) {
     this._clock += dt;
+
+    // ── Spectator/coach mode (radio) ──
+    if (this._spectator) {
+      this.radio?.tick(dt);
+      // world/life keeps running; skip player physics + hazards + mining
+      this.dayNight?.tick(dt);
+      this.weather?.tick(dt, this.renderer.camera.position, this.renderer.ambientLight);
+      this._tickRivet?.(dt);
+      for (const b of this._demoBots ?? []) b.tick(dt, this.world);
+      this.scrapBot?.tick(dt, this.world);  // existing bots keep playing
+      this.scrapBot2?.tick(dt, this.world);
+      return; // skip the rest of player-centric update
+    }
 
     // Fuel boost timer
     if (this._fuelBoostTimer > 0) {
