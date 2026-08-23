@@ -91,6 +91,14 @@ startBtn.addEventListener('click', () => {
   boot();   // boot() owns the splash fade — it shows loading progress first
 });
 
+// ── Spectator boot (coach mode) ─────────────────────────────────────────────
+// SPECTATOR boots the yard the same lazy way as CLOCK IN, then flags the
+// game to enter coach/spectator mode once boot resolves (see boot()).
+document.getElementById('spectator-btn')?.addEventListener('click', () => {
+  window.__scrapcraft_spectator = true;
+  startBtn.click();
+});
+
 function fadeStartScreen() {
   startScreen.style.opacity = '0';
   startScreen.style.transition = 'opacity 0.6s';
@@ -145,6 +153,17 @@ async function boot() {
       try { canvas.requestPointerLock?.()?.catch?.(() => {}); } catch { /* older browsers return undefined */ }
     }
     if (brainParam) game.ui?.notify('🔗 Shared brain loaded — open Maker Bench to run it!');
+
+    // ── Spectator boot flag: SPECTATOR was pressed → coach mode after boot.
+    // Waits out the opening cinematic/gates so the coach owns the camera.
+    if (window.__scrapcraft_spectator) {
+      window.__scrapcraft_spectator = false;
+      const enterCoach = () => {
+        if (game?.openingPending) { setTimeout(enterCoach, 500); return; }
+        game?.radio?.enter({ from: 'menu' });
+      };
+      enterCoach();
+    }
 
     fadeStartScreen();
   } catch (e) {

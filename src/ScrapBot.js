@@ -70,6 +70,11 @@ export class ScrapBot {
     this._brainMode = false;
     this._game      = null;
 
+    // ── Coach directive: hold position (VHF radio nudge) ──
+    // performance.now() timestamp (ms) the bot freezes its brain until — see
+    // _tickBrain. Kept in ms so it never depends on Game._clock (seconds).
+    this._holdUntil = 0;
+
     // Battery system
     this.battery    = 100;  // 0–100%
 
@@ -102,6 +107,28 @@ export class ScrapBot {
   }
 
   get isActive() { return this._active; }
+
+  /** World position (THREE.Vector3) — public read for cameras / coach tools. */
+  get pos() { return this._pos; }
+
+  /** Retire the bot from the yard: stop the brain, clear runtime state,
+   *  remove the mesh. Identity (personality, ledger) survives. */
+  deactivate() {
+    this._active = false;
+    this._brainMode = false;
+    this._runtime = null;
+    this._adapter = null;
+    this._holdUntil = 0;
+    this._followPlayerUntil = 0;
+    this._panicBoostUntil = 0;
+    this.directive = null;
+    this.speechText = '';
+    this._speechTimer = 0;
+    if (this._mesh && this.scene) {
+      this.scene.remove(this._mesh);
+      this._mesh = null;
+    }
+  }
 
   /** Edition (standard | gate) — set BEFORE activate(). Slightly weaker
    *  machine for the Gate Edition starter: slower, thirstier, rustier. */
@@ -346,6 +373,12 @@ export class ScrapBot {
   }
 
   _tickBrain(dt) {
+    // ── Coach directive: hold position (VHF radio nudge) ──
+    // _holdUntil is a performance.now() timestamp (ms) — compared against
+    // performance.now() directly, no dependency on the game clock (which is
+    // in SECONDS). Guarded: no behavior change when no hold is active.
+    if (this._holdUntil && performance.now() < this._holdUntil) return;
+
     // Battery drain: 0.4%/s idle, +0.9%/s while driving (halved with Extended Battery upgrade)
     const r0 = this._runtime?.robot;
     const driving    = r0 && Math.abs(r0.drivePower) > 0.08;
