@@ -148,6 +148,7 @@ export class SaveSystem {
 
   /** Serialize and persist the full game state. */
   save({ silent = false, exit = false } = {}) {
+    if (this._suspended) return;   // mid-wipe window: nothing may resurrect the slot
     try {
       this._game.nightShiftClock?.touch();   // keep the away-clock honest
       const data = this._collect();
@@ -201,7 +202,22 @@ export class SaveSystem {
   wipe() {
     if (typeof confirm === 'function' && !confirm('Delete all saved progress? This cannot be undone.')) return;
     try { sessionStorage.setItem('scrapcraft.self_reload', '1'); } catch { /* optional */ }
+    // ZONE-GATE P1: suspend ALL writes for the wipe's 800ms exit window —
+    // only exit-saves were guarded, so an autosave/milestone firing inside
+    // the window resurrected the just-wiped save (an intermittent
+    // "wipe doesn't wipe" that read as a state regression after reload).
+    this._suspended = true;
+    this._dirty = false;
+    this._timer = 0;
     this._backend.wipe().catch(() => {});
+    // A wipe must wipe the veteran lanes too, or the belt-2 fallback
+    // (Game.js live-slot miss → veteran provenance slot) resurrects the
+    // veteran profile on the very next boot of a kid who asked for fresh.
+    try {
+      localStorage.removeItem('scrapcraft_save_v6_veteran');
+      localStorage.removeItem('scrapcraft.veteran.backup');
+      localStorage.removeItem('scrapcraft.profile');
+    } catch { /* storage optional */ }
     this._loadedRaw = null;
     this._game.ui?.notify('🗑 Save deleted. Reloading...');
     setTimeout(() => location.reload(), 800);

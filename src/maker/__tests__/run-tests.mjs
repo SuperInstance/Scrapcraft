@@ -36,6 +36,7 @@ import { runTouchTests } from '../../touch/__tests__/touch-tests.mjs';
 import { runLearningTests } from '../../learning/__tests__/learning-tests.mjs';
 import { runRadioTests } from '../../radio/__tests__/radio-tests.mjs';
 import { runSaveRoundTripTests } from '../../__tests__/save-roundtrip.mjs';
+import { runZoneGateTransitionTests } from '../../__tests__/zonegate-transition.mjs';
 import { runPerfGuardTests } from '../../__tests__/perf-guards.mjs';
 
 let pass = 0, fail = 0;
@@ -1906,6 +1907,9 @@ runRadioTests(
 // dirty hooks, autosave cadence, exit guards, cloud parity, version gating ─
 console.log('\nSave round-trip');
 runSaveRoundTripTests(ok);
+
+console.log('\nZone-gate transitions');
+runZoneGateTransitionTests(ok);
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
