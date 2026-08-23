@@ -78,8 +78,13 @@ npm run preview   # serve the dist build locally
 To run the Maker Lab unit test suite (no build step, no browser needed):
 
 ```bash
-npm test          # 36 framework-free tests, all green
+npm test          # 1,196 framework-free tests, all green
 ```
+
+First boot, in one breath: **CLOCK IN** drops you over a live aerial orbit of the
+yard — Earl's welcome and the Yard Gate questions play over the world itself
+(translucent scrims, the crane creaking somewhere below), and the camera hands
+over to your hands the moment the gate closes.
 
 ---
 
@@ -105,6 +110,8 @@ npm test          # 36 framework-free tests, all green
 | `M` | Toggle background music |
 | `I` | Sort inventory |
 | `N` | Close Codex overlay |
+| `L` | Logbook — quest memories + the twelve-chapter rail |
+| `J` | Mo's Ledger — your career record (firsts, laps, chapters, rare finds) |
 | `F5` | Manual save |
 | `F9` | Load save |
 

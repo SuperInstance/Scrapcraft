@@ -26,6 +26,8 @@ import { runPrestigeTests } from '../../prestige/__tests__/prestige-tests.mjs';
 import { runGeographyTests } from '../../world/__tests__/geography-tests.mjs';
 import { runWakesTests } from '../../story/__tests__/wakes-tests.mjs';
 import { runAmbientTests, runCompanionAmbientTests, runA11yPanelTests } from '../../world/__tests__/ambient-tests.mjs';
+import { runOpeningTests } from '../../world/__tests__/opening-tests.mjs';
+import { runLedgerTests } from '../../quests/__tests__/ledger-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -1848,6 +1850,14 @@ console.log('\nAmbient Yard Life');
 runAmbientTests(ok);
 runCompanionAmbientTests(ok);
 runA11yPanelTests(ok);
+
+// ── Opening cinematic: world-before-menu + clean control handoff ────────
+console.log('\nOpening Cinematic (world-before-menu)');
+runOpeningTests(ok);
+
+// ── Mo's Ledger: the career surface the yard keeps on the kid ────────────
+console.log("\nMo's Ledger");
+runLedgerTests(ok);
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);

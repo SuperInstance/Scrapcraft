@@ -3,7 +3,7 @@ import * as THREE from 'three';
 const SPEED      = 5.2;
 const JUMP_VEL   = 6.5;
 const GRAVITY    = -18;
-const EYE_HEIGHT = 1.62;
+export const EYE_HEIGHT = 1.62;
 const PLAYER_R   = 0.28;
 const FRICTION   = 0.12; // horizontal velocity lerp per second (higher = snappier)
 

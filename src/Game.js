@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { World } from './World.js';
 import { Renderer } from './Renderer.js';
-import { Player } from './Player.js';
+import { Player, EYE_HEIGHT } from './Player.js';
 import { Foreman } from './Foreman.js';
 import { UI } from './UI.js';
 import { CraftingSystem } from './systems/CraftingSystem.js';
@@ -31,6 +31,7 @@ import { SettingsPanel } from './onboarding/SettingsPanel.js';
 import { ColdStartGate, sparkFirstGreeting } from './onboarding/coldstart.js';
 import { DelightGate, delightLine, FIRST_DENT_RECOVERY, BATTERY_RECOVERY } from './onboarding/delights.js';
 import { AmbientLife, ambientLine, AMBIENT_NOTABLE } from './world/AmbientLife.js';
+import { OpeningCinematic } from './world/OpeningCinematic.js';
 import { sparkGateway } from './spark/index.js';
 import { RaceBoard, NPC_GHOSTS, BEAT_QUIPS } from './RaceBoard.js';
 import { Codex } from './Codex.js';
@@ -44,6 +45,7 @@ import { CompanionRoster, EARL_PAIRING_LINE } from './companion/registry.js';
 import { RivetAvatar } from './companion/avatar.js';
 import { CompanionGate, gateDeliveryLine } from './companion/entry.js';
 import { QuestSystem, CAMPAIGN } from './quests/index.js';
+import { openMosLedgerPanel } from './quests/MosLedger.js';
 
 export class Game {
   /** @param {HTMLCanvasElement} canvas
@@ -91,6 +93,9 @@ export class Game {
 
     // Ghost-racer intro — shown once per game
     this._ghostRacerIntroShown = false;
+
+    // Opening cinematic — world-before-menu orbit (set up in start())
+    this._openingCinematic = null;
   }
 
   init() {
@@ -247,6 +252,9 @@ export class Game {
             this.ui?.notify(`🚪 ${delivery}`);
             starter.greet();
             this.saveSystem?.markDirty();
+            // The last opening overlay just closed — the yard hands over the
+            // controls (camera parks at the kid's eye, pointer lock engages).
+            this._endOpening();
           },
         });
       } else {
@@ -460,6 +468,10 @@ export class Game {
       setTimeout(() => this.foreman?.greetPlayer(), 600);
     }
     if (this._freshGame) this._startTutorial();
+    // Wizard closed and no yard-gate pending → the opening is over; the
+    // cinematic ends and the controls hand over. (Gate pending → the gate's
+    // own onChosen ends it, so the orbit carries the questions too.)
+    if (!this.companions?.needsEntryChoice) this._endOpening();
   }
 
   /** Spark's first hello — fires on the first item pickup (usually iron),
@@ -680,6 +692,13 @@ export class Game {
       if (e.code === 'KeyL' && !this.ui.isOpen && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName ?? '')) {
         this.quests?.openLogbook();
       }
+      // Mo's Ledger — the yard's memory of the kid (press J). If the panel
+      // is already up, its own keydown closes it — don't fight the toggle.
+      if (e.code === 'KeyJ' && !this.ui.isOpen && !this.tileEditor?.isOpen
+          && !document.getElementById('mos-ledger-panel')
+          && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName ?? '')) {
+        this._openMosLedger();
+      }
       // ── Tutorial: detect E to advance step 2 ──
       if (e.code === 'KeyE') {
         if (this._tutorialActive && this._tutorialStep === 2) this._advanceTutorial();
@@ -845,6 +864,11 @@ export class Game {
 
     // Hold-to-mine: track button state, do work in update loop
     this.canvas.addEventListener('mousedown', e => {
+      // Free cursor + click on the yard → take the controls (covers the
+      // never-locked path, e.g. a refused boot-time lock request).
+      if (!document.pointerLockElement && !this.openingPending && !this.ui?.isOpen) {
+        this.canvas?.requestPointerLock?.();
+      }
       if (e.button === 0) this._mineDown = true;
     });
     this.canvas.addEventListener('mouseup', e => {
@@ -856,10 +880,12 @@ export class Game {
       this._tryPlace();
     });
 
-    // Pointer lock: show/hide pause overlay
+    // Pointer lock: show/hide pause overlay — but never while the opening
+    // cinematic runs (lock is deliberately absent behind the first menus;
+    // a PAUSED flash under the gate would break the world-before-menu spell).
     document.addEventListener('pointerlockchange', () => {
       const locked = !!document.pointerLockElement;
-      if (this._running) this.ui.setPaused(!locked);
+      if (this._running && !this.openingPending) this.ui.setPaused(!locked);
     });
 
     // Click-to-resume on pause overlay
@@ -1840,9 +1866,53 @@ export class Game {
   start() {
     if (this._running) return;   // CLOCK IN twice must not spawn duplicate render loops (OOM path)
     this._running = true;
+
+    // ── WORLD-BEFORE-MENU ────────────────────────────────────────────────
+    // First run: the yard slow-orbits behind the wizard + the yard gate —
+    // the menus stop hiding the world they describe (beta feel pass). The
+    // orbit ends when the last opening overlay closes (_endOpening), which
+    // is also the only moment pointer lock is taken.
+    const firstRun = !this.onboarding?.isComplete?.() || !!this.companions?.needsEntryChoice;
+    if (firstRun && this.renderer?.camera) {
+      try {
+        this._openingCinematic = new OpeningCinematic({
+          camera: this.renderer.camera,
+          // Lite pulls the fog to 60m — orbit closer so the yard still reads
+          ...(this.renderMode?.lite ? { radius: 34, height: 18 } : {}),
+        }).begin();
+        // Some browsers grant the boot-time lock before the first overlay
+        // paints — the overlays need the cursor, so give it back.
+        if (typeof document !== 'undefined' && document.pointerLockElement) {
+          document.exitPointerLock?.();
+        }
+      } catch { /* the cinematic is a garnish — a failed orbit must not fail a boot */ }
+    }
+
     this._lastTime = performance.now();
     this._loop();
     if (this._returningSession) this._showWelcomeBack();
+  }
+
+  /** True while the opening cinematic owns the camera (menus up, no lock). */
+  get openingPending() { return this._openingCinematic?.active === true; }
+
+  /** The last opening overlay closed: park the camera at the kid's eye and
+   *  take the controls. Idempotent; fail-soft on every step. */
+  _endOpening() {
+    const cin = this._openingCinematic;
+    if (!cin?.active) return;
+    cin.end();
+    try {
+      const cam = this.renderer?.camera, p = this.player;
+      if (cam && p) {
+        // Exactly where Player.tick would have it — the first locked frame
+        // is seamless, no snap back from the orbit.
+        cam.position.set(p.pos.x, p.pos.y + EYE_HEIGHT, p.pos.z);
+        cam.quaternion.setFromEuler(new THREE.Euler(p.pitch, p.yaw, 0, 'YXZ'));
+      }
+    } catch { /* camera parked best-effort; pointer lock drives the rest */ }
+    if (!document.pointerLockElement) this.canvas?.requestPointerLock?.();
+    this.ui?.setPaused?.(false);
   }
 
   // ── Welcome Back — the minute-0-of-day-2 moment ────────────────────────
@@ -2008,6 +2078,12 @@ export class Game {
     this._avatarPersonaId = persona.id;
   }
 
+  /** Mo's Ledger — the career record the yard keeps on the kid (J key,
+   *  cross-linked from the Logbook). A garnish: never a crash. */
+  _openMosLedger() {
+    try { openMosLedgerPanel(this); } catch { /* the ledger is a garnish, never a crash */ }
+  }
+
   _tickRivet(dt) {
     if (!this.rivet) return;
     const locked = Boolean(document.pointerLockElement);
@@ -2040,6 +2116,11 @@ export class Game {
     }
 
     this.player.tick(dt, this.world);
+
+    // Opening cinematic — the yard drifts behind the first menus. Player.tick
+    // no-ops without pointer lock, so while menus are up the orbit owns the
+    // camera; when it ends, _endOpening parks the camera at the kid's eye.
+    if (this._openingCinematic?.active) this._openingCinematic.update(dt);
 
     this._tickRivet(dt);
 
