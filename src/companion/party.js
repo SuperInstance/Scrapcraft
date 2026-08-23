@@ -24,7 +24,7 @@ export const CROSSTALK = {
     { on: 'bot_built', line: 'Another box with wheels. I say that with love. Most winners are boxes with wheels.' },
     { on: 'flash_success', line: 'Clean flash. Real hardware. OK — even I nodded. Don\'t tell Rivet I can nod.' },
     { on: 'rare_loot', line: 'Rare part. Light? Light is fast. That\'s the whole review.' },
-    { on: 'biome_first', line: '{biome}. Nice sightlines. I clocked three potential straights on the way in.' },
+    { on: 'biome_first', line: '{biome}. Clean views on three potential straights. I clocked them on the way in.' },
     { on: 'tier_up', line: 'Tier-up. Took you two of you long enough. Kidding. Mostly. Proud. Quietly.' },
     { on: 'observation', line: 'Rivet\'s right about one thing: this yard does have a lot of bolts. And one Rivet. Coincidence? Yes.' },
     { on: '*', line: 'For the record: whatever we\'re doing, the oval is still east. Just — geography. Free of charge.' },
@@ -40,13 +40,13 @@ export const CROSSTALK = {
   ],
   magma: [
     { on: 'bot_built', line: 'Oh, they built something. Look at it. LOOK at it. I am not crying. The forge smoke. Again.' },
-    { on: 'repair_done', line: 'Hammer hour, witnessed and honored. The book grows wiser. So do we all.' },
+    { on: 'repair_done', line: 'Hammer hour! I heard it from across the yard — three booms and a happy clank. That is the sound of a dent learning manners.' },
     { on: 'crash', line: 'Little one, the bot is fine. Dents are just… hugs from the world. Very firm hugs. We press them back.' },
     { on: 'flash_success', line: 'A real board, blinking YOUR code. I will remember this day in my chassis forever. Literally. It\'s in the log now.' },
     { on: 'rare_loot', line: 'A rare part. I know the perfect shelf. The bench near the window. The light is kind there.' },
     { on: 'lap_complete', line: '{secs}s! Bolt is doing his not-smiling. I can tell. His chassis tilts half a degree. I have references.' },
     { on: 'tier_up', line: 'A friendship milestone. Those are the heavy lifts. I know from heavy lifts.' },
-    { on: '*', line: 'Whatever we choose, small builders, I will hold things steady. That is always my part. It is a good part.' },
+    { on: '*', line: 'Whatever we choose, I will hold the heavy end. There are no small jobs, only small tools. I have the large ones.' },
   ],
   juno: [
     { on: 'biome_first', line: '{biome}!! We\'ve mapped it! Half of it! The good half! The other half is a mystery and mysteries are APPOINTMENTS.' },
@@ -69,8 +69,8 @@ export const OBJECTIONS = {
   ],
   rivet: [
     'Wait wait wait — that sounds like homework! Can it be homework with WHEELS?',
-    'Okay but consider: what if we did the fun version first?',
-    'I like it! I also like other things! I like lots of things! Can I show you a thing after?',
+    'Objection withdrawn IF we add a detour. Small one. Junk-sized. Through the good pile.',
+    'Yes to the plan! Yes yes yes. Also I brought snacks. Snack bolts. …They\'re regular bolts. Don\'t tell them.',
   ],
   magma: [
     'May I suggest — the workshop. The workshop is warm. And honest. Like me.',
