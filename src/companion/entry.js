@@ -108,7 +108,9 @@ export class CompanionGate {
     this._el.id = 'companion-gate';
     this._el.style.cssText =
       'position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;' +
-      'background:rgba(10,12,16,0.82);font-family:inherit;';
+      // Translucent scrim — the yard drifts behind Earl's questions
+      // (world-before-menu); the card keeps the contrast.
+      'background:rgba(10,12,8,0.55);font-family:inherit;';
     mount.appendChild(this._el);
     this._render();
   }

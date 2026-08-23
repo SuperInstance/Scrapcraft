@@ -19,6 +19,7 @@
  */
 
 import { WAKE_EVENTS } from '../story/Wakes.js';
+import { openMosLedgerPanel } from './MosLedger.js';
 
 const ARC_BADGE = {
   earl:  { icon: '☕', label: 'Earl’s chain' },
@@ -219,6 +220,7 @@ function spineRailHtml(system) {
 
 export function openLogbookPanel(system) {
   document.getElementById('logbook-panel')?.remove();
+  document.getElementById('mos-ledger-panel')?.remove();   // cross-linked opens, never stacked
   document.exitPointerLock?.();
 
   const panel = document.createElement('div');
@@ -235,6 +237,7 @@ export function openLogbookPanel(system) {
       <div style="display:flex;justify-content:space-between;align-items:baseline">
         <h2 style="margin:0;font-size:18px;letter-spacing:2px;color:#ffd97a">📓 THE LOGBOOK</h2>
         <span>
+          <button id="lb-ledger" style="font:inherit;font-size:11px;background:#2a2214;color:#ffd97a;border:1px solid #6b5a33;border-radius:4px;padding:3px 10px;cursor:pointer">📒 Mo's Ledger [J]</button>
           <button id="lb-copy" style="font:inherit;font-size:11px;background:#2a2214;color:#ffd97a;border:1px solid #6b5a33;border-radius:4px;padding:3px 10px;cursor:pointer">copy transcript</button>
           <button id="lb-close" style="font:inherit;font-size:11px;background:#2a2214;color:#e8dcc0;border:1px solid #6b5a33;border-radius:4px;padding:3px 10px;cursor:pointer">close [L]</button>
         </span>
@@ -290,6 +293,11 @@ export function openLogbookPanel(system) {
   render();
 
   panel.querySelector('#lb-close').addEventListener('click', () => panel.remove());
+  // Cross-link: Mo's Ledger — the career record over the same scrim. The
+  // ledger panel removes this one (cross-linked opens, never stacked).
+  panel.querySelector('#lb-ledger')?.addEventListener('click', () => {
+    try { openMosLedgerPanel(system.game); } catch { panel.remove(); }
+  });
   panel.querySelector('#lb-copy').addEventListener('click', ev => {
     const tx = system.logbook.transcript();
     navigator.clipboard?.writeText(tx).then(() => {

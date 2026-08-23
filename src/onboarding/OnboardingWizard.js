@@ -225,7 +225,9 @@ export class OnboardingWizard {
         this.el = null;
         // Hand off: Earl conscripts at spawn, mission card starts, pointer locks.
         this.game._onOnboardingComplete?.();
-        if (!document.pointerLockElement) {
+        // Lock only if nothing else holds the opening — the yard gate may
+        // still be pending, and its buttons need a free cursor.
+        if (!document.pointerLockElement && !this.game?.openingPending) {
           this.game.canvas?.requestPointerLock();
         }
       }, 300);
@@ -241,7 +243,9 @@ export class OnboardingWizard {
 /* ── Onboarding Wizard — first-run overlay (2 steps, no ceremony) ── */
 .ow-overlay {
   position: fixed; inset: 0;
-  background: rgba(4, 4, 4, 0.92);
+  /* Translucent scrim — the yard orbits behind the wizard (world-before-
+     menu); the card itself stays opaque so the copy keeps its contrast. */
+  background: rgba(8, 10, 6, 0.55);
   display: flex; align-items: center; justify-content: center;
   z-index: 2000;
   font-family: 'Courier New', monospace;
