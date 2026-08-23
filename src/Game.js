@@ -435,7 +435,15 @@ export class Game {
 
     // Load saved state — if none, show first-time greeting + tutorial.
     // Returning players get the Welcome Back flow after CLOCK IN (see start()).
-    const loaded = this.saveSystem.load();
+    // BELT 2 (rig v3 P0-1): if the live slot is empty but the veteran
+    // provenance slot exists, honor it — the profile switch wrote both, and
+    // a live-slot miss must never strand the veteran kid at Lv.0.
+    if (!this.saveSystem.load()) {
+      try {
+        const vRaw = typeof localStorage !== 'undefined' && localStorage.getItem(VETERAN_SAVE_KEY);
+        if (vRaw && JSON.parse(vRaw).version === 6) this.saveSystem._apply?.(JSON.parse(vRaw));
+      } catch { /* belt only — fresh boots stay fresh */ }
+    }
 
     // ── QUEST FRAMEWORK (lau-style declarative quests) ─────────────────────
     // Tracker + Logbook over the same event stream the foreman quips and the
