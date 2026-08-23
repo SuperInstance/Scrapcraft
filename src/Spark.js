@@ -12,6 +12,7 @@ import { SENSORS, ACTUATORS } from './maker/primitives.js';
 import { compile } from './maker/TileCompiler.js';
 import { matchRecipe, DEFAULT_RECIPE } from './SparkOfflineRecipes.js';
 import { sparkGateway } from './spark/SparkGateway.js';
+import { SparkCache } from './spark/SparkCache.js';
 
 const SPARK_SYSTEM = `You are SPARK, a tiny floating robot and the player's build buddy in
 the scrapyard game SCRAPCRAFT. The player is a clever middle-schooler (10-14).
@@ -223,11 +224,14 @@ export class Spark {
     this._provider = null;        // resolved from onboarding config
     this._limiter  = new SparkRateLimiter(10, 120_000); // 10 req / 2 min
     this._muted    = false;       // teacher mute switch
+    this._cloud    = new SparkCache(); // scrap-spark pincher-cache (graceful: null on failure)
   }
 
   /** Teacher can mute/unmute Spark remotely. */
   setMuted(muted) { this._muted = muted; }
   get isMuted()   { return this._muted; }
+  /** The scrap-spark pincher-cache client (daily challenge, shared wall, cached asks). */
+  get cloud()     { return this._cloud; }
   get rateLimitRemaining() { return this._limiter.remaining; }
 
   /**
@@ -271,6 +275,30 @@ export class Spark {
 
     this._history.push({ role: 'user', content: userText });
     this._retried = false;
+
+    // Step 0: the scrap-spark pincher-cache — SHA-256(question+context) on the
+    // server, a local pinch in the browser. First kid pays the model call;
+    // everyone after gets the can. Falls through silently when unreachable.
+    const cloudCtx = `brain:${this._editor?._program?.brain ?? 'tin'}`;
+    const cloud = await this._cloud.ask(userText, cloudCtx);
+    if (cloud?.program) {
+      const program = new TileProgram({
+        name: cloud.program.name ?? 'Spark Brain',
+        brain: this._editor?._program?.brain ?? 'tin',
+        nodes: cloud.program.nodes,
+      });
+      const result = compile(program);
+      if (result.ok) {
+        this._editor.loadProgram(program);
+        this._history.push({ role: 'assistant', content: cloud.text });
+        return { kind: 'program', text: `${cloud.text} \u2014 (\u2672 from the yard's shared brain cache: ${this._cloud.lastStatus})`, program };
+      }
+      // cached program no longer compiles (vocab moved on) — fall through to live paths
+      console.warn('[Spark] cached program failed compile, falling through:', result.errors);
+    } else if (cloud?.text) {
+      this._history.push({ role: 'assistant', content: cloud.text });
+      return { kind: 'chat', text: filterSparkResponse(cloud.text) };
+    }
 
     // Step 1: Try the multi-provider gateway first (reads onboarding config)
     const gatewayResponse = await sparkGateway.ask(SPARK_SYSTEM, userText);
