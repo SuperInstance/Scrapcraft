@@ -29,6 +29,7 @@ import { ScrapExchange, EXCHANGE_POS, EXCHANGE_RADIUS } from './ScrapExchange.js
 import { OnboardingWizard } from './onboarding/OnboardingWizard.js';
 import { SettingsPanel } from './onboarding/SettingsPanel.js';
 import { ColdStartGate, sparkFirstGreeting } from './onboarding/coldstart.js';
+import { DelightGate, delightLine, FIRST_DENT_RECOVERY, BATTERY_RECOVERY } from './onboarding/delights.js';
 import { sparkGateway } from './spark/index.js';
 import { RaceBoard, NPC_GHOSTS, BEAT_QUIPS } from './RaceBoard.js';
 import { Codex } from './Codex.js';
@@ -114,6 +115,10 @@ export class Game {
     // Cold-start gate: Spark's first hello fires on the FIRST item pickup —
     // minute ~2, offline-safe, never gated on the Tile Editor again.
     this._coldstart = new ColdStartGate(
+      typeof localStorage !== 'undefined' ? localStorage : null,
+    );
+    // First-hour delights — once-ever wow beats (fail-soft: headless → mem-only)
+    this._delights = new DelightGate(
       typeof localStorage !== 'undefined' ? localStorage : null,
     );
     const _origAdd = this.player.addItem.bind(this.player);
@@ -448,6 +453,70 @@ export class Game {
     this.achievements?.track?.('spark_met', {});
   }
 
+  // ── First-hour delights — sound + visual + companion reaction, together ──
+
+  /** A one-time wow beat: marks the gate, then lands audio + particles +
+   *  the active companion's reaction. Fail-soft: any missing system no-ops. */
+  _delightCeremony(key, x, y, z) {
+    if (!this._delights?.once(key)) return false;
+    try {
+      this.audio?.achievement?.();
+      this.particles?.burst(x ?? this.player?.pos.x, (y ?? this.player?.pos.y) + 1, z ?? this.player?.pos.z, 'confetti', 26);
+      const c = this.companions?.active;
+      const line = delightLine(key, this.companions?.activeId);
+      if (c && line) c.say(line, { mood: 'happy', event: 'delight', topic: key });
+    } catch { /* a wow moment must never crash the yard */ }
+    return true;
+  }
+
+  /** The bot just ran under the kid's OWN program for the first time —
+   *  circuit-burst at the bot + ceremony. Wired from every setBrain path. */
+  _noteProgramRunDelight(bot) {
+    try {
+      const bp = bot?._mesh?.position;
+      if (bp) this.particles?.burst(bp.x, bp.y + 0.8, bp.z, 'circuit', 18);
+    } catch { /* particles optional */ }
+    this._delightCeremony('first_program_run');
+  }
+
+  /** First lap the bot drove by itself — bigger confetti + the announcer's
+   *  voice joins the companion. Shared by the TRACK and Oval circuits. */
+  _noteFirstLapDelight(bot, secs, gx, gz) {
+    if (!this._delights || this._delights.fired('first_autonomous_lap')) return;
+    try {
+      this.particles?.burst(gx ?? 38, 1.5, gz ?? 14, 'confetti', 34);
+    } catch { /* particles optional */ }
+    this._delightCeremony('first_autonomous_lap');
+    if (this._delights.fired('first_autonomous_lap')) {
+      announceLap(1).catch?.(() => {});   // "Lap one complete!" — the big voice
+    }
+  }
+
+  // ── Failure kindness — a bricked bot is a lesson, never a dead end ──────
+
+  /** First dent ever: normalize it, name the recovery, keep moving. */
+  _noteFirstDent(bot) {
+    if (!this._delights?.once('first_dent')) return;
+    try {
+      const c = this.companions?.active;
+      const line = delightLine('first_dent', this.companions?.activeId);
+      if (c && line) c.say(`${line} ${FIRST_DENT_RECOVERY}`, { mood: 'happy', event: 'kindness' });
+    } catch { /* kindness never crashes */ }
+  }
+
+  /** Battery dead: kindness every time, but at most once a minute so a
+   *  flailing session doesn't turn the comfort into a nag. */
+  _noteBatteryDead(bot) {
+    const now = Date.now();
+    if (this._lastBatteryKindness && now - this._lastBatteryKindness < 60_000) return;
+    this._lastBatteryKindness = now;
+    try {
+      const c = this.companions?.active;
+      const line = delightLine('battery_dead', this.companions?.activeId);
+      if (c && line) c.say(`${line} ${BATTERY_RECOVERY}`, { mood: 'happy', event: 'kindness' });
+    } catch { /* kindness never crashes */ }
+  }
+
   /** Settings → Advanced changed the config: hot-upgrade the yard's voices.
    *  A key entered post-spawn upgrades Spark LIVE — no restart needed. */
   onAdvancedConfigChanged() {
@@ -729,6 +798,7 @@ export class Game {
             this.scrapBot.setBrain(EXAMPLE_WALL_AVOIDER, this.world, this.player, this.dayNight);
             this.achievements.track('program_run', {});
             this.xpSystem.gain(15);
+            this._noteProgramRunDelight(this.scrapBot);
           }
         }
       }
@@ -828,11 +898,14 @@ export class Game {
       giveLoot(def.drop);
     }
 
-    // Lucky Find — 3% base chance (8% at night) of bonus rare item from junk blocks
+    // Lucky Find — 3% base chance (8% at night) of bonus rare item from junk blocks.
+    // First-hour delight: the FIRST junk block a kid ever mines always hides
+    // one (once ever, persisted) — the rare-loot wow lands at minute ~2.
     const LUCKY_BLOCKS = new Set([B.SCRAP_PILE, B.OIL_DRUM, B.JUNK_CAR]);
     const LUCKY_LOOT   = ['battery_pack', 'ir_module', 'circuit_board', 'ldr_module', 'spring', 'gear_small', 'crystal_fragment'];
     const luckyChance  = isNight ? 0.08 : 0.03;
-    if (LUCKY_BLOCKS.has(id) && Math.random() < luckyChance) {
+    const firstFindDue = this._delights && !this._delights.fired('first_lucky_find');
+    if (LUCKY_BLOCKS.has(id) && (Math.random() < luckyChance || firstFindDue)) {
       const lucky = LUCKY_LOOT[Math.floor(Math.random() * LUCKY_LOOT.length)];
       this.player.addItem(lucky, 1);
       const lDef = getItem(lucky);
@@ -844,6 +917,7 @@ export class Game {
       this.achievements.track('lucky_find', {});
       this.xpSystem.gain(5);
       this.rivet?.observe('rare_loot', { note: lDef?.name ?? lucky });
+      if (firstFindDue) this._delightCeremony('first_lucky_find', x, y + 1, z);
     }
     // Night bonus HUD indicator (first mine of the night)
     if (isNight && !this._nightBonusShown) {
@@ -1197,6 +1271,7 @@ export class Game {
       this.scrapBot2.setBrain(EXAMPLE_WALL_AVOIDER, this.world, this.player, this.dayNight);
       this.xpSystem.gain(15);
       this.achievements.track('program_run', {});
+      this._noteProgramRunDelight(this.scrapBot2);
     } else {
       this.scrapBot2.clearBrain();
     }
@@ -2691,6 +2766,7 @@ export class Game {
         this.dailyContract?.onLapComplete();
         this.xpSystem.gain(20);
         this.rivet?.observe('lap_complete', { secs, note: `${secs}s${improved ? ' PB' : ''}` });
+        this._noteFirstLapDelight(bot, secs, 38, 14);   // first autonomous lap, once ever
         // The heart: this lap is remembered
         if (bot?.ledger?.lapCompleted()) {
           this.ui.notify(`💛 ${bot.ledger.name}'s first lap — remembered forever.`);
@@ -2809,6 +2885,7 @@ export class Game {
         this.noteBotTaskComplete(bot);   // panic reset: a lap is a completed task
         this.dailyContract?.onLapComplete();
         this.xpSystem.gain(improved ? 30 : 20);
+        this._noteFirstLapDelight(bot, secs, 49, 84);   // first autonomous lap, once ever
         bot.speak(bot.personality.quip(improved ? 'lap_record' : 'lap_complete'));
         // Voice announcements for race
         this._lapCount = (this._lapCount ?? 0) + 1;

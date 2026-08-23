@@ -19,7 +19,9 @@ import {
 } from '../TileProgram.js';
 import { runQuestTests } from '../../quests/__tests__/quest-tests.mjs';
 import { runColdstartTests } from '../../onboarding/__tests__/coldstart-tests.mjs';
+import { runDelightTests } from '../../onboarding/__tests__/delight-tests.mjs';
 import { runSpineLiveTests } from '../../quests/__tests__/spine-live-tests.mjs';
+import { runNextStepTests } from '../../quests/__tests__/nextstep-tests.mjs';
 import { runPrestigeTests } from '../../prestige/__tests__/prestige-tests.mjs';
 import { runGeographyTests } from '../../world/__tests__/geography-tests.mjs';
 import { runWakesTests } from '../../story/__tests__/wakes-tests.mjs';
@@ -1820,7 +1822,9 @@ runQuestTests(ok);
 // ── Cold-start: wizard, conscription gates, starter bot, config, trail ─────
 console.log('\nCold-start');
 runColdstartTests(ok);
+runDelightTests(ok);
 runSpineLiveTests(ok);
+runNextStepTests(ok);
 
 // ── Prestige: Earl's Back Room + achievement perks ──────────────────────
 console.log('\nPrestige & Perks');
