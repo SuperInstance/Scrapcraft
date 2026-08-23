@@ -10,6 +10,7 @@ import { Avr109Flasher } from './maker/Avr109Flasher.js';
 import { UNO_WIRING } from './maker/PinModel.js';
 import { QuiltSheet } from './maker/QuiltSheet.js';
 import { QuiltView } from './maker/QuiltView.js';
+import { BotShelf } from './BotLedger.js';
 import { WebSerialBridge } from './maker/WebSerialBridge.js';
 import { Spark } from './Spark.js';
 import { BrainGallery } from './BrainGallery.js';
@@ -102,8 +103,22 @@ const CMP_LABELS = { gt: '>', lt: '<', gte: '≥', lte: '≤', eq: '=', neq: '�
 // ── Utilities ────────────────────────────────────────────────────────────────
 
 function _esc(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(str ?? '')
+    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
 }
+
+const MILE_LABEL = {
+  first_brain: 'first brain — started thinking',
+  first_dent: 'first dent',
+  first_repair: 'first repair',
+  lap_complete: 'first lap',
+  ten_laps: 'ten laps',
+  fifty_laps: 'fifty laps',
+  crash_free_30: '30s crash-free streak',
+  crash_free_120: '2min crash-free streak',
+  crash_free_300: '5min crash-free streak',
+};
 
 function _instrSummary(instr) {
   if (!instr) return '';
@@ -276,6 +291,7 @@ export class TileEditor {
     this._panel.querySelector('#te-code-btn').addEventListener('click',  () => this._toggleCode());
     this._panel.querySelector('#te-close-btn').addEventListener('click', () => this.close());
     this._panel.querySelector('#te-upgrades-btn')?.addEventListener('click', () => this._game._toggleBotUpgradePanel?.());
+    this._panel.querySelector('#te-botcard-btn')?.addEventListener('click', () => this._toggleBotCard());
     this._panel.querySelector('#te-spark-btn')?.addEventListener('click', () => this._toggleSpark());
     this._panel.querySelector('#te-share-btn')?.addEventListener('click', () => this._shareProgram());
     this._panel.querySelector('#te-receipt-btn')?.addEventListener('click', () => this._showFlashReceipt());
@@ -1422,6 +1438,100 @@ export class TileEditor {
     const evs = rt.drainEvents ? [] : [];   // events drained by Game; approximate via robot.events length
     this._qBeepTotal += (rt.robot?.events ?? []).filter(e => e.kind === 'beep').length;
     return this._qBeepTotal;
+  }
+
+  // ── The heart: Bot Card (name, dents, repairs, milestones, retirement) ───
+
+  _toggleBotCard() {
+    if (this._botCardEl) { this._botCardEl.remove(); this._botCardEl = null; return; }
+    const bot = this._activeBot();
+    const ledger = bot?.ledger;
+    const el = document.createElement('div');
+    el.id = 'bot-card';
+    el.className = 'bot-card';
+    this._botCardEl = el;
+    document.body.appendChild(el);
+
+    if (!ledger) {
+      el.innerHTML = `<div class="bc-card"><div class="bc-head">💛 BOT CARD</div>
+        <div class="bc-empty">No bot with a brain yet.<br>Craft a robot_helper, give it a program, and press ▶ Run.<br><br>When it thinks for the first time, it becomes <i>someone</i>.</div>
+        <button class="bc-close">Close</button></div>`;
+      el.querySelector('.bc-close').addEventListener('click', () => this._toggleBotCard());
+      return;
+    }
+
+    const shelf = BotShelf.list();
+    const dents = ledger.dents.slice(-6).reverse();
+    const repairs = ledger.repairs.slice(-5).reverse();
+    const miles = ledger.milestones.slice(-9).reverse();
+    const ago = ts => { const m = Math.round((Date.now() - ts) / 60000); return m < 1 ? 'just now' : m < 60 ? m + 'm ago' : Math.round(m / 60) + 'h ago'; };
+
+    el.innerHTML = `<div class="bc-card">
+      <div class="bc-head">💛 ${_esc(ledger.name)}
+        <span class="bc-slot">${bot === this._game.scrapBot ? 'Bot 1' : 'Bot 2'}</span>
+        <button class="bc-close">✕</button>
+      </div>
+      ${ledger.isRetired ? `<div class="bc-retired">🏅 RETIRED — "${_esc(ledger.epitaph ?? '')}"</div>` : ''}
+
+      <div class="bc-rename">
+        <input id="bc-name" maxlength="24" value="${_esc(ledger.name)}" placeholder="name your bot" />
+        <button id="bc-rename">Rename</button>
+      </div>
+
+      <div class="bc-stats">
+        <div class="bc-stat"><b>${ledger.dents.length}</b><span>dents</span></div>
+        <div class="bc-stat"><b>${ledger.repairs.length}</b><span>repairs</span></div>
+        <div class="bc-stat"><b>${ledger.laps}</b><span>laps</span></div>
+        <div class="bc-stat"><b>${Math.floor(ledger.runtimeS)}s</b><span>run time</span></div>
+      </div>
+
+      <div class="bc-sec">🔨 DENTS (the good stories)</div>
+      ${dents.length ? dents.map(d => `<div class="bc-li">💥 at (${d.x}, ${d.z}) · speed ${Math.round(d.speed * 100)}% · ${ago(d.at)}</div>`).join('')
+                      : '<div class="bc-dim">none yet — suspiciously careful driving</div>'}
+
+      <div class="bc-sec">🔧 REPAIR LOG</div>
+      ${repairs.length ? repairs.map(r => `<div class="bc-li">🩹 ${r.dentsFixed} dent${r.dentsFixed > 1 ? 's' : ''} fixed (${r.tool}) · ${ago(r.at)}</div>`).join('')
+                       : '<div class="bc-dim">no repairs needed so far</div>'}
+
+      <div class="bc-sec">⭐ MILESTONES REMEMBERED</div>
+      ${miles.length ? miles.map(m => `<div class="bc-li">⭐ ${_esc(MILE_LABEL[m.id] ?? m.id)}${m.detail ? ' — ' + _esc(m.detail) : ''} · ${ago(m.at)}</div>`).join('')
+                     : '<div class="bc-dim">the first one is out there waiting</div>'}
+
+      ${!ledger.isRetired ? `
+      <div class="bc-sec">🎖 RETIREMENT</div>
+      <div class="bc-dim" style="margin-bottom:4px">A retired bot goes to the shelf with its stats frozen and its name honored — forever. Needs 60s+ of run time.</div>
+      <div class="bc-rename">
+        <input id="bc-epitaph" maxlength="140" placeholder="epitaph — e.g. 'Never once found the waypoint. Never once stopped trying.'" />
+        <button id="bc-retire">Retire to shelf</button>
+      </div>` : ''}
+
+      <div class="bc-sec">📚 THE RETIREMENT SHELF</div>
+      ${shelf.length ? shelf.slice(0, 6).map(s => `<div class="bc-li">🏅 <b>${_esc(s.name)}</b> — "${_esc(s.epitaph)}" · ${s.laps} laps · ${s.totalDents} dents · ${Math.floor(s.runtimeS)}s</div>`).join('')
+                     : '<div class="bc-dim">empty for now. The first bot you retire will live here.</div>'}
+    </div>`;
+
+    el.querySelector('.bc-close').addEventListener('click', () => this._toggleBotCard());
+    el.querySelector('#bc-rename')?.addEventListener('click', () => {
+      const v = el.querySelector('#bc-name').value.trim();
+      if (v && ledger.rename(v)) {
+        if (bot?.personality) bot.personality.name = v;
+        this._game.ui?.notify(`💛 Renamed to "${v}".`);
+        this._toggleBotCard(); this._toggleBotCard();   // re-render
+      }
+    });
+    el.querySelector('#bc-retire')?.addEventListener('click', () => {
+      const epitaph = el.querySelector('#bc-epitaph').value.trim() || 'A good bot.';
+      const entry = ledger.retire(epitaph);
+      if (!entry) {
+        this._game.ui?.notify(ledger.isRetired ? 'Already enjoying retirement.' : 'Not yet — let it run at least 60 seconds first.');
+        return;
+      }
+      this._game.achievements?.track('bot_retired', {});
+      this._game.xpSystem?.gain(100);
+      this._game.ui?.notify(`🏅 ${entry.name} retired to the shelf. "${entry.epitaph}" — ${entry.laps} laps, ${entry.totalDents} dents, ${entry.milestones} milestones. Honored forever.`);
+      this._game.foreman?.say?.('bot_retire');
+      this._toggleBotCard(); this._toggleBotCard();
+    });
   }
 
   async _connectAndFlash() {

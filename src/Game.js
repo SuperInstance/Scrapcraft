@@ -108,6 +108,7 @@ export class Game {
     this.xpSystem = new XPSystem();
 
     this.scrapBot = new ScrapBot(this.renderer.scene, this.player);
+    this.scrapBot._slotKey = 'bot1';
     this.scrapBot.setUI(this.ui);
     this.scrapBot.setGame(this);
 
@@ -769,6 +770,7 @@ export class Game {
   _toggleBot2() {
     if (!this.scrapBot2) {
       this.scrapBot2 = new ScrapBot(this.renderer.scene, this.player);
+      this.scrapBot2._slotKey = 'bot2';
       this.scrapBot2.setGame(this);
       // Spawn left and behind player; activate() adds +1.5 to x, so offset accordingly
       const p = this.player.pos;
@@ -1849,6 +1851,18 @@ export class Game {
         this.ui.notify(`🩹 Repair kit used — +${healed > 0 ? healed : 35} HP restored!`);
         this.audio.pickup();
         this.particles.burst(p.x, p.y + 1, p.z, 'pickup', 10);
+        // The heart: hammer out a nearby bot's dents too
+        for (const b of [this.scrapBot, this.scrapBot2]) {
+          if (!b?.ledger || b.ledger.isRetired) continue;
+          const bp = b._mesh?.position;
+          if (bp && bp.distanceTo(p) < 3.5) {
+            const res = b.ledger.repair('repair_kit');
+            if (res) {
+              this.ui.notify(`🔧 ${b.ledger.name}: ${res.dentsFixed} dent${res.dentsFixed > 1 ? 's' : ''} hammered out. Logged in the repair book.`);
+              b.speak(`[REPAIR LOG] ${res.dentsFixed} dents gone. I still remember every one.`);
+            }
+          }
+        }
         break;
       }
       case 'signal_flare':
@@ -2017,6 +2031,10 @@ export class Game {
         this.achievements.track('lap_complete', {});
         this.challenge.onLapComplete();
         this.xpSystem.gain(20);
+        // The heart: this lap is remembered
+        if (bot?.ledger?.lapCompleted()) {
+          this.ui.notify(`💛 ${bot.ledger.name}'s first lap — remembered forever.`);
+        }
         // Bot says something about the lap
         const activeBot = bot;
         if (improved) {
