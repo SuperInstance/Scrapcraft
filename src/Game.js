@@ -2100,6 +2100,13 @@ export class Game {
         this.foreman.onEvent(`enter_band_${bandIdx}`, {});
         // Rivet marks first-visit biomes — new places grow the friendship
         this.rivet?.observe('biome_first', { name: bandName });
+        // THE SPINE's soft band: deeper than the story has opened → one
+        // gentle Earl nudge, once ever per band — never a wall (game-lay).
+        const spine = this.quests?.spine;
+        if (spine && bandIdx > spine.unlockedBand() && !spine.bandNudged(bandIdx)) {
+          spine.markBandNudged(bandIdx);
+          this.ui.notify('☕ Earl: "Easy, kid — the yard opens in its own time. This stretch can keep a while yet."');
+        }
         // Notify on first entry to special bands
         if (bandIdx === 2 && !this._notifiedBand2) {
           this._notifiedBand2 = true;

@@ -44,11 +44,76 @@ function _seededRng(str) {
   };
 }
 
-/** Deterministic pick from the pool for a given day key. Pure. */
-export function pickContract(dayKey) {
+/** Deterministic pick from the pool for a given day key. Pure.
+ *
+ *  Spine re-key (docs/SPINE.md, convergence cut): with a `chapter` the
+ *  pick becomes the chapter WARM-UP — one objective lifted from the
+ *  chapter's carrier quests, rehearsing the golden-thread skill the
+ *  chapter is teaching. Still deterministic per real day (seeded by
+ *  dayKey + chapter id), so a whole class on the same chapter wakes up
+ *  to the same warm-up. `questById` resolves carrier defs; without it
+ *  (or when a chapter offers no contract-countable objective) the pool
+ *  pick stands. */
+export function pickContract(dayKey, chapter = null, questById = null) {
+  if (chapter && questById) {
+    const warm = chapterWarmup(dayKey, chapter, questById);
+    if (warm) return warm;
+  }
   const rng = _seededRng('scrapcraft-daily-' + dayKey);
   return CONTRACT_POOL[Math.floor(rng() * CONTRACT_POOL.length)];
 }
+
+/** Map an objective type the contract engine can count → a warm-up shape.
+ *  The engine's hooks: onCollect (MINE), onCraft (CRAFT), onLapComplete
+ *  (LAP), onSpark (SPARK_ASK). Anything else can't be counted daily. */
+function _warmupCandidate(quest, obj, oi) {
+  switch (obj.type) {
+    case 'MINE':
+      return { type: 'collect', target: obj.item, need: obj.count, label: obj.label, icon: '🔩' };
+    case 'CRAFT':
+      return { type: 'craft', need: 1, label: obj.label, icon: '🔧' };
+    case 'LAP':
+      return { type: 'bot_lap', need: obj.count ?? 1, label: obj.label, icon: '🏁' };
+    case 'SPARK_ASK':
+      return { type: 'spark', need: 1, label: obj.label, icon: '✨' };
+    default:
+      return null;
+  }
+}
+
+/** One objective from the chapter's carrier pool, deterministic per
+ *  (day, chapter). Returns a CONTRACT_POOL-shaped object or null. */
+function chapterWarmup(dayKey, chapter, questById) {
+  const candidates = [];
+  for (const qid of chapter.quests ?? []) {
+    const q = questById(qid);
+    if (!q) continue;
+    q.objectives.forEach((obj, oi) => {
+      const c = _warmupCandidate(q, obj, oi);
+      if (c && c.need > 0) candidates.push({ ...c, questId: qid, oi });
+    });
+  }
+  if (!candidates.length) return null;
+  const rng = _seededRng(`scrapcraft-chapter-${chapter.id}-${dayKey}`);
+  const pick = candidates[Math.floor(rng() * candidates.length)];
+  const act = Number(chapter.act) || 1;
+  return {
+    id: `warmup_${chapter.id}_${pick.questId}_${pick.oi}`,
+    type: pick.type,
+    target: pick.target,
+    need: pick.need,
+    label: pick.label,
+    icon: pick.icon,
+    questId: pick.questId,
+    warmup: true,
+    chapterId: chapter.id,
+    chapterTitle: chapter.title,
+    reward: { xp: 110 + act * 15, item: ACT_WARMUP_ITEM[act] ?? 'battery_pack', qty: 2 },
+  };
+}
+
+/** Warm-up rewards lean chapter-flavored (act I power, act II sensors, act III treasure). */
+const ACT_WARMUP_ITEM = { 1: 'battery_pack', 2: 'ir_module', 3: 'crystal_fragment' };
 
 /**
  * The pool. Targets are a notch above the session Salvage Runs — a daily
@@ -171,6 +236,7 @@ export class DailyContract {
   /** @param {import('./Game.js').Game} [game] optional — headless in tests */
   constructor(game = null, now = new Date()) {
     this._game = game;
+    this._chapter = null;   // live spine chapter ({ id, title, quests }) — re-key target
     this._state = {
       day: null,           // day key the current contract belongs to
       contractId: null,
@@ -179,6 +245,7 @@ export class DailyContract {
       totalDone: 0,        // lifetime contracts completed
       daysPlayed: 0,       // distinct days in the yard (for the Welcome Back card)
       streak: { lastDay: null, count: 0, best: 0 },
+      chapterId: null,      // spine chapter the current contract is keyed to (null = pool)
       announced:   false,    // greeted about today's contract yet?
     };
     this._isNewDay = false;
@@ -187,7 +254,37 @@ export class DailyContract {
 
   get contract() {
     if (!this._state.contractId) return null;
+    if (this._state.chapterId) {
+      const w = this._resolveWarmup(this._state.chapterId, this._state.day);
+      if (w && w.id === this._state.contractId) return w;
+    }
     return CONTRACT_POOL.find(c => c.id === this._state.contractId) ?? null;
+  }
+
+  /** Re-derive a chapter warm-up deterministically (save continuity). */
+  _resolveWarmup(chapterId, dayKey) {
+    const chapter = this._game?.quests?.spine?.byId?.(chapterId);
+    const questById = id => this._game?.quests?.tracker?.def?.(id) ?? null;
+    if (!chapter || !questById) return null;
+    return chapterWarmup(dayKey, chapter, questById);
+  }
+
+  /** The spine moved the player to a new chapter — re-key today's contract
+   *  to the chapter warm-up. Mid-contract (progress made or claimed) the
+   *  day's deal stands; the chapter takes effect on the next day roll. */
+  onChapter(chapter) {
+    if (!chapter || chapter.id === this._chapter?.id) return false;
+    this._chapter = chapter;
+    const open = this._state.progress === 0 && !this._state.claimed;
+    if (open && !this._state.announced) {
+      this._state.chapterId = chapter.id;
+      // resolve the warm-up DIRECTLY (this.contract would read the old pool id)
+      this._state.contractId = this._resolveWarmup(chapter.id, this._state.day)?.id ?? this._state.contractId;
+      this._game?.ui?.updateDaily?.(this, this._state.progress, this._state.claimed);
+      return true;
+    }
+    this._state.chapterId = chapter.id;   // applies at the next day roll
+    return false;
   }
   get progress()  { return this._state.progress; }
   get claimed()   { return this._state.claimed; }
@@ -207,7 +304,9 @@ export class DailyContract {
     if (firstEver || this._isNewDay) this._state.daysPlayed += 1;
     this._state.streak = rollStreak(this._state.streak, today);
     this._state.day = today;
-    this._state.contractId = pickContract(today).id;
+    // the day's pick: the chapter warm-up when the spine has keyed a chapter
+    const qById = this._game?.quests ? id => this._game.quests.tracker?.def?.(id) ?? null : null;
+    this._state.contractId = pickContract(today, this._chapter ?? this._spineChapterById(this._state.chapterId), qById).id;
     this._state.progress = 0;
     this._state.claimed = false;
     this._state.announced = false;   // new day → a fresh announcement is due
@@ -230,7 +329,9 @@ export class DailyContract {
     const c = this.contract;
     if (!c) return false;
     this._state.announced = true;
-    this._game?.ui?.notify(`📜 Daily Contract: ${c.icon} ${c.label}`);
+    const flavor = c.warmup ? `📜 Chapter warm-up (${c.chapterTitle}): ${c.icon} ${c.label}`
+                            : `📜 Daily Contract: ${c.icon} ${c.label}`;
+    this._game?.ui?.notify(flavor);
     // One Earl line per moment — mercy burns loudest, then real streaks, else the board.
     const n = this._state.streak.count;
     const ev = this._state.streak.lastMercy === this._state.day ? 'streak_new_day'
@@ -319,8 +420,14 @@ export class DailyContract {
         shield:   d.streak?.shield   ?? true,
         lastMercy: d.streak?.lastMercy ?? null,
       },
+      chapterId:  d.chapterId  ?? null,
       announced:   !!d.announced,
     };
     this._rollIfNeeded(now);   // handles midnight rollovers between sessions
+  }
+
+  /** Chapter record by id off the live spine (or null). */
+  _spineChapterById(id) {
+    return id ? (this._game?.quests?.spine?.byId?.(id) ?? null) : null;
   }
 }

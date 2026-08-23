@@ -18,7 +18,9 @@
 
 import { QuestTracker } from './Tracker.js';
 import { Logbook } from './Logbook.js';
-import { renderQuestHud, openLogbookPanel } from './LogbookPanel.js';
+import { renderQuestHud, openLogbookPanel, renderChapterCeremony } from './LogbookPanel.js';
+import { SpineState } from './Spine.js';
+import { SPINE } from './data/index.js';
 import { FINALE_ARC_GATE } from './schema.js';
 
 export class QuestSystem {
@@ -38,8 +40,21 @@ export class QuestSystem {
 
     this.tracker.load();
 
+    // THE SPINE, live — chapter position + ceremonies + soft bands (Spine.js).
+    // After tracker.load(): the migration check needs the loaded completions.
+    this.spine = new SpineState({ spine: SPINE, tracker: this.tracker });
+    this.spine.load();
+    // returning players (progress pre-spine, no spine save) skip the catch-up
+    // wall: ceremonies are for chapters reached LIVE, not remembered ones.
+    if (!this.spine.data.opened.__ever) {
+      if (Object.keys(this.tracker.data.completed).length) this.spine.markAllStartedAsOpened();
+      this.spine.data.opened.__ever = true; this.spine.save();
+    }
+    this._lastChapterIdx = this.spine.currentChapterIndex();
+
     this._tapEvents();
     this._renderHud();   // the scoreboard paints immediately
+    this._checkSpine();  // chapter 1's ceremony greets a truly fresh player
     this._hud = null;   // lazy (LogbookPanel)
     this._lastShown = [];
   }
@@ -115,7 +130,27 @@ export class QuestSystem {
 
   _afterEvents(done) {
     this._renderHud();
+    this._checkSpine();
     if (done.length) this.game.saveSystem?.markDirty?.();
+  }
+
+  // ── the spine, live (ceremonies + chapter re-key) ─────────────────────
+
+  /** Fire chapter-open ceremonies for newly-reached chapters (once ever,
+   *  persisted in SpineState) and re-key the DailyContract when the
+   *  player's chapter position advances. Headless-safe: the ceremony DOM
+   *  no-ops without a document; position math is pure. */
+  _checkSpine() {
+    for (const c of this.spine.dueCeremonies()) {
+      this.spine.markOpened(c.id);
+      const withN = { ...c, n: this.spine.indexOf(c.id) };
+      try { renderChapterCeremony(this.game, withN); } catch { /* DOM-optional */ }
+    }
+    const idx = this.spine.currentChapterIndex();
+    if (idx !== this._lastChapterIdx) {
+      this._lastChapterIdx = idx;
+      this.game.dailyContract?.onChapter?.(this.spine.chapter(idx));
+    }
   }
 
   // ── completion ────────────────────────────────────────────────────────────
@@ -154,9 +189,13 @@ export class QuestSystem {
 
   // ── the finale gate (worldbible: any two arcs → the Midnight Race) ───────
 
+  /** Two roads to the race (docs/SPINE.md): any two companion arcs, OR the
+   *  spine itself — every pre-finale carrier walked. Either way, the kid
+   *  arrives with muscles the last lap trusts. */
   finaleAvailable() {
-    return this.tracker.finaleUnlocked(FINALE_ARC_GATE)
-      && !this.tracker.isCompleted('finale-midnight-race');
+    return !this.tracker.isCompleted('finale-midnight-race')
+      && (this.tracker.finaleUnlocked(FINALE_ARC_GATE)
+        || this.spine?.spineCompletePreFinale?.());
   }
 
   // ── HUD ───────────────────────────────────────────────────────────────────

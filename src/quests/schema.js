@@ -58,6 +58,9 @@ export const SPINE_CHAPTERS = 12;
 /** Which act each chapter belongs to, ch01..ch12 (from campaign.md headers). */
 export const SPINE_ACT_LAYOUT = [1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3];
 
+/** Act display names (campaign.md's own headers). */
+export const SPINE_ACT_NAMES = { 1: 'Act One', 2: 'Act Two', 3: 'Act Three' };
+
 /** Band names as the yard knows them (World.js BANDS / worldbible yard-bible.md — kept
  *  literal here so schema.js stays headless: no game imports, pure data validation). */
 export const SPINE_BAND_NAMES = ['The Yard Gate', 'Industrial Corridor', 'Circuit City', 'The Deep Yard'];
@@ -273,6 +276,12 @@ export function validateSpine(spine, quests = []) {
     need(typeof c?.delight === 'string' && c.delight.length > 0, `${where}: missing delight`);
     need(typeof c?.openingLine === 'string' && c.openingLine.length > 0 && c.openingLine.length <= 200,
       `${where}: openingLine must be one Earl sentence (≤200 chars)`);
+    // teaser: the one mystery word the Logbook rail shows for a future
+    // chapter (title hidden). Optional but, if present, short and wordlike.
+    if (c?.teaser !== undefined) {
+      need(typeof c.teaser === 'string' && /^[a-z][a-z' ]{0,15}$/.test(c.teaser),
+        `${where}: teaser must be 1–16 lowercase letters (one word or tight two-word phrase)`);
+    }
 
     // carriers: 2–4 existing quests, referenced at most once campaign-wide
     need(Array.isArray(c?.quests) && c.quests.length >= 2 && c.quests.length <= 4,

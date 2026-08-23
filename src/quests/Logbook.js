@@ -18,6 +18,13 @@
 const LOGBOOK_KEY = 'scrapcraft_logbook';
 const LOGBOOK_VERSION = 1;
 
+/** Night-haul memories in the player's own voice — a memory, not a yield
+ *  row (the comeback cluster's emotion, in logbook form). */
+const NIGHT_HAUL_MEMORIES = [
+  '{bot} dragged in {n} pieces of scrap while I was away {time}. It kept the shift without me. Good robot.',
+  'Came back and the locker was fuller — {bot} worked {time} on its own and brought home {n}. I taught it that.',
+];
+
 export class Logbook {
   /**
    * @param {object} [opts]
@@ -26,7 +33,7 @@ export class Logbook {
   constructor(opts = {}) {
     this._storage = opts.storage !== undefined ? opts.storage
       : (typeof localStorage !== 'undefined' ? localStorage : null);
-    this.data = { v: LOGBOOK_VERSION, entries: [] };
+    this.data = { v: LOGBOOK_VERSION, entries: [], notes: [] };
     this.load();
   }
 
@@ -35,7 +42,9 @@ export class Logbook {
       const raw = this._storage?.getItem(LOGBOOK_KEY);
       if (!raw) return;
       const d = JSON.parse(raw);
-      if (d && d.v === LOGBOOK_VERSION && Array.isArray(d.entries)) this.data = d;
+      if (d && d.v === LOGBOOK_VERSION && Array.isArray(d.entries)) {
+        this.data = { v: LOGBOOK_VERSION, entries: d.entries, notes: Array.isArray(d.notes) ? d.notes : [] };
+      }
     } catch { /* a corrupted logbook is a tragedy, not a crash */ }
   }
 
@@ -102,4 +111,35 @@ export class Logbook {
   conceptCount() { return new Set(this.data.entries.map(e => e.concept)).size; }
 
   count() { return this.data.entries.length; }
+
+  // ── notes: yard moments that aren't lessons (night hauls, streaks…) ─────
+  // Kept OUT of entries on purpose: the teacher transcript is quest
+  // concepts only; notes are journal color. Append-only, same as entries.
+
+  /** Night-haul note — "your bot brought back 12 iron while you were at
+   *  dinner": a memory, not a yield row (game-lay §4.1). */
+  noteNightHaul(result, { day = null, botName = 'the bot', date = new Date() } = {}) {
+    if (!result || !result.loot) return null;
+    const total = Object.values(result.loot).reduce((a, b) => a + b, 0);
+    if (!total) return null;
+    const mins = result.minutes ?? 0;
+    const time = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+    const mem = NIGHT_HAUL_MEMORIES[total % NIGHT_HAUL_MEMORIES.length]
+      .replaceAll('{bot}', botName)
+      .replaceAll('{n}', String(total))
+      .replaceAll('{time}', time);
+    const note = {
+      kind: 'night_haul',
+      icon: '🌙',
+      text: mem,
+      day, total,
+      at: (date instanceof Date ? date : new Date(date)).toISOString(),
+    };
+    this.data.notes.push(note);
+    this.save();
+    return note;
+  }
+
+  /** Yard-moment notes in order (journal color — never in the transcript). */
+  notes() { return [...this.data.notes]; }
 }

@@ -8,6 +8,11 @@
  *  — with Magma, day 3". The logbook IS the transcript for teachers: one
  *  click exports the plain-text learning record.
  *
+ * Convergence cut: the panel also owns the SPINE rail (the twelve chapters
+ * as a vertical rail — completed filled, current glowing, future chapters
+ * as Earl's silhouettes: title hidden, one teaser word) and the chapter
+ * OPEN ceremony card (yard palette, once ever per chapter).
+ *
  * Self-contained DOM (the field-notes pattern): appends to #hud, releases
  * pointer lock, zero UI.js churn. Also owns the compact quest-log HUD widget
  * (the scoreboard: what's active now, story-pulled by companion arc).
@@ -21,6 +26,8 @@ const ARC_BADGE = {
   rivet: { icon: '🔩', label: 'Rivet — the yard' },
   finale:{ icon: '🏁', label: 'The Midnight Race' },
 };
+
+const ACT_NAMES = { 1: 'ACT ONE', 2: 'ACT TWO', 3: 'ACT THREE' };
 
 // ── Quest-log HUD widget (always-on scoreboard) ─────────────────────────────
 
@@ -63,7 +70,94 @@ export function renderQuestHud(system, quests, { finale, arcsDone }) {
   hud.querySelector('#ql-finale')?.addEventListener('click', () => system.openLogbook());
 }
 
+// ── The chapter OPEN ceremony card (once ever per chapter) ──────────────────
+
+/** Which companion's pull-vector line floats at the chapter's opening: the
+ *  highest-bond companion the kid has actually MET (the room's own gravity),
+ *  Rivet as the faithful default. Pure — testable headless. */
+export function pickPullLine(chapter, companions = null) {
+  const pv = chapter?.pullVector ?? {};
+  const met = companions?.data?.met ?? [];
+  let best = null, bestBond = -1;
+  for (const id of met) {
+    const c = companions?.get?.(id);
+    const bond = c?.state?.data?.bond ?? 0;
+    if (pv[id] && bond > bestBond) { best = id; bestBond = bond; }
+  }
+  const who = best ?? 'rivet';
+  const icon = ARC_BADGE[who]?.icon ?? '🔩';
+  return { who, line: pv[who] ?? null, icon };
+}
+
+/** The chapter-open ceremony: title card in the yard palette, Earl's opening
+ *  line, one companion pull-vector float. No-ops safely headless (no DOM). */
+export function renderChapterCeremony(game, chapter) {
+  if (typeof document === 'undefined' || !chapter) return false;
+  const { line, icon } = pickPullLine(chapter, game?.companions);
+  document.getElementById('spine-ceremony')?.remove();
+  document.exitPointerLock?.();
+
+  const card = document.createElement('div');
+  card.id = 'spine-ceremony';
+  card.style.cssText = `
+    position: fixed; inset: 0; z-index: 180; display: flex;
+    align-items: center; justify-content: center;
+    background: rgba(8, 6, 3, 0.55); font-family: 'Courier New', monospace;
+    cursor: pointer;`;
+  card.innerHTML = `
+    <div style="
+        width: min(560px, 90vw); text-align: center;
+        background: #17120a; border: 2px solid #6b5a33; border-radius: 10px;
+        color: #e8dcc0; padding: 26px 30px; font-size: 14px; line-height: 1.6;">
+      <div style="letter-spacing:4px;font-size:11px;color:#9fd0ff;opacity:.85">${ACT_NAMES[chapter.act] ?? ''}</div>
+      <div style="letter-spacing:3px;font-size:11px;opacity:.6;margin-top:4px">· chapter ${chapter.n ?? '?'} ·</div>
+      <h2 style="margin:8px 0 2px;font-size:22px;letter-spacing:2px;color:#ffd97a">${chapter.title}</h2>
+      <div style="margin:14px auto 0;max-width:44ch;font-style:italic;color:#e8dcc0">
+        ☕ “${chapter.openingLine}”
+      </div>
+      ${line ? `<div style="margin:12px auto 0;max-width:40ch;font-size:12px;opacity:.8;color:#c9e8b0">
+        ${icon} ${line}
+      </div>` : ''}
+      <div style="margin-top:18px;font-size:10px;opacity:.45">click to return to the yard</div>
+    </div>`;
+  const dismiss = () => card.remove();
+  card.addEventListener('click', dismiss);
+  document.body.appendChild(card);
+  game?.audio?.questComplete?.();
+  setTimeout(dismiss, 9000);   // the yard never holds a kid hostage
+  return true;
+}
+
 // ── The Logbook panel (the journal) ─────────────────────────────────────────
+
+/** The SPINE rail (HTML string): the twelve chapters, one line each. */
+function spineRailHtml(system) {
+  const spine = system?.spine;
+  if (!spine?.chapters?.length) return '';
+  const rows = spine.chapters.map((c, i) => {
+    const n = i + 1;
+    const complete = spine.chapterComplete(c);
+    const cur = n === spine.currentChapterIndex();
+    const started = spine.chapterStarted(c);
+    const style = complete
+      ? 'color:#8ef7c1'
+      : cur ? 'color:#ffd97a;text-shadow:0 0 8px rgba(255,217,122,.45)'
+      : started ? 'color:#e8dcc0;opacity:.85'
+      : 'color:#8a7c5c;opacity:.65';
+    const body = complete || cur || started
+      ? c.title
+      : `<span style="letter-spacing:6px">— — —</span> <i style="font-size:11px">“${c.teaser}”</i>`;
+    return `<div style="display:flex;gap:10px;align-items:baseline;padding:2px 0;${style}">
+      <span style="opacity:.5;width:2.2em;text-align:right">${complete ? '☑' : `${n}.`}</span>
+      <span>${body}</span>
+    </div>`;
+  }).join('');
+  return `
+    <div style="border:1px solid #4a3d22;border-radius:6px;padding:10px 14px;margin:4px 0 14px;background:#100c06">
+      <div style="letter-spacing:2px;font-size:12px;color:#9fd0ff;margin-bottom:6px">🪢 THE SPINE — how the yard opens</div>
+      ${rows}
+    </div>`;
+}
 
 export function openLogbookPanel(system) {
   document.getElementById('logbook-panel')?.remove();
@@ -95,11 +189,13 @@ export function openLogbookPanel(system) {
     const body = panel.querySelector('#lb-body');
     const entries = system.logbook.recentFirst();
     const arcs = system.tracker.completedArcs();
-    if (!entries.length) {
+    const rail = spineRailHtml(system);
+    if (!entries.length && !rail) {
       body.innerHTML = `<div style="opacity:.7">Empty so far. The first completed quest writes
         the first memory — the logbook is how the yard remembers what you learned.</div>`;
       return;
     }
+    if (!entries.length) { body.innerHTML = rail; return; }
     const html = entries.map(e => {
       const b = ARC_BADGE[e.arc] ?? ARC_BADGE.earl;
       return `
@@ -118,7 +214,7 @@ export function openLogbookPanel(system) {
            🏁 Two arcs walked. The Midnight Race is on — ask Earl about the county letter.</div>`
       : `<div style="opacity:.55;margin-top:10px;font-size:11px">
            Arcs complete: ${arcs.length}/2 to unlock the Midnight Race. Bolt ⚡ · Magma 🌋 · Juno ✨ · Rivet 🔩</div>`;
-    body.innerHTML = html + gate;
+    body.innerHTML = rail + html + gate;
   };
   render();
 
