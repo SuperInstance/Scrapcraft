@@ -543,7 +543,9 @@ export class UI {
     this._selectedRecipe = null;
     this._craftBtn.style.display = 'none';
     this._craftBtnX5.style.display = 'none';
-    document.getElementById('game-canvas').requestPointerLock();
+    // Guarded: unguarded requestPointerLock() here froze tabs when the browser
+    // denies the lock (no user gesture / headless) — rig v2 P1.
+    try { document.getElementById('game-canvas')?.requestPointerLock?.(); } catch { /* lock denied — fine */ }
   }
 
   toggleInventory() {
