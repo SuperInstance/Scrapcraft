@@ -2317,6 +2317,7 @@ export class Game {
       if (!raw) { localStorage.removeItem('scrapcraft.veteran.backup'); return false; }
       localStorage.setItem(LIVE_SAVE_KEY, raw);
       localStorage.removeItem('scrapcraft.veteran.backup');
+      localStorage.removeItem('scrapcraft.profile');   // no longer riding veteran (verify-v2 follow-up)
       try { sessionStorage.setItem('scrapcraft.self_reload', '1'); } catch { /* storage optional */ }
       location.reload();
       return true;
