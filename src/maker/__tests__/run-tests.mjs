@@ -1361,6 +1361,85 @@ console.log('\nQuiltSheet');
   // heading formats to degrees
   ok('heading in degrees', qs.cells['pose.heading'].v === 0);
 }
+
+// ── BotLedger: dents, repairs, milestones, retirement shelf ─────────────────
+console.log('\nBotLedger (the heart)');
+{
+  const { BotLedger, BotShelf } = await import('../../BotLedger.js');
+
+  // Node has no localStorage — install a tiny mock so persistence is exercised
+  const _ls = new Map();
+  globalThis.localStorage = {
+    getItem: k => (_ls.has(k) ? _ls.get(k) : null),
+    setItem: (k, v) => _ls.set(k, String(v)),
+    removeItem: k => _ls.delete(k),
+  };
+
+  BotShelf.clear();
+
+  const lg = new BotLedger('Klunk', 'test-slot-x1');
+
+  // crash-stall detection: driving hard into a wall accrues ONE dent, not 60/frame
+  let dent = null;
+  for (let i = 0; i < 60; i++) {
+    // ordered full speed, moved nowhere (wall)
+    dent = lg.observeMotion({ x: 5, z: 5 }, { x: 5, z: 5 }, 1.0, 1 / 60) ?? dent;
+  }
+  ok('wall-press accrues exactly one dent (cooldown)', lg.dents.length === 1 && dent !== null);
+  ok('dent records where + speed', dent.x === 5 && dent.speed === 1);
+
+  // cooldown: continuing to press does not immediately add more
+  for (let i = 0; i < 120; i++) lg.observeMotion({ x: 5, z: 5 }, { x: 5, z: 5 }, 1.0, 1 / 60);
+  ok('still pressing = no dent spam', lg.dents.length === 1);
+
+  // free driving: no dents, streaks accumulate
+  for (let i = 0; i < 60; i++) lg.observeMotion({ x: 5, z: 5 }, { x: 5.03, z: 5 }, 0.8, 1 / 60);
+  ok('free driving adds no dents', lg.dents.length === 1);
+
+  // milestones fire once
+  ok('first_dent milestone fired', lg.has('first_dent'));
+  ok('milestone once-only', lg.milestone('first_dent') === false);
+  lg.milestone('first_brain', 'test');
+  ok('countMilestones works', lg.countMilestones('first_brain') === 1);
+
+  // crash-free streaks
+  for (let i = 0; i < 2000; i++) lg.observeMotion({ x: 5, z: 5 }, { x: 5.04, z: 5 }, 0.8, 1 / 60);
+  ok('30s crash-free streak remembered', lg.has('crash_free_30'));
+
+  // repair
+  const r = lg.repair('repair_kit');
+  ok('repair fixes all dents and logs it', r.dentsFixed === 1 && lg.dents.length === 0 && lg.repairs.length === 1);
+  ok('repair with no dents returns null', lg.repair() === null);
+
+  // laps
+  lg.lapCompleted(); lg.lapCompleted(); lg.lapCompleted(); lg.lapCompleted();
+  lg.lapCompleted(); lg.lapCompleted(); lg.lapCompleted(); lg.lapCompleted();
+  lg.lapCompleted(); lg.lapCompleted();
+  ok('laps counted', lg.laps === 10);
+  ok('ten_laps milestone at 10', lg.has('ten_laps'));
+
+  // retire: too young → null
+  ok('retire blocked under 60s runtime', lg.retire('too young') === null);
+
+  // grow runtime, then retire
+  for (let i = 0; i < 4000; i++) lg.observeMotion({ x: 5, z: 5 }, { x: 5.04, z: 5 }, 0.8, 1 / 60);
+  const entry = lg.retire('Never once found the waypoint. Never once stopped trying.');
+  ok('retire returns shelf entry', entry !== null && entry.laps === 10);
+  ok('retire freezes the ledger', lg.isRetired && lg.milestone('later') === false && lg.observeMotion({x:0,z:0},{x:0,z:0},1,1) === null);
+  ok('shelf holds the honored bot', BotShelf.list().some(s => s.name === 'Klunk'));
+  ok('epitaph kept to 140 chars', entry.epitaph.length <= 140);
+
+  // rename semantics
+  const lg2 = new BotLedger('Bot', 'test-slot-x2');
+  ok('rename works pre-retirement', lg2.rename('Rivet') === true && lg2.name === 'Rivet');
+  for (let i = 0; i < 4000; i++) lg2.observeMotion({ x: 5, z: 5 }, { x: 5.04, z: 5 }, 0.8, 1 / 60);
+  lg2.retire('done');
+  ok('rename blocked after retirement', lg2.rename('Nope') === false && lg2.name === 'Rivet');
+
+  // persistence round-trip: a fresh ledger for the same slot restores history
+  const lg3 = new BotLedger('?', 'test-slot-x1');
+  ok('ledger restores from slot on reload', lg3.name === 'Klunk' && lg3.isRetired && lg3.laps === 10);
+}
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

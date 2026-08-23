@@ -1108,6 +1108,37 @@
     .te-flash-btn[data-status="running"]   { color:#44ee88; border-color:#226633; }
     .te-flash-btn[data-status="error"]     { color:#ff6655; border-color:#661111; background:#140808; }
 
+    /* Bot Card — the heart */
+    #bot-card { position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center;
+      background:rgba(4,8,6,.7); }
+    .bc-card { width:min(480px, 92vw); max-height:82vh; overflow:auto; background:#0d1410;
+      border:1px solid #2d4a38; border-radius:8px; padding:14px 16px;
+      font:11px/1.7 'Courier New',monospace; color:#b9d8c2;
+      box-shadow:0 0 40px rgba(251,113,133,.15); }
+    .bc-head { color:#fb7185; font-weight:bold; letter-spacing:1px; font-size:13px;
+      display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+    .bc-slot { color:#7a8; font-size:10px; }
+    .bc-close { margin-left:auto; background:#1a2a20; color:#9b8; border:1px solid #2d4a38;
+      border-radius:4px; cursor:pointer; padding:2px 8px; font:10px 'Courier New',monospace; }
+    .bc-close:hover { border-color:#fb7185; color:#fb7185; }
+    .bc-empty { text-align:center; padding:24px 8px; color:#8a9; }
+    .bc-retired { background:#241a08; border:1px solid #6a5010; color:#ffd280; padding:4px 8px;
+      border-radius:4px; margin-bottom:8px; }
+    .bc-rename { display:flex; gap:6px; margin:8px 0; }
+    .bc-rename input { flex:1; background:#0a0f0c; border:1px solid #2d4a38; color:#cfc;
+      border-radius:4px; padding:4px 8px; font:11px 'Courier New',monospace; }
+    .bc-rename button { background:#1a2a20; border:1px solid #3a5a48; color:#9f8; cursor:pointer;
+      border-radius:4px; padding:4px 10px; font:10px 'Courier New',monospace; }
+    .bc-rename button:hover { border-color:#fb7185; color:#fb7185; }
+    .bc-stats { display:flex; gap:8px; margin:8px 0; }
+    .bc-stat { flex:1; text-align:center; background:#0a120d; border:1px solid #233a2c;
+      border-radius:4px; padding:4px; }
+    .bc-stat b { display:block; color:#ffd280; font-size:14px; }
+    .bc-stat span { color:#7a8; font-size:9px; }
+    .bc-sec { color:#7dd3fc; font-weight:bold; margin:10px 0 3px; border-bottom:1px solid #1b2a22; padding-bottom:2px; }
+    .bc-li { padding:1px 6px; color:#a9c8b2; }
+    .bc-dim { color:#6a7; opacity:.7; padding:1px 6px; }
+
     /* Quilt view — the bot as a live spreadsheet */
     #te-quilt-panel { position:absolute; inset:0; z-index:41; background:rgba(8,10,6,.97);
       display:flex; flex-direction:column; font:10px/1.6 'Courier New',monospace; color:#8fa; overflow:auto; }
@@ -1722,6 +1753,7 @@
         <button id="te-share-btn"   class="te-btn" title="Copy share link to clipboard">🔗 SHARE</button>
         <button id="te-receipt-btn" class="te-btn te-receipt-btn" title="See generated firmware + Wokwi / flash options">⚡ BUILD IT</button>
         <button id="te-upgrades-btn" class="te-btn" title="Bot Workshop — install hardware upgrades [U]">🔧 MODS</button>
+        <button id="te-botcard-btn" class="te-btn" title="The Bot Card — name, dents, repair log, milestones, and one day… the retirement shelf">💛 BOT</button>
         <button id="te-code-btn"    class="te-btn">&lt;/&gt; CODE</button>
         <button id="te-close-btn"   class="te-btn">✕ CLOSE</button>
       </div>

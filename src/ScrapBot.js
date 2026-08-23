@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { MakerRuntime, GameWorldAdapter } from './maker/index.js';
 import { UnoPinModel } from './maker/PinModel.js';
+import { BotLedger } from './BotLedger.js';
 import { EXAMPLE_WALL_AVOIDER } from './maker/TileProgram.js';
 import { BotPersonality, randomBotName } from './BotPersonality.js';
 
@@ -64,6 +65,7 @@ export class ScrapBot {
     // Maker Lab brain
     this._runtime   = null;
     this.pinModel   = new UnoPinModel();   // hardware twin — wiring view reads this
+    this.ledger     = null;                  // BotLedger — created on first activation (slot-keyed)
     this._brainMode = false;
     this._game      = null;
 
@@ -192,6 +194,18 @@ export class ScrapBot {
     this._runtime   = new MakerRuntime(program, spawn, adapter);
     this._brainMode = true;
     this._score     = 0;       // reset score on each brain load
+
+    // The heart: give this bot a ledger on its very first brain (it was
+    // just a follower before — the brain is when it becomes SOMEONE).
+    if (!this.ledger) {
+      this.ledger = new BotLedger(this.personality?.name ?? this._name ?? 'Bot', this._slotKey ?? 'bot1');
+      this.ledger.milestone('first_brain', 'the first program — the moment it started thinking');
+      this._game?.ui?.notify(`💛 ${this.ledger.name} has a brain now — and a memory. Dents, repairs, laps: all remembered.`);
+    }
+    // The remembered name wins over a fresh random one — the ledger IS the character.
+    if (this.personality && this.ledger.name && this.personality.name !== this.ledger.name) {
+      this.personality.name = this.ledger.name;
+    }
 
     // Award XP and track achievements for each distinct sensor type used
     if (this._game) {
@@ -362,7 +376,15 @@ export class ScrapBot {
     }
 
     const tickSpeed = this._game?.botUpgrades?.getMultiplier('tick_speed') ?? 1;
+    const prePose = this._runtime ? { x: this._runtime.robot.x, z: this._runtime.robot.z } : null;
     this._runtime.tick(dt, tickSpeed);
+
+    // The heart: bonks become dents, history accumulates (BotLedger).
+    if (this.ledger && prePose && this._runtime) {
+      const rb = this._runtime.robot;
+      const dent = this.ledger.observeMotion(prePose, rb, rb.drivePower, dt);
+      if (dent) this.speak(`[DENT LOG] that wall came out of nowhere. That's ${this.ledger.dents.length} total.`);
+    }
 
     // Hardware twin: mirror this tick into the virtual Uno's pins, so the
     // wiring view (and the kid's mental model) tracks the physics exactly.
