@@ -44,6 +44,7 @@ export class BrainGallery {
     this._filter = '';
     this._brains = [];
     this._loading = false;
+    this._spark  = tileEditor?._spark?.cloud ?? null; // scrap-spark shared wall
   }
 
   open() {
@@ -138,6 +139,10 @@ export class BrainGallery {
           <option value="ore_hunter">Ore Hunter</option>
           <option value="custom">Custom</option>
         </select>
+        <label class="bg-pub-label" style="margin-top:10px;display:flex;gap:6px;align-items:center;cursor:pointer">
+          <input type="checkbox" id="bg-pub-failure" style="width:auto" />
+          💥 This was an <b>interesting failure</b> — publish to the yard's failure wall
+        </label>
         <div class="bg-pub-err" id="bg-pub-err" style="display:none"></div>
         <button class="bg-pub-btn" id="bg-pub-submit">📤 Publish to Gallery</button>
         <div class="bg-pub-note">
@@ -182,18 +187,39 @@ export class BrainGallery {
     const grid = this._el?.querySelector('#bg-grid');
     if (!grid) return;
 
-    if (!url) {
+    if (!url && !this._spark?.enabled) {
       grid.innerHTML = `<div class="bg-loading">No cloud configured — set up a Worker URL in onboarding to enable the gallery.</div>`;
       return;
     }
 
     grid.innerHTML = '<div class="bg-loading">Loading…</div>';
     this._loading = true;
+
+    // Legacy worker brains + scrap-spark shared wall (builds AND failures), merged.
+    const jobs = [];
+    if (url) {
+      jobs.push(fetch(`${url}/api/v1/brains`).then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+        .then(d => (d.brains ?? []).map(b => ({ ...b, source: 'worker' }))));
+    }
+    if (this._spark?.enabled) {
+      jobs.push(this._spark.gallery('', 'new').then(d => (d?.gallery ?? []).map(g => ({
+        id:          `spark:${g.id}`,
+        name:        g.title,
+        description: g.note || '',
+        author:      g.author ?? 'a yard kid',
+        tag:         g.kind === 'failure' ? 'failure' : 'shared',
+        rating:      null,
+        downloads:   g.likes ?? 0,
+        created:     typeof g.created === 'number' ? new Date(g.created).toISOString() : (g.created ?? ''),
+        programB64:  null,           // fetched lazily on load
+        _sparkId:    g.id,
+        source:      'spark',
+      }))));
+    }
+
     try {
-      const r = await fetch(`${url}/api/v1/brains`);
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const data = await r.json();
-      this._brains = data.brains ?? [];
+      const results = await Promise.allSettled(jobs);
+      this._brains = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
       this._renderGrid();
     } catch (e) {
       grid.innerHTML = `<div class="bg-loading">Could not load gallery: ${esc(e.message)}</div>`;
@@ -247,6 +273,27 @@ export class BrainGallery {
   }
 
   async _loadBrain(id) {
+    // scrap-spark shared wall entry → fetch b64 program from the worker
+    if (String(id).startsWith('spark:')) {
+      const sparkId = String(id).slice(6);
+      try {
+        const one = await fetch(`${this._spark?.url ?? ''}/gallery/${sparkId}`).then(x => x.ok ? x.json() : null);
+        const progData = one?.program ? JSON.parse(atob(one.program)) : null;
+        if (!progData) throw new Error('program missing');
+        const prog = TileProgram.fromJSON({
+          name: one?.title ?? 'Shared Brain',
+          brain: progData.brain ?? 'tin',
+          nodes: progData.nodes ?? [],
+        });
+        this._editor.loadProgram(prog);
+        this._editor._game.ui?.notify(`🧠 Loaded "${prog.name}" from the shared yard wall`);
+        this._editor._game.achievements?.track('brain_share', {});
+        this.close();
+      } catch (e) {
+        this._editor._game.ui?.notify(`⚠ Could not load shared brain: ${e.message}`);
+      }
+      return;
+    }
     const url = this._workerUrl();
     if (!url) return;
     try {
@@ -310,6 +357,23 @@ export class BrainGallery {
         const e = await r.json().catch(() => ({}));
         showErr(e.error ?? `Server error ${r.status}`);
         return;
+      }
+
+      // Also publish to the scrap-spark shared wall — failures are first-class
+      // content ("Most Interesting Failure of the Week"). Best-effort.
+      const asFailure = !!this._el?.querySelector('#bg-pub-failure')?.checked;
+      if (this._spark?.enabled) {
+        const res = await this._spark.publish({
+          title:       `${prog.name || 'A bot'} — ${desc || (asFailure ? 'a beautiful crash' : 'a working build')}`.slice(0, 80),
+          program:     btoa(JSON.stringify(prog.toJSON())),
+          kind:        asFailure ? 'failure' : 'build',
+          author,
+          note:        desc || '',
+          bot_name:    prog.name || '',
+        });
+        if (res && asFailure) {
+          this._editor._game.ui?.notify('💥 Failure published to the yard wall — teach the others!');
+        }
       }
 
       // Track the ID so we can show "My Published Brains"

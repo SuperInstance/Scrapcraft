@@ -966,6 +966,110 @@ console.log('\nwait_until tile');
   ok('T.waitUntil has no body field', node.body === undefined);
 }
 
+
+// ── SparkCache client (scrap-spark pincher-cache) ───────────────────────────
+console.log('\nSparkCache client');
+{
+  const { SparkCache } = await import('../../spark/SparkCache.js');
+
+  // fetch mock: records calls; serves canned worker responses
+  function makeMockFetch(responses) {
+    const calls = [];
+    const fn = async (url, init) => {
+      calls.push({ url, init });
+      const r = responses.shift();
+      if (r instanceof Error) throw r;
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: (h) => (h.toLowerCase() === 'x-cache' ? r.cache : null) },
+        json: async () => r.body,
+      };
+    };
+    fn.calls = calls;
+    return fn;
+  }
+
+  const missBody = { text: 'Follow the line with line_under!', program: { name: 'Line Follower', nodes: [{ type: 'forever', body: [] }] } };
+  const hitBody  = { ...missBody };
+
+  {
+    const f = makeMockFetch([{ cache: 'MISS', body: missBody }, { cache: 'HIT', body: hitBody }]);
+    const sc = new SparkCache({ url: 'https://spark.test', fetchFn: f });
+    ok('client targets the worker /spark endpoint', true);
+    const r1 = await sc.ask('how do I follow the track?', 'brain:tin');
+    ok('MISS returns envelope with program', r1?.program?.name === 'Line Follower');
+    ok('MISS records lastStatus', sc.lastStatus === 'MISS');
+    ok('MISS increments stats', sc.stats.misses === 1);
+    // second identical question → local pinch, no network
+    const r2 = await sc.ask('How do I follow the  track?', 'brain:tin'); // normalization: case + whitespace
+    ok('second ask answered locally (no new fetch)', f.calls.length === 1);
+    ok('local pinch returns same envelope', r2?.text === r1?.text);
+    ok('localHit counted', sc.stats.localHits === 1);
+    // different context → different cache key → network again
+    await sc.ask('how do I follow the track?', 'brain:spark');
+    ok('different context re-fetches', f.calls.length === 2);
+  }
+
+  {
+    // server-side HIT surfaced
+    const f = makeMockFetch([{ cache: 'HIT', body: hitBody }]);
+    const sc = new SparkCache({ url: 'https://spark.test', fetchFn: f });
+    await sc.ask('wall avoider?', '');
+    ok('X-Cache HIT surfaced as lastStatus', sc.lastStatus === 'HIT');
+    ok('cloudHit counted', sc.stats.cloudHits === 1);
+  }
+
+  {
+    // network failure → null, graceful
+    const f = makeMockFetch([new Error('offline')]);
+    const sc = new SparkCache({ url: 'https://spark.test', fetchFn: f });
+    const r = await sc.ask('anything', '');
+    ok('fetch failure returns null (graceful)', r === null);
+    ok('error counted, lastStatus=error', sc.stats.errors === 1 && sc.lastStatus === 'error');
+  }
+
+  {
+    // unusable envelope (program without nodes) → treated as failure → null
+    const f = makeMockFetch([{ cache: 'MISS', body: { text: 'hi', program: { name: 'x' } } }]);
+    const sc = new SparkCache({ url: 'https://spark.test', fetchFn: f });
+    const r = await sc.ask('build me a thing', '');
+    ok('program without nodes array is rejected', r === null);
+  }
+
+  {
+    // HTTP error status → null
+    const fn = async () => ({ ok: false, status: 502, headers: { get: () => 'MISS' }, json: async () => ({}) });
+    const sc = new SparkCache({ url: 'https://spark.test', fetchFn: fn });
+    ok('HTTP 502 returns null (graceful)', (await sc.ask('q', '')) === null);
+  }
+
+  {
+    // empty / oversized questions short-circuit without network
+    const f = makeMockFetch([]);
+    const sc = new SparkCache({ url: 'https://spark.test', fetchFn: f });
+    ok('empty question → null, no fetch', (await sc.ask('   ', '')) === null && f.calls.length === 0);
+    ok('oversized question → null, no fetch', (await sc.ask('x'.repeat(501), '')) === null && f.calls.length === 0);
+  }
+
+  {
+    // gallery publish + list + daily challenge plumbing
+    const f = makeMockFetch([
+      { cache: '', body: { id: 'abc123def456', kind: 'failure' } },
+      { cache: '', body: { gallery: [{ id: 'abc123def456', title: 'The Forge Bonk' }], count: 1 } },
+      { cache: '', body: { challenge: { id: 'lap10', title: 'Perfect 10', brief: '10 laps' }, failure_of_the_week: [] } },
+    ]);
+    const sc = new SparkCache({ url: 'https://spark.test', fetchFn: f });
+    const pub = await sc.publish({ title: 'The Forge Bonk', program: btoa('{"nodes":[]}'), kind: 'failure' });
+    ok('publish returns entry id', pub?.id === 'abc123def456');
+    ok('publish posts to /gallery', f.calls[0].url.endsWith('/gallery') && f.calls[0].init.method === 'POST');
+    const gal = await sc.gallery('failure');
+    ok('gallery list returns entries', gal?.gallery?.[0]?.title === 'The Forge Bonk');
+    const dc = await sc.dailyChallenge();
+    ok('daily challenge returns challenge + failure wall', dc?.challenge?.id === 'lap10' && Array.isArray(dc.failure_of_the_week));
+  }
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

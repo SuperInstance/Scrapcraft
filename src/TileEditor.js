@@ -1458,6 +1458,25 @@ export class TileEditor {
     this._sparkPanel.style.display = this._sparkOpen ? 'flex' : 'none';
     const btn = this._panel.querySelector('#te-spark-btn');
     if (btn) { btn.style.borderColor = this._sparkOpen ? '#00ccff' : ''; btn.style.color = this._sparkOpen ? '#00ccff' : ''; }
+    if (this._sparkOpen) this._showDailyChallenge();
+  }
+
+  /** Fetch today's challenge + failure wall from scrap-spark; show once per open. */
+  async _showDailyChallenge() {
+    if (!this._sparkLog || this._dcShown) return;
+    const dc = await this._spark?.cloud?.dailyChallenge?.();
+    if (!dc?.challenge) return;
+    this._dcShown = true;
+    const fails = (dc.failure_of_the_week ?? []).slice(0, 2)
+      .map(f => `💥 <b>${_esc(String(f.title ?? '')).slice(0, 60)}</b> (${f.likes ?? 0} 🧡)`)
+      .join('<br>');
+    const div = document.createElement('div');
+    div.className = 'sp-msg sp-hint';
+    div.style.cssText = 'border-left:3px solid #ffb020;padding-left:8px;opacity:.95';
+    div.innerHTML = `🎯 <b>Today's Challenge — ${_esc(dc.challenge.title)}</b><br>${_esc(dc.challenge.brief)}` +
+      (fails ? `<br><span style="opacity:.8">Most Interesting Failures of the Week:</span><br>${fails}` : '') +
+      `<br><span style="opacity:.6">Failures are publishable art. Crash loud, learn loud.</span>`;
+    this._sparkLog.prepend(div);
   }
 
   /** Called by Spark, share-link loader, or SaveSystem restore when building a program. */
