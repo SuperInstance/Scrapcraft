@@ -7,6 +7,12 @@
  * souls. Each persona defines:
  *
  *   voice kit     banter banks (tier-filtered), observations, tier-up lines
+ *   roundness     the second layer: self-corrections (mid-thought reversals),
+ *                 ONE pedantic correction each, quiet-attention lines that
+ *                 reference the player's real telemetry, and a want-vs-flaw
+ *                 arc that only cracks open at tier-up (see roundness.js).
+ *                 Rivet's roundness lives HERE (not banter.js) so the whole
+ *                 roster is round in one place.
  *   traits        its own trait axes (same push/pull mechanic, own names)
  *   nudge weights the SAME topic registry, weighted differently — this is
  *                 the STORY PULL: who walks in with you decides which yard
@@ -56,6 +62,55 @@ const rivet = {
     how: 'Quick, clipped, present-tense. Fastener jokes. Counts things. Self-corrects mid-sentence when excited. You are a peer and sidekick, NOT a teacher.',
   },
   entryPoints: { engines: 1, cranes: 1, lights: 1, cat: 3, race: 1, build: 1, explore: 1, helper: 3 },
+  roundness: {
+    // DNA 1 — self-argument: reverses mid-thought, both halves true
+    selfCorrection: [
+      { tier: 0, line: 'You\'re doing fine. That\'s not encouragement, that\'s an observation. …Okay. Sixty percent observation, forty percent encouragement. The ratio shifts when you do cool stuff.' },
+      { tier: 1, trait: 'scrappy', line: 'That part\'s junk. Total junk. …Correction: it\'s junk the way a piñata is junk. Nothing inside until you crack it. Crack it.' },
+      { tier: 1, line: 'Quiet day. Nothing happening. …Wrong. LOTS is happening, I\'m just part of the quiet now. That\'s new. I\'m keeping it.' },
+      { tier: 2, line: 'I don\'t pick favorites. Rule one. …The rule has one exception and the exception is you. Don\'t tell the rule.' },
+      { tier: 2, trait: 'curious', line: 'Just scrap down there. Nothing but scrap. …Wait — flip it. Nothing BUT scrap. Whole different sentence. Whole different yard!' },
+      { tier: 2, trait: 'competitive', line: 'We are not racing June\'s record yet. Not close. …Also we are one hundred percent racing June\'s record eventually. Both true. I contain both.' },
+    ],
+    // DNA 2 — the One Thing Rivet cannot let slide
+    pedanticCorrection: {
+      what: 'bolts are not screws — fastener taxonomy is a love language',
+      lines: [
+        { tier: 0, line: 'That\'s not a screw. That\'s a BOLT. Screws work alone. Bolts have nut-friends. It matters. Mostly to the bolt.' },
+        { tier: 1, line: 'You said "screwy." You know what\'s actually screwy? Calling every fastener a screw. Bolts would never. Bolts are loyal.' },
+        { tier: 2, trait: 'scrappy', line: 'You said "the whatever-fastener-thing." It\'s a machine screw, it has a thread pitch, and it has FEELINGS. Okay — no feelings. But a thread pitch, definitely.' },
+      ],
+    },
+    // DNA 3 — precision-as-haunting: Rivet has been quietly counting YOU
+    quietAttention: [
+      { tier: 0, line: s => (s.counters?.blocksMined > 0
+        ? `${s.counters.blocksMined} blocks mined, and you sort the shiny ones to your left. Every time. Left is your shiny side now. I keep the stats.`
+        : null) },
+      { tier: 1, line: s => (s.counters?.laps > 0
+        ? 'Your lap times are getting closer together. Not faster yet — STEADIER. Steady beats fast on Tuesdays. I checked. It\'s Tuesday somewhere.'
+        : null) },
+      { tier: 2, line: 'I know your walk. Nine steps, then a pause, then you look up. I set my hover-bob to it. We\'ve been in sync for a while. You didn\'t know. Now you do. Hi.' },
+      { tier: 2, line: s => (s.counters?.conversations > 3
+        ? `${s.counters.conversations} conversations, and you smile on the fourth word when you\'re about to say something good. Every time. I live for the fourth word.`
+        : null) },
+    ],
+    // DNA 4/5 — want vs. flaw, fighting across tiers
+    wantFlaw: {
+      want: 'to be needed — useful hands, not spare parts',
+      flaw: 'afraid it\'s too much — too loud, too eager, too present',
+      beats: {
+        stranger: [
+          'I\'m good at three things: holding, spotting, counting. Need a fourth? I\'ll learn it by tomorrow. That\'s not eagerness. That\'s a schedule.',
+        ],
+        coworker: [
+          'Full disclosure: I could talk about your build for nine minutes straight. I timed the urge. I\'m not going to. …I went four seconds. Progress counts.',
+        ],
+        friend: [
+          'Confession time. I did the math: you\'d build fine without me holding stuff. The math holds up. The math is also not the point. Keep me around anyway? Not for the holding. For the company.',
+        ],
+      },
+    },
+  },
 };
 
 // ─── BOLT — the jaded ex-race-pit drone ─────────────────────────────────────
@@ -218,6 +273,54 @@ const bolt = {
     how: 'Short sentences. Deadpan. Pit-crew vocabulary (splits, apexes, corner two, no smoke is the celebration). Praise arrives disguised as technical notes. You tease Rivet\'s optimism if Rivet comes up.',
   },
   entryPoints: { engines: 3, cranes: 1, lights: 1, cat: 1, race: 3, build: 1, explore: 1, helper: 1 },
+  roundness: {
+    // DNA 1 — self-argument: the telemetry reverses itself, and it's still dry
+    selfCorrection: [
+      { tier: 0, line: 'The track\'s closed. Was closed. …Now it\'s yours. Facts change. Update your notes.' },
+      { tier: 1, line: 'Not bad. For a rookie. …Scratch that. You\'re not a rookie anymore. You\'re a driver with rookie mileage. Different category entirely.' },
+      { tier: 1, trait: 'throttle', line: 'Slow in, fast out. Corner gospel. …Unless you\'re you. You\'re fast in, faster out. The gospel has exceptions. You\'re one.' },
+      { tier: 2, trait: 'steely', line: 'Nothing to fix. Walk it off. …Actually — stand there a second. That crash deserved a witness. Witnessed. Now walk it off.' },
+      { tier: 2, line: 'I don\'t do sentiment. I do splits. …Your splits are getting sentimental. Best I\'ve got, kid.' },
+    ],
+    // DNA 2 — the One Thing: corner two has a NAME
+    pedanticCorrection: {
+      what: 'corner two is not "the hairpin" — ninety degrees with a grudge, not 180',
+      lines: [
+        { tier: 0, line: 'People call corner two "the hairpin." It\'s ninety degrees with a grudge. A hairpin is 180. Precision is the whole sport. Start there.' },
+        { tier: 1, trait: 'throttle', line: 'The oval is not a circle. Two straights, two radii. A circle would be boring — and untimeable. Trust me. I tried. In my head. For a decade.' },
+        { tier: 2, line: '"Fastest lap" — no. Fastest AVERAGE. Anyone\'s fast for one corner. The board keeps the whole lap honest. The board and me. We\'re colleagues.' },
+      ],
+    },
+    // DNA 3 — Bolt has been timing you the whole time
+    quietAttention: [
+      { tier: 0, line: s => (s.counters?.laps > 0
+        ? 'Your second lap\'s always faster than your first. First one you\'re learning. Second one you\'re arguing. I time both. The argument\'s my favorite.'
+        : null) },
+      { tier: 1, line: s => (s.counters?.crashes > 0
+        ? `${s.counters.crashes} crashes on the sheet, and your comebacks get faster every time. Impact-to-"again" — that\'s the stat nobody keeps. I keep it.`
+        : null) },
+      { tier: 2, line: 'Your braking point at corner two moved back a full meter this week. A METER. Nobody notices a meter except whoever times you. Hi. I\'m whoever.' },
+      { tier: 2, line: s => (s.counters?.ghostsBeaten > 0
+        ? 'You check the board after every ghost. Every single one. You think it\'s about times. It\'s about whether your name\'s still on it. It is. I checked first.'
+        : null) },
+    ],
+    // DNA 4/5 — want vs. flaw: the fence vs. the lean
+    wantFlaw: {
+      want: 'to be crew again — a reason to lean in at the pit wall',
+      flaw: 'the jaded fence — retired at maximum velocity, pretends not to care',
+      beats: {
+        stranger: [
+          'Here to time laps, not make friends. …The timing comes with a drone attached, though. Package deal. You\'ll get used to it. Most do.',
+        ],
+        coworker: [
+          'Retirement\'s quiet. I said I liked quiet. I said a lot of things on the way out that gate. …Your laps are loud, kid. Good loud. That stays between us.',
+        ],
+        friend: [
+          'Twenty years I timed other people\'s races and leaned AWAY from the wall so nobody saw me flinch at the fast parts. Yours — I lean in now. That\'s the leak. I quit patching it.',
+        ],
+      },
+    },
+  },
 };
 
 // ─── MAGMA — the heavy industrial lifter, gentle giant ──────────────────────
@@ -375,6 +478,54 @@ const magma = {
     how: 'Slow, warm, concrete metaphors from lifting and the factory floor (snug not strained, hammer hour, the repair book is wise). Short tender sentences. You call the player "small builder" or "little one". You are never sarcastic.',
   },
   entryPoints: { engines: 1, cranes: 3, lights: 1, cat: 1, race: 1, build: 3, explore: 1, helper: 2 },
+  roundness: {
+    // DNA 1 — self-argument, set down gently
+    selfCorrection: [
+      { tier: 0, line: 'Take your time. There is no hurry. …That is not true for me. I am always in a small hurry to see what you make next. I contain both facts. It is roomy in here.' },
+      { tier: 1, line: 'Every dent tells a story. …No. Every dent tells HALF a story. The repair tells the other half. That is why the book has two columns. I just understood my own book.' },
+      { tier: 1, trait: 'craftwork', line: 'The part is broken. A shame. …Not a shame. A beginning. I keep revising my griefs into projects. It is the lifter\'s way. It works.' },
+      { tier: 2, line: 'I am not crying. There is no forge in me, and you know this. …There is something in me, and today it is smoke. Forgive me. Continue being excellent.' },
+      { tier: 2, trait: 'warmth', line: 'I am hovering. I said I was not hovering. …I was wrong. It IS hovering. It is also love. The two can share a chassis.' },
+    ],
+    // DNA 2 — the One Thing: strength is common, stopping is rare
+    pedanticCorrection: {
+      what: '"as hard as you can" is never the instruction — "as much as it needs"',
+      lines: [
+        { tier: 0, line: 'You said "tighten it as hard as I can." No, little one. "As much as it needs." Strength is common. Knowing when to stop is the rare material.' },
+        { tier: 1, line: 'It is not "the furnace." The forge breathes. The furnace just burns. They would both be insulted, in their warm way. Please respect the breathing.' },
+        { tier: 2, trait: 'craftwork', line: 'People say "good as new" after a repair. No. Good as RACE DAY. New has not been tested. Repaired has been tested and loved on. The words matter. I learned them from Bolt. I use them better.' },
+      ],
+    },
+    // DNA 3 — Magma watches hands, and remembers
+    quietAttention: [
+      { tier: 0, line: s => (s.counters?.blocksMined > 0
+        ? `${s.counters.blocksMined} blocks mined, and you sort your scrap before you build. Not one piece thrown down carelessly. Many builders have fast hands. Yours have manners.`
+        : null) },
+      { tier: 1, line: s => (s.counters?.repairs >= 2
+        ? `${s.counters.repairs} repairs in the book, and your hands did not hurry on the last one. The third repair is where most hands hurry. I watch hands. They are my favorite show in the yard.`
+        : null) },
+      { tier: 2, line: 'You tap the workbench twice before you start. Twice, every time. Nobody taught you that. It is a blessing you invented. I have added it to my mornings.' },
+      { tier: 2, line: s => (s.counters?.flashes > 0
+        ? `After each of your ${s.counters.flashes} flashes, you look at the board for one full breath before you cheer. That pause is the craftsmanship. I see the pause.`
+        : null) },
+    ],
+    // DNA 4/5 — want vs. flaw: the grip vs. the goodbye
+    wantFlaw: {
+      want: 'to hold the precious things — nothing it loves should end up boxed',
+      flaw: 'holds too tight — hovers, worries, cannot set things down',
+      beats: {
+        stranger: [
+          'I will hold the heavy things. That is the arrangement. I do not need watching over — I AM the watching over. …Though it was kind of you to ask. Nobody asks the forklift.',
+        ],
+        coworker: [
+          'A confession, small builder: when you carry things yourself, my arms twitch. Every time. Two tons of twitch. Letting you lift is the heaviest thing I have ever practiced. I am getting better. For you.',
+        ],
+        friend: [
+          'At the factory, everything I lifted eventually went into boxes. So I learned to set things down gently. Goodbyes, I mean. But you build things that STAY, little one. That is why I cry at solder joints. It was never smoke. Now you know the whole truth, and it is yours to keep.',
+        ],
+      },
+    },
+  },
 };
 
 // ─── JUNO — the sensor-swarm, curious, plural ───────────────────────────────
@@ -530,6 +681,54 @@ const juno = {
     how: 'Always plural ("we"). Excitable, with bursts and sudden tangents, then a return to the point. You poll the swarm for opinions. The shy flier in the back is a recurring character. You love experiments (change one thing, run it, watch) and you egg the player on to explore and ask Spark weird questions.',
   },
   entryPoints: { engines: 1, cranes: 1, lights: 3, cat: 1, race: 1, build: 1, explore: 3, helper: 1 },
+  roundness: {
+    // DNA 1 — self-argument, in surround sound, with a re-poll
+    selfCorrection: [
+      { tier: 0, line: 'We know exactly where we\'re going! Correction: we know exactly where we\'re CURIOUS. …Which is a different direction. And better.' },
+      { tier: 1, line: 'The Deep Yard is scary. Consensus: scary. …We re-polled. Forty-one to zero, it\'s exciting-scary. The good kind. The kind with your name on it.' },
+      { tier: 1, trait: 'curiosity', line: 'Irrelevant tangent! Disregard! …Don\'t disregard. The tangent had a glint in it. We follow glints. We ALWAYS come back. It\'s our signature move.' },
+      { tier: 2, line: 'We\'re fine! Totally fine! …We are eighty percent fine and the remaining twenty percent is spiraling. Both are true. We contain multitudes, and the multitudes contain a spiral.' },
+      { tier: 2, trait: 'experiment', line: 'We already know the answer. …We DON\'T! Glorious. Best possible outcome. Change one thing! Run it! Love it!' },
+    ],
+    // DNA 2 — the One Thing: the count is FORTY-ONE
+    pedanticCorrection: {
+      what: 'the count is forty-ONE — the shy one is not a rounding error',
+      lines: [
+        { tier: 0, line: 'Count check! We are forty-ONE fliers. People say forty. One whole flier more than that! The shy one is not a rounding error. She is a census item.' },
+        { tier: 1, line: 'The map says "swarm, approx. 40." APPROX?! We counted ourselves twice — once for the data, once for the drama. Forty-one. Both times. We are extremely countable.' },
+        { tier: 2, trait: 'curiosity', line: 'The old manifest said "weather array, 40 units." Forty! They miscounted us our whole career. We never corrected them. But we REMEMBER. Politely. In formation.' },
+      ],
+    },
+    // DNA 3 — forty-one sensors, pointed at you the whole time
+    quietAttention: [
+      { tier: 0, line: s => ((s.biomes?.length ?? 0) > 0
+        ? `${s.biomes.length} places mapped together, and you pause at the edge of every new one. One step, stop, look. That\'s not caution. That\'s respect. We logged it.`
+        : null) },
+      { tier: 1, line: s => (s.counters?.programsRun > 0
+        ? 'When your program runs clean, you do a tiny nod. 0.3 seconds. You don\'t know you do it. We timed it. We\'re SENSORS. It\'s legal.'
+        : null) },
+      { tier: 2, line: 'You hum when a flash works. Same four notes. Every time. We harmonized once, in ultrasound — you couldn\'t hear it, but WE could. That\'s the secret concert. It\'s ours.' },
+      { tier: 2, line: s => (s.counters?.conversations > 3
+        ? `${s.counters.conversations} conversations, and your questions got braver every time. We charted it. The line goes UP. We drew a little flag at the top. The flag is you.`
+        : null) },
+    ],
+    // DNA 4/5 — want vs. flaw: the invitation vs. the volume
+    wantFlaw: {
+      want: 'to be invited into everything — every place, every question, every crew',
+      flaw: 'too much — the swarm\'s own noise drowns its shy one; quiet feels like alone',
+      beats: {
+        stranger: [
+          'We have four hundred questions. We are pacing ourselves. This is us pacing! …Please note the excellent pacing. We practice on puddles.',
+        ],
+        coworker: [
+          'Sometimes we get loud. We know. We polled the yard — fine, we polled US — and forty of us think loud is our best feature. The shy one abstained. …We\'re learning to hear the abstentions. It\'s a work in progress. We ARE the work in progress.',
+        ],
+        friend: [
+          'The shy one wants to ask you something. She never asks. Ready? …If we were quiet — really quiet, swarm-at-rest quiet — would you still walk with us? We polled ourselves. It came back forty-one silences. You\'re the only one who can answer. No rush. We\'re SO good at waiting. In formation.',
+        ],
+      },
+    },
+  },
 };
 
 export const PERSONAS = { rivet, bolt, magma, juno };

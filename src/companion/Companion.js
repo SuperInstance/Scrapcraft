@@ -17,6 +17,7 @@
 
 import { CompanionState } from './state.js';
 import { pickBanter, pickObservation, renderLine, tierUpLine } from './banter.js';
+import { pickRoundnessIdle, wantFlawBeat } from './roundness.js';
 import { Nudger } from './nudge.js';
 import { getPersona } from './personas.js';
 
@@ -100,11 +101,19 @@ export class Companion {
   observe(event, detail = {}) {
     const rec = this.state.record(event, detail);
 
-    // tier promotion outranks everything — always spoken
+    // tier promotion outranks everything — always spoken. The want-vs-flaw
+    // arc beats are earned HERE (and only here): the deeper layer is the gift
+    // that comes with the new tier. Fail-soft: no roundness → no beat.
     if (rec.tierUp) {
       const line = tierUpLine(rec.tierUp, this._rng, this.persona.tierUpLines);
+      const beat = wantFlawBeat(this.persona, rec.tierUp, this._rng);
       if (line) {
         this.say(line, { mood: 'happy', event: 'tier_up' });
+      }
+      if (beat) {
+        this.say(beat, { mood: 'happy', event: 'tier_up' });
+      }
+      if (line || beat) {
         this._sinceReactive = 0;
         return rec;
       }
@@ -174,7 +183,10 @@ export class Companion {
       if (this._idleS >= IDLE_AFTER_S && this._sinceObservation >= OBSERVATION_COOLDOWN_S) {
         this._idleS = 0;
         this._sinceObservation = 0;
-        const line = pickObservation(this.state, this._rng, this.persona.observations);
+        // roundness banks rotate into the idle slot (fail-soft: null → classic
+        // observations). Want/flaw beats are NOT here — those are tier-up only.
+        const line = pickRoundnessIdle(this.persona, this.state, this._rng)
+          ?? pickObservation(this.state, this._rng, this.persona.observations);
         if (line) this.say(line, { mood: 'idle', event: 'observation' });
       }
     } else {
