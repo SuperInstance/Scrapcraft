@@ -35,6 +35,7 @@ import { runInstanceLedgerTests } from '../../render/__tests__/ledger-tests.mjs'
 import { runTouchTests } from '../../touch/__tests__/touch-tests.mjs';
 import { runLearningTests } from '../../learning/__tests__/learning-tests.mjs';
 import { runRadioTests } from '../../radio/__tests__/radio-tests.mjs';
+import { runUscpTests } from '../../cns/__tests__/uscp-tests.mjs';
 import { runSaveRoundTripTests } from '../../__tests__/save-roundtrip.mjs';
 import { runZoneGateTransitionTests } from '../../__tests__/zonegate-transition.mjs';
 import { runPerfGuardTests } from '../../__tests__/perf-guards.mjs';
@@ -1910,6 +1911,13 @@ runSaveRoundTripTests(ok);
 
 console.log('\nZone-gate transitions');
 runZoneGateTransitionTests(ok);
+// ── USCP telemetry (the Rift): batching, packet shape, opt-in gate, ────────
+// kid-safe scrub, fail-soft, choke-point wiring ─────────────────────────────
+console.log('\nUSCP · Rift telemetry');
+await runUscpTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);

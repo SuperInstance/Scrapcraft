@@ -82,6 +82,20 @@ export class SettingsPanel {
           </div>
           <div class="set-cf-status" id="set-cf-status">⏹️ Not connected</div>
 
+          <h3 class="set-section">🛰 Rift Telemetry (optional — off by default)</h3>
+          <div class="set-uscp-wrap">
+            <label class="set-uscp-toggle">
+              <input type="checkbox" id="set-uscp-enabled" ${cfg.uscpEnabled ? 'checked' : ''} />
+              <span>Share yard signals with the fleet quilt</span>
+            </label>
+            <div class="set-hint">📡 When on, the yard broadcasts tiny anonymous signals (blocks mined, builds,
+            laps, quests) to the fleet's live quilt. <b>Nothing personal ever leaves</b> — no name, no
+            chat text, no save data. Off by default; the game plays exactly the same either way.</div>
+            <input type="url" class="set-cf-input" id="set-uscp-url" spellcheck="false"
+              value="${this._esc(cfg.uscpEndpoint ?? '')}"
+              placeholder="fleet quilt URL (blank = the fleet's public host)" />
+          </div>
+
           <div class="set-footer">
             <button class="set-btn set-btn-save" id="set-save">Save</button>
           </div>
@@ -157,11 +171,15 @@ export class SettingsPanel {
     const provider = this._pendingProvider ?? this.config.aiProvider ?? 'offline';
     const apiKey = this.el.querySelector('#set-api-key')?.value.trim() || null;
     const cfWorkerUrl = this.el.querySelector('#set-cf-url')?.value.trim() || null;
+    const uscpEnabled = this.el.querySelector('#set-uscp-enabled')?.checked ?? false;
+    const uscpEndpoint = this.el.querySelector('#set-uscp-url')?.value.trim() || null;
 
     const merged = saveConfig({
       aiProvider: provider,
       apiKey: provider === 'offline' ? null : apiKey,
       cfWorkerUrl,
+      uscpEnabled,
+      uscpEndpoint,
     });
 
     // Live upgrade, no restart: Spark + Earl drop cached provider lookups.
