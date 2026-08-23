@@ -33,7 +33,7 @@ import { PLAQUES } from './data/plaques.js';
 import { voiceOut, voiceIn, announceRaceStart, announceLap, announcePersonalBest, announceVictory, preloadAnnouncements } from './voice/index.js';
 import { CompanionRoster, EARL_PAIRING_LINE } from './companion/registry.js';
 import { RivetAvatar } from './companion/avatar.js';
-import { CompanionGate } from './companion/entry.js';
+import { CompanionGate, gateDeliveryLine } from './companion/entry.js';
 
 export class Game {
   constructor(canvas) {
