@@ -166,6 +166,10 @@ export class SaveSystem {
 
       xp: g.xpSystem?.toSaveData() ?? null,
 
+      // Concept ladder — mastery rides the save (cloud state_json carries it;
+      // the ledger also keeps its own localStorage copy, spine-style).
+      concepts: g.concepts?.toJSON() ?? null,
+
       // the run's story identity — who walked you in, how the friendship grew
       // (multi-run history reads differently because different friends pulled)
       story: g.companions ? g.companions.quilt() : null,
@@ -331,6 +335,10 @@ export class SaveSystem {
 
     // XP system
     if (data.xp) g.xpSystem?.fromSaveData(data.xp);
+
+    // Concept ladder — cloud/local saves restore mastery (fail-soft: older
+    // saves without `concepts` leave the ledger's own localStorage copy alone)
+    if (data.concepts) g.concepts?.fromJSON(data.concepts);
 
     // Tile editor brain
     if (data.tileEditor) {

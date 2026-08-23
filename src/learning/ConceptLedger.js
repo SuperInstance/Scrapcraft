@@ -78,26 +78,52 @@ export class ConceptLedger {
     try {
       const raw = this._storage?.getItem(LEDGER_KEY);
       if (!raw) return;
-      const d = JSON.parse(raw);
-      if (d?.v !== 1 || typeof d.concepts !== 'object' || !d.concepts) return;
-      const concepts = {};
-      for (const c of CONCEPTS) {
-        const r = d.concepts[c.id];
-        if (!r || typeof r !== 'object') continue;
-        const base = freshRecord();
-        concepts[c.id] = {
-          ...base,
-          state: RANK[r.state] !== undefined && typeof r.state === 'string' ? r.state : base.state,
-          attempts: Number.isFinite(r.attempts) ? r.attempts : 0,
-          seenCount: Number.isFinite(r.seenCount) ? r.seenCount : 0,
-          runs: Number.isFinite(r.runs) ? r.runs : 0,
-          runCredit: Number.isFinite(r.runCredit) ? r.runCredit : 0,
-          firstSeenAt: r.firstSeenAt ?? null,
-          taughtAt: r.taughtAt ?? null,
-        };
-      }
-      this.data = { v: 1, concepts };
+      this._adopt(JSON.parse(raw));
     } catch { /* fresh start on corrupt saves */ }
+  }
+
+  /** Plain-state export — SaveSystem embeds this in the v6 save payload so
+   *  cloud saves (game_saves.state_json) carry concept mastery too. No
+   *  localStorage coupling; a deep copy so later ledger writes never alias
+   *  an already-serialized save. */
+  toJSON() {
+    try { return JSON.parse(JSON.stringify(this.data)); }
+    catch { return { v: 1, concepts: {} }; }
+  }
+
+  /** Import a toJSON() payload. Corrupt shapes tolerated load()-style:
+   *  sanitize per-record, keep the rest, never throw. Returns true when a
+   *  valid payload was adopted. */
+  fromJSON(obj) {
+    let adopted = false;
+    try { adopted = this._adopt(obj); } catch { return false; }
+    if (adopted) this.save();
+    return adopted;
+  }
+
+  /** Shared sanitizer: validate a {v, concepts} payload into this.data.
+   *  Unknown concept ids dropped; corrupt fields reset to defaults.
+   *  @returns {boolean} true when the payload was valid and adopted. */
+  _adopt(d) {
+    if (d?.v !== 1 || typeof d.concepts !== 'object' || !d.concepts) return false;
+    const concepts = {};
+    for (const c of CONCEPTS) {
+      const r = d.concepts[c.id];
+      if (!r || typeof r !== 'object') continue;
+      const base = freshRecord();
+      concepts[c.id] = {
+        ...base,
+        state: typeof r.state === 'string' && typeof RANK[r.state] === 'number' ? r.state : base.state,
+        attempts: Number.isFinite(r.attempts) ? r.attempts : 0,
+        seenCount: Number.isFinite(r.seenCount) ? r.seenCount : 0,
+        runs: Number.isFinite(r.runs) ? r.runs : 0,
+        runCredit: Number.isFinite(r.runCredit) ? r.runCredit : 0,
+        firstSeenAt: r.firstSeenAt ?? null,
+        taughtAt: r.taughtAt ?? null,
+      };
+    }
+    this.data = { v: 1, concepts };
+    return true;
   }
 
   // ── the state machine ─────────────────────────────────────────────────────

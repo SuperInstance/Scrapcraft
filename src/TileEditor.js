@@ -14,6 +14,7 @@ import { BotShelf } from './BotLedger.js';
 import { WebSerialBridge } from './maker/WebSerialBridge.js';
 import { Spark } from './Spark.js';
 import { BrainGallery } from './BrainGallery.js';
+import { ConceptLedger } from './learning/ConceptLedger.js';
 import { voiceOut, voiceIn } from './voice/index.js';
 
 const BRAIN_ORDER = ['tin', 'spark', 'vision'];
@@ -1890,6 +1891,15 @@ export class TileEditor {
     this._game.audio?.brainLoad();
     this._game._noteProgramRunDelight?.(bot);   // first-run delight, once ever
     this._game.achievements?.track('program_run', {});
+    // Concept ladder — a run of the kid's OWN program is practice evidence
+    // for every concept the tiles demonstrate (fail-soft garnish).
+    try {
+      this._game.concepts?.observe({
+        type: 'program_ran',
+        used: ConceptLedger.conceptsInProgram(this._program),
+      });
+      this._game._maybeTeachBackNudge?.();
+    } catch { /* the ladder never blocks a run */ }
     // Variable achievement + challenge + XP tracking
     const varNames = this._collectVarNames();
     const hasCond  = this._hasVarCond();

@@ -13,6 +13,8 @@ import content from '../data/teachback.json' with { type: 'json' };
 import { BrokenBot, SCENARIOS, conceptsInScenario } from '../BrokenBot.js';
 import { CAMPAIGN } from '../../quests/data/index.js';
 import { TileProgram, T, compile } from '../../maker/index.js';
+import { SaveSystem } from '../../SaveSystem.js';
+import { QuestSystem } from '../../quests/QuestSystem.js';
 
 const mkStore = () => {
   const m = new Map();
@@ -308,5 +310,103 @@ export function runLearningTests(ok) {
     for (const ev of events) lg.observe(ev);
     ok('observing clinic events practices debugging + conditionals',
        lg.mastery('debugging').state === 'practiced' && lg.mastery('conditionals').state === 'practiced');
+  }
+
+  // ══ 5. save payload — toJSON/fromJSON + the SaveSystem embed ═══════════════
+  console.log('\nLearning · save payload');
+  {
+    // toJSON/fromJSON round-trip keeps every rung + timestamp
+    const a = new ConceptLedger({ storage: null, now: mkClock() });
+    a.observe({ type: 'quest_seen', questId: 'earl-6' });
+    a.observe({ type: 'quest_done', questId: 'earl-6' });
+    a.observe({ type: 'taught', conceptId: 'conditionals', correct: true });
+    a.observe({ type: 'program_ran', used: ['variables'] });
+    const payload = a.toJSON();
+    ok('toJSON carries the mastered + practiced rungs',
+       payload.concepts.conditionals.state === 'taught' &&
+       payload.concepts.variables.state === 'practiced');
+    const b = new ConceptLedger({ storage: null, now: mkClock() });
+    ok('fromJSON adopts a valid payload', b.fromJSON(payload) === true);
+    ok('round-trip restores the rung + timestamps',
+       b.mastery('conditionals').state === 'taught' &&
+       b.mastery('conditionals').taughtAt === a.mastery('conditionals').taughtAt &&
+       b.mastery('variables').state === 'practiced');
+    ok('round-trip keeps seen-count detail (cooldown math travels)',
+       b.toJSON().concepts.conditionals.attempts === 1 &&
+       typeof b.toJSON().concepts.conditionals.seenCount === 'number');
+
+    // toJSON is a deep copy — later ledger writes never alias the export
+    a.observe({ type: 'program_ran', used: ['subroutines'] });
+    ok('toJSON returns a copy, not a live reference',
+       payload.concepts.subroutines === undefined &&
+       a.toJSON().concepts.subroutines.state === 'practiced');
+
+    // corrupt imports fail soft (fresh ledger, no throw, returns false)
+    const c = new ConceptLedger({ storage: null, now: mkClock() });
+    ok('fromJSON(null) → false, no throw', c.fromJSON(null) === false && c.summary().unseen === 17);
+    ok('fromJSON(wrong version) → false', c.fromJSON({ v: 99, concepts: {} }) === false);
+    ok('fromJSON(junk records) sanitizes to defaults',
+       c.fromJSON({ v: 1, concepts: { conditionals: { state: 'banana', attempts: 'x' } } }) === true &&
+       c.mastery('conditionals').state === 'unseen' &&
+       c.mastery('conditionals').attempts === 0);
+
+    // the SaveSystem embed: _collect carries concepts, _apply restores them
+    const mkGame = (ledger) => ({
+      player: {
+        pos: { x: 1, y: 2, z: 3, set() {} }, yaw: 0, hp: 100,
+        inventory: new Array(36).fill(null), crafted: new Set(), hotbarIndex: 0,
+      },
+      achievements: { unlocked: new Set(), stats: { crafted: new Set() } },
+      xpSystem: null, companions: null, tileEditor: null, foreman: { _questIndex: 0, _history: [] },
+      world: { seed: 1337, _minedBlocks: [], _placedBlocks: [], signalCaches: new Set(), setBlock() {} },
+      _towerSlots: {}, botUpgrades: null, exchange: null, scrapBot: null,
+      dailyContract: null, prestige: null, nightShiftClock: null,
+      concepts: ledger,
+    });
+    const g1 = mkGame(a);
+    const ss = new SaveSystem(g1);
+    const saved = ss._collect();
+    ok('save payload includes concepts (cloud state_json carries mastery)',
+       JSON.stringify(saved.concepts) === JSON.stringify(a.toJSON()));
+    const a2 = new ConceptLedger({ storage: null, now: mkClock() });
+    const g2 = mkGame(a2);
+    new SaveSystem(g2)._apply(saved);
+    ok('_apply restores concept mastery into the game ledger',
+       a2.mastery('conditionals').state === 'taught' &&
+       a2.mastery('subroutines').state === 'practiced');
+    const a3 = new ConceptLedger({ storage: null, now: mkClock() });
+    a3.observe({ type: 'quest_done', questId: 'earl-6' });   // practiced, pre-cloud load
+    const g3 = mkGame(a3);
+    new SaveSystem(g3)._apply({ ...saved, concepts: null }); // old save: no concepts key
+    ok('old saves without concepts leave the ledger untouched',
+       a3.mastery('conditionals').state === 'practiced');
+  }
+
+  // ══ 6. live wiring — quest completion feeds the ledger ════════════════════
+  console.log('\nLearning · quest wiring');
+  {
+    const ledger = new ConceptLedger({ storage: null, now: mkClock() });
+    const fakeGame = {
+      ui: { notify: () => {} },
+      storage: null,
+      concepts: ledger,
+      _maybeTeachBackNudge: () => ledger._nudged = (ledger._nudged ?? 0) + 1,
+    };
+    const qs = new QuestSystem(fakeGame, CAMPAIGN);
+    qs._completeQuest(CAMPAIGN.find(q => q.id === 'earl-6'));
+    ok('quest completion practices its mapped concepts (earl-6 → conditionals)',
+       ledger.mastery('conditionals').state === 'practiced');
+    qs._completeQuest(CAMPAIGN.find(q => q.id === 'juno-4'));
+    ok('override-mapped quests feed the ledger too (juno-4 → calibration)',
+       ledger.mastery('calibration').state === 'practiced');
+    ok('teach-back nudge offered at completion (the Logbook pointer)',
+       (ledger._nudged ?? 0) >= 1);
+    const unmounted = new ConceptLedger({ storage: null, now: mkClock() });
+    const bareGame = { ui: { notify: () => {} }, storage: null, concepts: unmounted };
+    const qs2 = new QuestSystem(bareGame, CAMPAIGN);
+    try { qs2._completeQuest(CAMPAIGN.find(q => q.id === 'earl-6')); }
+    catch { /* must not throw even without the nudge hook */ }
+    ok('completion wiring stays fail-soft without the nudge hook',
+       unmounted.mastery('conditionals').state === 'practiced');
   }
 }
