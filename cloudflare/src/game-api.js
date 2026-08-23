@@ -163,6 +163,11 @@ export default async function handleGameApi(request, env, ctx) {
       return handleSessionDelete(session, db);
     }
   }
+  // ── Beacon unload-save (sendBeacon can't set method/headers — sid in query) ──
+  if (request.method === 'POST' && url.pathname === '/api/v1/save/beacon') {
+    const sid = url.searchParams.get('sid');
+    if (sid) return handleSessionSave(request, sid, db);
+  }
 
   // ── Classroom ──────────────────────────────────────────────────
   if (request.method === 'POST' && url.pathname === '/api/v1/class/join') {
