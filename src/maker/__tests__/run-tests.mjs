@@ -30,6 +30,7 @@ import { runOpeningTests } from '../../world/__tests__/opening-tests.mjs';
 import { runLedgerTests } from '../../quests/__tests__/ledger-tests.mjs';
 import { runInstanceLedgerTests } from '../../render/__tests__/ledger-tests.mjs';
 import { runTouchTests } from '../../touch/__tests__/touch-tests.mjs';
+import { runRadioTests } from '../../radio/__tests__/radio-tests.mjs';
 import { runPerfGuardTests } from '../../__tests__/perf-guards.mjs';
 
 let pass = 0, fail = 0;
@@ -1873,6 +1874,12 @@ runTouchTests(
 
 // ── Perf guards: static allocation checks over the hot paths ───────────────
 runPerfGuardTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
+
+// ── VHF Radio: half-duplex state machine, squelch, channels, nudge routing ──
+runRadioTests(
   (name) => { pass++; console.log(`  ✓ ${name}`); },
   (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
 );
