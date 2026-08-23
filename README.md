@@ -1,5 +1,9 @@
 # SCRAPCRAFT
 
+<p align="center"><img src="docs/images/hero.jpg" alt="Scrapcraft — the junkyard gates at dawn, the robot at your shoulder, the cat on the fence" width="760"></p>
+
+
+
 > *A voxel scrapyard where middle schoolers build robots, program them with AI, and race them on a floodlit oval — all while accidentally learning embedded engineering.*
 
 ---
