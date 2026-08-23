@@ -22,6 +22,7 @@ import { runColdstartTests } from '../../onboarding/__tests__/coldstart-tests.mj
 import { runSpineLiveTests } from '../../quests/__tests__/spine-live-tests.mjs';
 import { runPrestigeTests } from '../../prestige/__tests__/prestige-tests.mjs';
 import { runGeographyTests } from '../../world/__tests__/geography-tests.mjs';
+import { runWakesTests } from '../../story/__tests__/wakes-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -1821,6 +1822,7 @@ runPrestigeTests(ok);
 // ── Geography: landmarks, beacon safety, band flavor, Ghost Track tease ───
 console.log('\nGeography');
 runGeographyTests(ok);
+runWakesTests(ok);
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);

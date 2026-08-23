@@ -141,6 +141,9 @@ export class QuestSystem {
    *  player's chapter position advances. Headless-safe: the ceremony DOM
    *  no-ops without a document; position math is pure. */
   _checkSpine() {
+    // Thread 3: the yard wakes one dormant thing per completed chapter.
+    this.wakes ??= new Wakes({ storage: this.game?.storage ?? null });
+    this.wakes.sync(this.spine);
     for (const c of this.spine.dueCeremonies()) {
       this.spine.markOpened(c.id);
       const withN = { ...c, n: this.spine.indexOf(c.id) };
