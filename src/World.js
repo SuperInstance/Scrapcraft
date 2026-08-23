@@ -1,5 +1,6 @@
 import { B, BLOCK_DEF, isSolid } from './data/blocks.js';
 import { PLAQUES } from './data/plaques.js';
+import { LANDMARKS, BAND_FLAVOR } from './data/landmarks.js';
 
 function lcg(seed) {
   let s = seed >>> 0;
@@ -53,8 +54,9 @@ export class World {
   on(event, fn) { this._listeners.push({ event, fn }); }
   _emit(ev, d) { this._listeners.filter(l => l.event === ev).forEach(l => l.fn(d)); }
 
-  generate(seed = 42) {
+  generate(seed = 42, opts = {}) {
     this.seed = seed;
+    this._landmarksEnabled = opts.landmarks !== false;
     const rng = lcg(seed);
     const W = this.width;
 
@@ -112,6 +114,41 @@ export class World {
       if (this.getBlock(bx, 1, bz) === B.AIR) this.setBlock(bx, 1, bz, B.DIRT);
       if (this.getBlock(bx, 2, bz) === B.AIR) this.setBlock(bx, 2, bz, B.CONCRETE);
       this.signalCaches.add(`${bx},${bz}`);
+    }
+
+    // ── Per-band ground flavor — accents so corridors don't read identical ─
+    this._bandFlavor(rng);
+
+    // ── Signature landmarks — LAST, so nothing scatters over the skyline ──
+    this._placeLandmarks();
+  }
+
+  /** Guarded setter for landmarks: never bury beacons, tracks, stations, caches. */
+  _lm(x, y, z, id) {
+    const cur = this.getBlock(x, y, z);
+    if (cur === B.BEACON || cur === B.TRACK || cur === B.BURIED_CACHE) return;
+    if (BLOCK_DEF[cur]?.interactive) return;
+    this.setBlock(x, y, z, id);
+  }
+
+  _placeLandmarks() {
+    this.landmarks.named = [];
+    if (!this._landmarksEnabled) return;
+    for (const lm of LANDMARKS) {
+      lm.build(this);
+      this.landmarks.named.push({ id: lm.id, name: lm.name, band: lm.band, hint: lm.hint, lore: lm.lore });
+    }
+  }
+
+  _bandFlavor(rng) {
+    for (let z = 0; z < this.depth; z++) {
+      const band = this._bandOf(z);
+      const f = BAND_FLAVOR[band];
+      for (let x = 0; x < this.width; x++) {
+        const cur = this.getBlock(x, 0, z);
+        if (cur !== B.DIRT && cur !== B.GRAVEL && cur !== B.CONCRETE) continue;
+        if (rng() < f.chance) this.setBlock(x, 0, z, f.accent);
+      }
     }
   }
 
@@ -209,7 +246,12 @@ export class World {
       { x: 15, z: 7 },
     ];
     this.landmarks.smelter_trail = trail.map(t => ({ x: t.x, z: t.z }));
-    for (const t of trail) this.setBlock(t.x, 1, t.z, B.BEACON);
+    for (const t of trail) {
+      this.setBlock(t.x, 1, t.z, B.BEACON);
+      // clear stale junk-car scraps floating above the lantern — a buried
+      // beacon is a lost kid (junk cars stack y2 when placed, trail comes later)
+      if (this.getBlock(t.x, 2, t.z) !== B.AIR) this.setBlock(t.x, 2, t.z, B.AIR);
+    }
   }
 
   _band1(rng, W) {

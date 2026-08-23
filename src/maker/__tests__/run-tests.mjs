@@ -21,6 +21,7 @@ import { runQuestTests } from '../../quests/__tests__/quest-tests.mjs';
 import { runColdstartTests } from '../../onboarding/__tests__/coldstart-tests.mjs';
 import { runSpineLiveTests } from '../../quests/__tests__/spine-live-tests.mjs';
 import { runPrestigeTests } from '../../prestige/__tests__/prestige-tests.mjs';
+import { runGeographyTests } from '../../world/__tests__/geography-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -1816,6 +1817,10 @@ runSpineLiveTests(ok);
 // ── Prestige: Earl's Back Room + achievement perks ──────────────────────
 console.log('\nPrestige & Perks');
 runPrestigeTests(ok);
+
+// ── Geography: landmarks, beacon safety, band flavor, Ghost Track tease ───
+console.log('\nGeography');
+runGeographyTests(ok);
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
