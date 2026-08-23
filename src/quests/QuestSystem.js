@@ -22,6 +22,8 @@ import { renderQuestHud, openLogbookPanel, renderChapterCeremony } from './Logbo
 import { SpineState } from './Spine.js';
 import { SPINE } from './data/index.js';
 import { FINALE_ARC_GATE } from './schema.js';
+import { Wakes, WAKE_EVENTS } from '../story/Wakes.js';
+import { nextStep } from './NextStep.js';
 
 export class QuestSystem {
   /**
@@ -141,9 +143,13 @@ export class QuestSystem {
    *  player's chapter position advances. Headless-safe: the ceremony DOM
    *  no-ops without a document; position math is pure. */
   _checkSpine() {
-    // Thread 3: the yard wakes one dormant thing per completed chapter.
-    this.wakes ??= new Wakes({ storage: this.game?.storage ?? null });
-    this.wakes.sync(this.spine);
+    // Thread 3: the yard wakes one dormant thing per completed chapter —
+    // and the kid HEARS about it (fail-soft: no spine/wakes, no ceremony).
+    try {
+      this.wakes ??= new Wakes({ storage: this.game?.storage ?? null });
+      const newly = this.wakes.sync(this.spine);
+      for (const id of newly) this._wakeTease(id);
+    } catch { /* the spine never leans on the wakes */ }
     for (const c of this.spine.dueCeremonies()) {
       this.spine.markOpened(c.id);
       const withN = { ...c, n: this.spine.indexOf(c.id) };
@@ -157,6 +163,23 @@ export class QuestSystem {
   }
 
   // ── completion ────────────────────────────────────────────────────────────
+
+  /** A dormant thing woke — one gentle tease, once ever (Wakes.sync only
+   *  reports newly-woken). Subtle by design: a notify, a spark-crackle, and
+   *  the companion noticing. No quest, no objective — the yard noticed. */
+  _wakeTease(wakeId) {
+    const ev = WAKE_EVENTS.find(e => e.id === wakeId);
+    if (!ev) return;
+    const game = this.game;
+    game?.ui?.notify?.(`👁 Something in the yard just woke — <b>${ev.name}</b>.`);
+    try { game?.audio?.spark?.(); } catch { /* audio optional */ }
+    try {
+      game?.companions?.active?.say?.(
+        `Did you feel that? ${ev.name} — it hasn't stirred in years. The yard's paying attention to you.`,
+        { mood: 'happy', event: 'wake' },
+      );
+    } catch { /* companions optional */ }
+  }
 
   _completeQuest(q) {
     const day = this.game.dailyContract?.daysPlayed ?? null;
@@ -232,6 +255,7 @@ export class QuestSystem {
     })), {
       finale: this.finaleAvailable(),
       arcsDone: this.tracker.completedArcs().length,
+      nextStep: nextStep(this.tracker, show, { finale: this.finaleAvailable() }),
     });
   }
 

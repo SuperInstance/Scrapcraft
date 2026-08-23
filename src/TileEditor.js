@@ -1888,6 +1888,7 @@ export class TileEditor {
     }
     bot.setBrain(this._program, this._game.world, this._game.player, this._game.dayNight);
     this._game.audio?.brainLoad();
+    this._game._noteProgramRunDelight?.(bot);   // first-run delight, once ever
     this._game.achievements?.track('program_run', {});
     // Variable achievement + challenge + XP tracking
     const varNames = this._collectVarNames();

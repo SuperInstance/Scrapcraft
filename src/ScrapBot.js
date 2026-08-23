@@ -355,6 +355,8 @@ export class ScrapBot {
       this.speak(this.personality.quip('battery_dead'));
       this._game?.ui?.notify('🔋 Bot battery depleted — use charging pad to recharge!');
       this._game?.foreman?.onEvent('bot_battery_dead', {});
+      // Failure kindness — the companion reassures + names the recovery step
+      this._game?._noteBatteryDead?.(this);
       this.clearBrain();
       return;
     }
@@ -399,6 +401,8 @@ export class ScrapBot {
         this.speak(`[DENT LOG] that wall came out of nowhere. That's ${this.ledger.dents.length} total.`);
         // Rivet saw the whole thing — crashes survived together count
         this._game?.rivet?.observe('crash_survived', { note: `speed ${dent.speed}` });
+        // Failure kindness — the FIRST dent is curriculum, not defeat
+        this._game?._noteFirstDent?.(this);
         // Panic button ledger — 3+ crashes without a completed task shows the big red button
         this._game?.noteBotCrash?.(this._slotKey ?? 'bot1');
       }

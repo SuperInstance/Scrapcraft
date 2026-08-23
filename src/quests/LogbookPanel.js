@@ -31,7 +31,7 @@ const ACT_NAMES = { 1: 'ACT ONE', 2: 'ACT TWO', 3: 'ACT THREE' };
 
 // ── Quest-log HUD widget (always-on scoreboard) ─────────────────────────────
 
-export function renderQuestHud(system, quests, { finale, arcsDone }) {
+export function renderQuestHud(system, quests, { finale, arcsDone, nextStep } = {}) {
   let hud = document.getElementById('quest-log-hud');
   if (!hud) {
     hud = document.createElement('div');
@@ -60,12 +60,22 @@ export function renderQuestHud(system, quests, { finale, arcsDone }) {
   const finaleLine = finale
     ? `<div style="margin-top:6px;color:#8ef7c1;cursor:pointer" id="ql-finale">🏁 Two arcs done — <b>THE MIDNIGHT RACE</b> is on. Press L.</div>`
     : '';
+  // ➜ NEXT — the one-step answer, always the first thing the eye lands on:
+  // the quest's open objective plus the physical verb (press E / T / mine).
+  const nextLine = nextStep
+    ? `<div style="margin:4px 0 6px;padding:5px 8px;border:1px solid #8a6d2f;border-radius:6px;background:rgba(255,217,122,.08)">
+         <span style="color:#ffd97a">➜ NEXT:</span>
+         <b>${nextStep.kind === 'finale' ? nextStep.title : nextStep.label}</b>
+         ${nextStep.progress ? `<span style="opacity:.6">(${nextStep.progress})</span>` : ''}
+         <div style="opacity:.7;font-size:10px;margin-top:1px">↳ ${nextStep.how}</div>
+       </div>`
+    : '';
   hud.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
       <b style="letter-spacing:1px">📓 QUESTS</b>
       <span id="ql-open" style="cursor:pointer;color:#9fd0ff">[L] logbook</span>
     </div>
-    ${rows}${finaleLine}`;
+    ${nextLine}${rows}${finaleLine}`;
   hud.querySelector('#ql-open')?.addEventListener('click', () => system.openLogbook());
   hud.querySelector('#ql-finale')?.addEventListener('click', () => system.openLogbook());
 }
