@@ -438,7 +438,8 @@ export class Game {
     // BELT 2 (rig v3 P0-1): if the live slot is empty but the veteran
     // provenance slot exists, honor it — the profile switch wrote both, and
     // a live-slot miss must never strand the veteran kid at Lv.0.
-    if (!this.saveSystem.load()) {
+    const loaded = this.saveSystem.load();
+    if (!loaded) {
       try {
         const vRaw = typeof localStorage !== 'undefined' && localStorage.getItem(VETERAN_SAVE_KEY);
         if (vRaw && JSON.parse(vRaw).version === 6) this.saveSystem._apply?.(JSON.parse(vRaw));
