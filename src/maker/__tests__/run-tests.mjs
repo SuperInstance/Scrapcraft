@@ -1688,6 +1688,94 @@ console.log('\nWelcomeBack');
   const day1 = WelcomeBack.build({ botName: 'Bolt', dayStreak: 1 });
   ok('day 1 reads as day 1', day1.rows.some(r => r.text.includes('Day 1 of a new streak')));
 }
+// ── Night Shift (ported from comp-kimi) ─────────────────────────────────────
+console.log('\nNight Shift · the away-loot math');
+{
+  const { computeNightShift, NightShiftClock } = await import('../../NightShift.js');
+
+  ok('under 20 min away → no shift (refresh ≠ away)', computeNightShift(19 * 60e3, true) === null);
+  ok('no brained bot → no night shift', computeNightShift(8 * 3600e3, false) === null);
+
+  const oneHour = computeNightShift(60 * 60e3, true, 's');
+  ok('1h away → 20 iron (1 per 3 min)', oneHour?.loot?.iron_scrap === 20);
+
+  const eightH  = computeNightShift(8  * 3600e3, true, 's');
+  const sixteen = computeNightShift(16 * 3600e3, true, 's');
+  ok('earnings cap at 8h (iron)', sixteen.loot.iron_scrap === eightH.loot.iron_scrap);
+  ok('over-cap run flagged capped', sixteen.capped === true && eightH.capped === false);
+
+  const twoH = computeNightShift(2 * 3600e3, true, 'seedA');
+  const bonusTotal = Object.entries(twoH.loot).filter(([id]) => id !== 'iron_scrap')
+    .reduce((n, [, q]) => n + q, 0);
+  ok('2h away → 1 guaranteed bonus find', bonusTotal === 1);
+  const twoHb = computeNightShift(2 * 3600e3, true, 'seedA');
+  ok('bonus loot deterministic per seed', JSON.stringify(twoH.loot) === JSON.stringify(twoHb.loot));
+
+  // away-clock: one payout per sessionStart, then it's spent
+  const mkStore = () => { const m = new Map(); return {
+    getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; };
+  const day = (n, h = 10) => new Date(2026, 7, n, h, 0, 0).getTime();
+
+  const fresh = new NightShiftClock({ now: day(1), store: mkStore() });
+  ok('brand-new player earns no night shift', fresh.sessionStart(true) === null);
+
+  const away = new NightShiftClock({ now: day(1), store: mkStore() });
+  away.sessionStart(true);                       // stamps lastSeen
+  const pay = new NightShiftClock({ now: day(1, 14), store: away._store });  // 4h later
+  const r = pay.sessionStart(true);
+  ok('4h away with a brained bot → 80 iron', r?.loot?.iron_scrap === 80);
+  const again = new NightShiftClock({ now: day(1, 14, 0) + 5 * 60e3, store: away._store });
+  ok('a refresh minutes later pays nothing', again.sessionStart(true) === null);
+
+  const noBot = new NightShiftClock({ now: day(1), store: mkStore() });
+  noBot.sessionStart(true);
+  const peek = new NightShiftClock({ now: day(2), store: noBot._store });
+  ok('no brain → no night shift even overnight', peek.sessionStart(false) === null);
+}
+
+// ── Streak Shield — comp-kimi mercy folded into OpenCode's day-streak ─────
+console.log('\nStreak Shield · one forgiveness per streak, burned visibly');
+{
+  const { rollStreak, DailyContract } = await import('../../DailyContract.js');
+  const day = (n, h = 10) => new Date(2026, 7, n, h, 0, 0);
+  const mkGame = () => ({
+    xpSystem: { gain: () => {} }, player: { addItem: () => {} },
+    ui: { notify: () => {}, updateDaily: () => {} }, foreman: { onEvent: () => {} },
+  });
+
+  // pure math
+  let s = rollStreak(null, '2026-08-01');
+  ok('shield starts armed', s.shield === true && s.count === 1);
+  s = rollStreak(s, '2026-08-03');                      // missed exactly one day
+  ok('shield forgives a single missed day', s.count === 2 && s.shield === false && s.lastMercy === '2026-08-03');
+  s = rollStreak(s, '2026-08-06');                      // missed two days, no shield left
+  ok('two missed days with no shield → streak resets to 1', s.count === 1 && s.shield === true);
+  ok('the mercy record survives as history (ledger truth)', s.lastMercy === '2026-08-03');
+  ok('a fresh streak re-arms a fresh shield', s.shield === true);
+  const s2 = rollStreak(rollStreak({ lastDay: '2026-08-01', count: 5, best: 5, shield: false, lastMercy: '2026-08-03' }, '2026-08-02'), '2026-08-04');
+  ok('burned shield does not forgive twice', s2.count === 1 && s2.shield === true);
+  ok('best streak survives a mercy continue', rollStreak({ lastDay: '2026-08-01', count: 5, best: 5, shield: true }, '2026-08-03').best === 6);
+
+  // through the engine — the burn is visible in state and Earl's event
+  const g = mkGame();
+  const seen = [];
+  g.foreman.onEvent = (e) => seen.push(e);
+  const dc = new DailyContract(g, day(1));              // day 1
+  const dcMissed = new DailyContract(g, day(3));        // skipped day 2 → shield burns
+  dcMissed.fromSaveData(dc.toSaveData(), day(3));       // carry day-1 state across the session gap
+  ok('engine: mercy continues the streak', dcMissed.streak.count === 2 && dcMissed.streak.shield === false);
+  dcMissed.announce();
+  ok('engine: Earl hears the burn (streak_new_day)', seen.includes('streak_new_day'));
+  const dcNext = new DailyContract(g, day(4));
+  dcNext.announce();
+  ok('engine: clean day after mercy announces normally', seen.includes('daily_contract_new') || seen.includes('streak_milestone'));
+
+  // save round-trip carries the shield
+  const saved = JSON.parse(JSON.stringify(dcMissed._state));
+  const dcReload = new DailyContract(mkGame(), day(3, 20));
+  dcReload.fromSaveData(saved, day(3, 20));
+  ok('shield state persists across reload', dcReload.streak.count === 2 && dcReload.streak.shield === false);
+}
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

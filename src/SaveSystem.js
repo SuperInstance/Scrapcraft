@@ -51,6 +51,7 @@ export class SaveSystem {
   /** Serialize and persist the full game state. */
   save() {
     try {
+      this._game.nightShiftClock?.touch();   // keep the away-clock honest
       const data = this._collect();
       this._backend.write(data); // async cloud write-behind; sync local inside
       this._game.ui?.notify('💾 Saved.' + (this._backend.hasCloud ? ' ☁' : ''));
@@ -212,6 +213,7 @@ export class SaveSystem {
           questIndex: g.foreman?._questIndex ?? 0,
           daysPlayed: g.dailyContract?.daysPlayed ?? 1,
           dayStreak:  g.dailyContract?.streak?.count ?? 1,
+          nightShiftLastSeen: g.nightShiftClock?.lastSeen ?? null,
         };
       })(),
 
@@ -311,6 +313,12 @@ export class SaveSystem {
 
     // Daily Salvage Contract — progress survives the reload (finish tomorrow)
     if (data.daily) g.dailyContract?.fromSaveData(data.daily);
+
+    // Night Shift away-clock: local truth wins if fresher; a cloud save only
+    // restores when this browser has no clock of its own yet.
+    if (data.comeback?.nightShiftLastSeen != null && g.nightShiftClock?.lastSeen == null) {
+      g.nightShiftClock.fromSaveData({ lastSeen: data.comeback.nightShiftLastSeen });
+    }
 
     // Welcome Back snapshot (day-2 briefing) — Game shows it after CLOCK IN
     g._comeback = data.comeback ?? null;

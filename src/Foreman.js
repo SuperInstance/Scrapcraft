@@ -272,6 +272,16 @@ const QUIPS = {
     "Streak like that, you're not a tourist anymore. You're yard crew. Don't tell HR I said that. We don't have HR.",
     "Showing up every day is ninety percent of engineering. The other ten percent is not losing your wrench. You've got the first part down.",
   ],
+  night_shift: [
+    "Your bot worked the graveyard shift while you were gone. Wish MY crew was that loyal.",
+    "Kid, check your locker. The bot's been busy. I didn't lift a finger — that's the point of a robot.",
+    "While you were off doing whatever kids do, that bot of yours sorted scrap like it was getting paid. It wasn't. Robots are suckers.",
+  ],
+  streak_new_day: [
+    "Back again, huh? Punch card's stamped. Consistency is the whole job, kid — everything else is just showing off.",
+    "Another day, another stamp. You know who shows up every day? People who end up running the yard.",
+    "That's a streak. Keep it alive and the hauls get bigger. Break it and, well… let's not talk about that.",
+  ],
   storm_exposed: [
     "GET INSIDE. Lightning is 30,000 Kelvin. That's five times hotter than the sun's surface. Metal scrapyard. You are the tallest thing. MOVE.",
     "Lightning looks for the path of least resistance to ground. Standing in an open scrapyard makes you that path. Find a roof.",
@@ -650,6 +660,8 @@ export class Foreman {
       'bot_battery_dead':   'bot_battery_dead',
       'storm_exposed':      'storm_exposed',
       'challenge_complete': 'challenge_complete',
+      'night_shift':          'night_shift',
+      'streak_new_day':       'streak_new_day',
       'welcome_back':        'welcome_back',
       'daily_contract_new':  'daily_contract_new',
       'daily_contract_done': 'daily_contract_done',

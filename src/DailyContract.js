@@ -130,13 +130,38 @@ for (const c of CONTRACT_POOL) {
   if (c.type === 'mine_block') c.target = BLOCK_FILL[c.id] ?? 9;
 }
 
-/** Streak math, pure. Returns the new streak state for a session on `today`. */
+/**
+ * Streak math, pure. Returns the new streak state for a session on `today`.
+ *
+ * Streak Shield (ported from comp-kimi's punch card, judge's ruling): one
+ * forgiveness per streak. Miss exactly one day with the shield unburned and
+ * the shield burns instead of the streak — visibly (lastMercy records the
+ * day it was used; the HUD and Earl both show it). A broken streak re-arms
+ * a fresh shield for the new run.
+ */
 export function rollStreak(streak, today) {
-  const s = { lastDay: streak?.lastDay ?? null, count: streak?.count ?? 0, best: streak?.best ?? 0 };
+  const s = {
+    lastDay:  streak?.lastDay  ?? null,
+    count:    streak?.count    ?? 0,
+    best:     streak?.best     ?? 0,
+    shield:   streak?.shield   ?? true,   // one mercy per streak
+    lastMercy: streak?.lastMercy ?? null, // day key the shield burned (visible)
+  };
   if (s.lastDay === today) return s;            // same day, second session — no change
   if (s.lastDay === null) s.count = 1;          // very first day ever
-  else if (daysBetween(s.lastDay, today) === 1) s.count += 1;  // came back — the whole game
-  else s.count = 1;                             // chain broken, start fresh
+  else {
+    const gap = daysBetween(s.lastDay, today);
+    if (gap === 1) s.count += 1;                // came back — the whole game
+    else if (gap === 2 && s.shield) {
+      // missed exactly one day — the shield burns instead of the streak
+      s.shield = false;
+      s.lastMercy = today;
+      s.count += 1;
+    } else {
+      s.count = 1;                             // chain broken, start fresh
+      s.shield = true;                         // …and a fresh streak earns a fresh shield
+    }
+  }
   s.lastDay = today;
   s.best = Math.max(s.best, s.count);
   return s;
@@ -188,7 +213,10 @@ export class DailyContract {
     this._state.announced = false;   // new day → a fresh announcement is due
 
     if (!firstEver && this._isNewDay) {
-      this._game?.ui?.notify(`🔥 New day in the yard — streak: ${this._state.streak.count}!`);
+      const mercy = this._state.streak.lastMercy === today;
+      this._game?.ui?.notify(
+        `🔥 New day in the yard — streak: ${this._state.streak.count}!` +
+        (mercy ? ' 🛡️ (streak shield used — one miss forgiven)' : ''));
     }
   }
 
@@ -203,9 +231,12 @@ export class DailyContract {
     if (!c) return false;
     this._state.announced = true;
     this._game?.ui?.notify(`📜 Daily Contract: ${c.icon} ${c.label}`);
-    // One Earl line per moment — on real streaks, the streak line wins.
+    // One Earl line per moment — mercy burns loudest, then real streaks, else the board.
     const n = this._state.streak.count;
-    this._game?.foreman?.onEvent(n >= 3 ? 'streak_milestone' : 'daily_contract_new', { streak: n });
+    const ev = this._state.streak.lastMercy === this._state.day ? 'streak_new_day'
+             : n >= 3 ? 'streak_milestone'
+             : 'daily_contract_new';
+    this._game?.foreman?.onEvent(ev, { streak: n });
     return true;
   }
 
@@ -281,7 +312,13 @@ export class DailyContract {
       claimed:     !!d.claimed,
       totalDone:   d.totalDone   ?? 0,
       daysPlayed:  d.daysPlayed  ?? 1,
-      streak:      { lastDay: d.streak?.lastDay ?? null, count: d.streak?.count ?? 0, best: d.streak?.best ?? 0 },
+      streak: {
+        lastDay:  d.streak?.lastDay  ?? null,
+        count:    d.streak?.count    ?? 0,
+        best:     d.streak?.best     ?? 0,
+        shield:   d.streak?.shield   ?? true,
+        lastMercy: d.streak?.lastMercy ?? null,
+      },
       announced:   !!d.announced,
     };
     this._rollIfNeeded(now);   // handles midnight rollovers between sessions

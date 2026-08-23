@@ -22,6 +22,7 @@ import { ProjectileSystem } from './ProjectileSystem.js';
 import { Challenge } from './Challenge.js';
 import { DailyContract } from './DailyContract.js';
 import { WelcomeBack } from './WelcomeBack.js';
+import { NightShiftClock } from './NightShift.js';
 import { BotUpgrades, UPGRADE_DEFS } from './BotUpgrades.js';
 import { ScrapExchange, EXCHANGE_POS, EXCHANGE_RADIUS } from './ScrapExchange.js';
 import { OnboardingWizard } from './onboarding/OnboardingWizard.js';
@@ -154,6 +155,7 @@ export class Game {
     this.saveSystem   = new SaveSystem(this);
     this.challenge    = new Challenge(this);
     this.dailyContract = new DailyContract(this);   // before load() — state restores below
+    this.nightShiftClock = new NightShiftClock();    // away-clock (own localStorage key)
     this.botUpgrades  = new BotUpgrades();
     this.exchange     = new ScrapExchange();
     this.raceBoard    = new RaceBoard();
@@ -331,6 +333,20 @@ export class Game {
       this._startTutorial();
     } else {
       this._returningSession = true;
+    }
+
+    // Night Shift (comp-kimi port) — what the bot dragged in while away.
+    // Runs at init, not on Start: the clock self-persists, so a tab refresh
+    // can't re-trigger a payout. Owning/braining a bot is the ticket in.
+    const botHasBrain = !!this.scrapBot?._brainMode
+      || !!(this.player?.crafted?.has?.('robot_helper'));
+    this._nightShiftResult = this.nightShiftClock.sessionStart(botHasBrain);
+    if (this._nightShiftResult) {
+      for (const [id, qty] of Object.entries(this._nightShiftResult.loot)) {
+        this.player.addItem(id, qty);
+      }
+      this.xpSystem.gain(Math.min(60, 10 + Math.floor(this._nightShiftResult.minutes / 30) * 5));
+      this.saveSystem.markDirty();
     }
 
     // Never lose a session to a closed tab — save on exit / tab hide.
