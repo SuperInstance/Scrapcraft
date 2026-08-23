@@ -1,19 +1,38 @@
 /**
  * SaveSystem — localStorage persistence for SCRAPCRAFT.
  *
- * Saves: player position + inventory + crafted set, achievements, Earl's quest
- * state, and the set of mined blocks (world is procedural; only diffs are stored).
+ * Saves: player position + inventory + crafted set, XP/level/skills,
+ * achievements, Earl's quest chain + the QuestSystem tracker/spine,
+ * companion roster + tiers, bot state, and the set of mined blocks
+ * (world is procedural; only diffs are stored).
  *
- * Autosaves every 60 seconds when dirty. F5 = manual save, F9 = reload.
- * Schema version is bumped (bump SAVE_KEY) on breaking changes.
+ * WHEN it saves (the layer cake — a session must never end unsaved):
+ *   1. Mutation hooks — XPSystem.gain, Player add/remove/takeDamage/heal,
+ *      Achievements.track/unlock all mark the save dirty the instant they
+ *      fire (wrapped once in _hookMutations; no scattered call-site gods).
+ *   2. Drift signature — every tick SaveSystem fingerprints the load-bearing
+ *      state (xp, questIndex, inventory total, bond, …). Any change, from any
+ *      code path including future ones, re-dirties the save. Catch-all.
+ *   3. Milestones — level-ups and quest completions save immediately
+ *      (saveMilestone) — the moments a kid would cry about losing.
+ *   4. Autosave — every 30s while dirty.
+ *   5. Exit — beforeunload + pagehide + visibilitychange→hidden all call
+ *      saveOnExit (registered EARLY in Game's constructor, before anything
+ *      can crash between here and the old late registration point).
+ *
+ * SCHEMA: version 6 (additive). Forward-compat: unknown fields from a loaded
+ * save survive every round-trip (_preserveUnknown re-merges keys the current
+ * collector doesn't know about). Older/missing versions load fail-soft;
+ * only a NEWER major version (7+) is refused.
  */
 
 import { TileProgram } from './maker/TileProgram.js';
 import { SaveBackend } from './SaveBackend.js';
 import { BotLedger } from './BotLedger.js';
 
-const SAVE_KEY     = 'scrapcraft_save_v6';
-const AUTOSAVE_INT = 60;  // seconds between autosaves
+const SAVE_KEY       = 'scrapcraft_save_v6';
+const SCHEMA_VERSION = 6;
+const AUTOSAVE_INT   = 30;  // seconds between autosaves
 
 export class SaveSystem {
   constructor(game) {
@@ -21,6 +40,9 @@ export class SaveSystem {
     this._timer   = 0;
     this._dirty   = false;
     this._backend = new SaveBackend();
+    this._loadedRaw = null;   // last save applied — unknown fields re-merge on collect
+    this._sig       = null;   // last-seen drift signature
+    this._hooked    = false;
   }
 
   /** Called after onboarding updates the worker URL. */
@@ -28,52 +50,132 @@ export class SaveSystem {
     this._backend = new SaveBackend(url);
   }
 
-  /** Call each game tick. Triggers autosave when dirty. */
+  /**
+   * Wrap the core mutation entry points so ANY progress change marks the
+   * save dirty without hoping every call site remembers to. Idempotent.
+   * Called by Game once the subsystems exist.
+   */
+  _hookMutations() {
+    if (this._hooked) return;
+    this._hooked = true;
+    const g = this._game;
+
+    // XP — every gain dirties; level-ups save NOW (milestone).
+    if (g.xpSystem) {
+      const xp = g.xpSystem;
+      const origGain = xp.gain.bind(xp);
+      xp.gain = n => { const r = origGain(n); if (n > 0) this.markDirty(); return r; };
+      xp.on?.('levelup', () => this.saveMilestone('levelup'));
+    }
+
+    // Inventory — adds/removes/HP all change saveable state.
+    if (g.player) {
+      const p = g.player;
+      for (const m of ['addItem', 'removeItem', 'takeDamage', 'heal']) {
+        if (typeof p[m] !== 'function') continue;
+        const orig = p[m].bind(p);
+        p[m] = (...a) => { const r = orig(...a); this.markDirty(); return r; };
+      }
+    }
+
+    // Achievements — tracked stats + unlocks.
+    if (g.achievements) {
+      const a = g.achievements;
+      for (const m of ['track', 'unlock']) {
+        if (typeof a[m] !== 'function') continue;
+        const orig = a[m].bind(a);
+        a[m] = (...args) => { const r = orig(...args); this.markDirty(); return r; };
+      }
+    }
+  }
+
+  /**
+   * Cheap fingerprint of load-bearing state. Compared every tick: any drift
+   * (from hooked paths, unhooked paths, or tomorrow's code) re-dirties.
+   */
+  _signature() {
+    const g = this._game;
+    let inv = 0;
+    try { for (const s of g.player?.inventory ?? []) if (s) inv += s.qty; } catch { /* mid-load */ }
+    return [
+      g.xpSystem?.xp ?? 0,
+      g.xpSystem?.level ?? 0,
+      g.foreman?._questIndex ?? 0,
+      (g.foreman?._history ?? []).length,
+      inv,
+      g.player?.hp ?? 0,
+      g.player?.crafted?.size ?? 0,
+      g.achievements?.unlocked?.size ?? 0,
+      g.companions?.activeId ?? '',
+      g.companions?.active?.state?.data?.bond ?? 0,
+      g.quests?.spine?.currentChapterIndex?.() ?? 0,
+      g._towerActivated ? 1 : 0,
+    ].join('|');
+  }
+
+  /** Called each game tick. Drift-checks and autosaves when dirty. */
   tick(dt) {
+    const sig = this._signature();
+    if (this._sig !== null && sig !== this._sig) this.markDirty();
+    this._sig = sig;
+
     if (!this._dirty) return;
     this._timer += dt;
-    if (this._timer >= AUTOSAVE_INT) this.save();
+    if (this._timer >= AUTOSAVE_INT) this.save({ silent: true });
   }
 
   /** Flag that saveable state has changed. Resets the autosave countdown. */
   markDirty() { this._dirty = true; this._timer = 0; }
 
   /**
+   * Milestone save (level-up, quest complete, …): immediate + silent —
+   * these are the moments losing to a refresh would hurt most.
+   */
+  saveMilestone(_reason) { this.save({ silent: true }); }
+
+  /**
    * Exit-time save: only persists when there's something worth persisting —
    * pending changes or an existing save (a 10-second peek shouldn't create one).
    */
   saveOnExit() {
-    if (this._dirty || this.hasSave()) this.save();
+    if (this._dirty || this.hasSave()) this.save({ silent: true, exit: true });
   }
 
-  hasSave() { return !!localStorage.getItem(SAVE_KEY); }
+  hasSave() {
+    try { return !!localStorage.getItem(SAVE_KEY); }
+    catch { return false; }
+  }
 
   /** Serialize and persist the full game state. */
-  save() {
+  save({ silent = false, exit = false } = {}) {
     try {
       this._game.nightShiftClock?.touch();   // keep the away-clock honest
       const data = this._collect();
-      this._backend.write(data); // async cloud write-behind; sync local inside
-      this._game.ui?.notify('💾 Saved.' + (this._backend.hasCloud ? ' ☁' : ''));
+      this._backend.write(data, { exit });   // sync local inside; async cloud behind
+      if (!silent) this._game.ui?.notify('💾 Saved.' + (this._backend.hasCloud ? ' ☁' : ''));
     } catch (e) {
       console.warn('[SaveSystem] Write failed:', e);
       this._game.ui?.notify('⚠ Save failed — storage full?');
     }
     this._dirty = false;
     this._timer = 0;
+    this._sig = this._signature();   // post-save baseline — don't immediately re-dirty
   }
 
   /** Deserialize and apply a save. Returns true if a valid save was found. */
   load() {
-    const raw = localStorage.getItem(SAVE_KEY);
+    let raw = null;
+    try { raw = localStorage.getItem(SAVE_KEY); } catch { return false; }
     if (!raw) return false;
     try {
       const data = JSON.parse(raw);
-      if (data.version !== 6) {
-        console.warn('[SaveSystem] Version mismatch — starting fresh.');
+      if (typeof data.version === 'number' && data.version > SCHEMA_VERSION) {
+        console.warn(`[SaveSystem] Save v${data.version} is newer than this build (v${SCHEMA_VERSION}) — starting fresh.`);
         return false;
       }
       this._apply(data);
+      this._loadedRaw = data;
+      this._sig = this._signature();
       return true;
     } catch (e) {
       console.warn('[SaveSystem] Load failed:', e);
@@ -85,8 +187,10 @@ export class SaveSystem {
   async loadWithCloud() {
     try {
       const data = await this._backend.read();
-      if (!data || data.version !== 6) return this.load();
+      if (!data || (typeof data.version === 'number' && data.version > SCHEMA_VERSION)) return this.load();
       this._apply(data);
+      this._loadedRaw = data;
+      this._sig = this._signature();
       return true;
     } catch {
       return this.load();
@@ -95,8 +199,9 @@ export class SaveSystem {
 
   /** Show a confirm then wipe. */
   wipe() {
-    if (!confirm('Delete all saved progress? This cannot be undone.')) return;
+    if (typeof confirm === 'function' && !confirm('Delete all saved progress? This cannot be undone.')) return;
     this._backend.wipe().catch(() => {});
+    this._loadedRaw = null;
     this._game.ui?.notify('🗑 Save deleted. Reloading...');
     setTimeout(() => location.reload(), 800);
   }
@@ -108,8 +213,8 @@ export class SaveSystem {
     const p = g.player;
     const s = g.achievements.stats;
 
-    return {
-      version:   6,
+    const fresh = {
+      version:   SCHEMA_VERSION,
       lastSaved: new Date().toISOString(),
 
       player: {
@@ -143,24 +248,24 @@ export class SaveSystem {
           exchangeTrades:       s.exchangeTrades       ?? 0,
           tracksPlaced:       s.tracksPlaced        ?? 0,
           floodlightsPlaced:  s.floodlightsPlaced   ?? 0,
-          lapsCompleted:      s.lapsCompleted        ?? 0,
-          brainsShared:       s.brainsShared         ?? 0,
-          sparkPrograms:      s.sparkPrograms        ?? 0,
+          lapsCompleted:      s.lapsCompleted       ?? 0,
+          brainsShared:       s.brainsShared        ?? 0,
+          sparkPrograms:      s.sparkPrograms       ?? 0,
           uniqueSensorsUsed:  s.uniqueSensorsUsed    ?? 0,
-          crystalMined:       s.crystalMined         ?? 0,
-          headlampUsed:       s.headlampUsed         ?? 0,
-          cannonsFired:       s.cannonsFired         ?? 0,
-          waypointReached:    s.waypointReached      ?? 0,
-          oreDetections:      s.oreDetections        ?? 0,
-          grenadeMaxBlocks:   s.grenadeMaxBlocks     ?? 0,
-          airdropLoots:       s.airdropLoots         ?? 0,
-          luckyFinds:         s.luckyFinds           ?? 0,
-          narrowEscapes:      s.narrowEscapes        ?? 0,
+          crystalMined:       s.crystalMined        ?? 0,
+          headlampUsed:       s.headlampUsed        ?? 0,
+          cannonsFired:       s.cannonsFired        ?? 0,
+          waypointReached:    s.waypointReached     ?? 0,
+          oreDetections:      s.oreDetections       ?? 0,
+          grenadeMaxBlocks:   s.grenadeMaxBlocks    ?? 0,
+          airdropLoots:       s.airdropLoots        ?? 0,
+          luckyFinds:         s.luckyFinds          ?? 0,
+          narrowEscapes:      s.narrowEscapes       ?? 0,
           challengesCompleted: s.challengesCompleted ?? 0,
           buriedCachesFound:   s.buriedCachesFound   ?? 0,
           towerActivated:      s.towerActivated      ?? false,
-          botNamed:            s.botNamed             ?? 0,
-          botBondMax:          s.botBondMax           ?? 0,
+          botNamed:            s.botNamed            ?? 0,
+          botBondMax:          s.botBondMax          ?? 0,
         },
       },
 
@@ -173,6 +278,25 @@ export class SaveSystem {
       // the run's story identity — who walked you in, how the friendship grew
       // (multi-run history reads differently because different friends pulled)
       story: g.companions ? g.companions.quilt() : null,
+
+      // Quest framework — tracker + spine ride the payload for cloud parity.
+      // (Their own localStorage stays primary on this machine; the payload
+      // version restores on a fresh browser/classroom machine.)
+      quests: g.quests ? {
+        tracker: g.quests.tracker?.data ?? null,
+        spine:   g.quests.spine?.data   ?? null,
+      } : null,
+
+      // Companion roster + per-companion state (tiers, bond, counters) —
+      // same deal: side-storage primary locally, payload restores elsewhere.
+      companions: g.companions ? {
+        roster: g.companions.data ?? null,
+        states: Object.fromEntries(
+          [...(g.companions._companions ?? new Map()).values()]
+            .filter(c => c?.state?.data)
+            .map(c => [c.persona.id, c.state.data])
+        ),
+      } : null,
 
       tileEditor: g.tileEditor?._program?.toJSON() ?? null,
 
@@ -236,6 +360,25 @@ export class SaveSystem {
         return btoa(str);
       })(),
     };
+
+    // Forward-compat: fields a future build wrote that this one doesn't know
+    // survive the round-trip instead of being silently dropped.
+    return this._preserveUnknown(this._loadedRaw, fresh);
+  }
+
+  /**
+   * Merge unknown fields from the last loaded save into a fresh collect.
+   * Known (fresh) values always win; keys only the old save had are kept;
+   * plain-object sections merge recursively (arrays and scalars: fresh wins).
+   */
+  _preserveUnknown(saved, fresh) {
+    if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return fresh;
+    const out = { ...fresh };
+    for (const [k, v] of Object.entries(saved)) {
+      if (!(k in out)) { out[k] = v; continue; }              // unknown key — keep it
+      if (_isPlain(v) && _isPlain(out[k])) out[k] = this._preserveUnknown(v, out[k]);
+    }
+    return out;
   }
 
   _apply(data) {
@@ -291,16 +434,16 @@ export class SaveSystem {
         lapsCompleted:     s.lapsCompleted     ?? 0,
         brainsShared:      s.brainsShared      ?? 0,
         sparkPrograms:     s.sparkPrograms     ?? 0,
-        uniqueSensorsUsed: s.uniqueSensorsUsed ?? 0,
+        uniqueSensorsUsed: s.uniqueSensorsUsed  ?? 0,
         crystalMined:      s.crystalMined      ?? 0,
         headlampUsed:      s.headlampUsed      ?? 0,
         cannonsFired:      s.cannonsFired      ?? 0,
-        waypointReached:   s.waypointReached   ?? 0,
-        oreDetections:     s.oreDetections     ?? 0,
-        grenadeMaxBlocks:  s.grenadeMaxBlocks  ?? 0,
-        airdropLoots:      s.airdropLoots      ?? 0,
-        luckyFinds:        s.luckyFinds        ?? 0,
-        narrowEscapes:     s.narrowEscapes     ?? 0,
+        waypointReached:   s.waypointReached    ?? 0,
+        oreDetections:     s.oreDetections      ?? 0,
+        grenadeMaxBlocks:  s.grenadeMaxBlocks   ?? 0,
+        airdropLoots:      s.airdropLoots       ?? 0,
+        luckyFinds:        s.luckyFinds         ?? 0,
+        narrowEscapes:     s.narrowEscapes      ?? 0,
         challengesCompleted: s.challengesCompleted ?? 0,
         buriedCachesFound:   s.buriedCachesFound   ?? 0,
         towerActivated:      s.towerActivated      ?? false,
@@ -317,6 +460,14 @@ export class SaveSystem {
       g.foreman._history    = ed.history ?? [];
       g.foreman._activeQuest = null;
     }
+
+    // Quest framework side-state (tracker + spine). Adopted ONLY when this
+    // machine has no local copy — local side-storage is always fresher here;
+    // the payload copy exists for fresh browsers / classroom machines.
+    if (data.quests) g.quests?.fromSaveData?.(data.quests);
+
+    // Companion roster + tiers — same policy as quests (local copy wins).
+    if (data.companions) g.companions?.fromSaveData?.(data.companions);
 
     // Daily Salvage Contract — progress survives the reload (finish tomorrow)
     if (data.daily) g.dailyContract?.fromSaveData(data.daily);
@@ -399,4 +550,8 @@ export class SaveSystem {
     // Refresh HUD
     g.ui?.updateHotbar(g.player);
   }
+}
+
+function _isPlain(v) {
+  return v !== null && typeof v === 'object' && !Array.isArray(v);
 }

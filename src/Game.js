@@ -225,6 +225,17 @@ export class Game {
     this._spectator = false;
     this._demoBots = [];   // demo crew — SpectatorCoach manages the contents
     this.saveSystem   = new SaveSystem(this);
+    // Never lose a session to a closed tab — save on exit / tab hide.
+    // Registered HERE, immediately: anything that throws later in this
+    // (very long) constructor must not leave the game unsaveable (P0 lesson).
+    // (Autosave is 30s + drift-signature dirtying; a kid yanking the power
+    // cord shouldn't lose a lap.)
+    window.addEventListener?.('beforeunload', () => this.saveSystem.saveOnExit());
+    window.addEventListener?.('pagehide',     () => this.saveSystem.saveOnExit());
+    document.addEventListener?.('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') this.saveSystem.saveOnExit();
+    });
+
 
     // ── LEARNING ENGINE — the concept ladder ─────────────────────────────
     // Constructed BEFORE saveSystem.load(): the v6 payload carries `concepts`
@@ -447,6 +458,10 @@ export class Game {
     this.prestige.load();
     this.quests.migrateLegacySave(this.foreman._questIndex ?? 0);
 
+    // Autosave insurance: every mutation path (XP gain, item add/remove,
+    // damage/heal, achievement track) now dirties the save by construction.
+    this.saveSystem._hookMutations();
+
     // ── Cold start: Earl conscripts at spawn (campaign Ch 1's heart) ──────
     // Fresh save + wizard already done → greet now. Fresh save + wizard
     // pending → the wizard's finish() hands off via _onOnboardingComplete().
@@ -475,12 +490,7 @@ export class Game {
       this.saveSystem.markDirty();
     }
 
-    // Never lose a session to a closed tab — save on exit / tab hide.
-    // (Autosave is 60s; a kid yanking the power cord shouldn't lose a lap.)
-    window.addEventListener('beforeunload', () => this.saveSystem.saveOnExit());
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') this.saveSystem.saveOnExit();
-    });
+    // (exit handlers live at the top of the constructor — see SaveSystem)
 
     // Paint today's contract chip right away (progress may be mid-contract)
     this.ui?.updateDaily(this.dailyContract, this.dailyContract.progress, this.dailyContract.claimed);

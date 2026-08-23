@@ -327,6 +327,34 @@ export class CompanionRoster {
     } catch { /* corrupt — fresh roster */ }
   }
 
+  /** Adopt save-payload state (roster + per-companion tiers/bond). Local
+   *  copy wins; this exists for fresh browsers / classroom machines. */
+  fromSaveData(d) {
+    if (!d) return false;
+    let adopted = false;
+    try {
+      if (d.roster?.v === ROSTER_VERSION && !this._storage?.getItem(ROSTER_KEY)) {
+        this.data = { ...this._fresh(), ...d.roster };
+        this._storage?.setItem(ROSTER_KEY, JSON.stringify(this.data));
+        adopted = true;
+      }
+      for (const [id, stateData] of Object.entries(d.states ?? {})) {
+        if (!stateData || typeof stateData !== 'object') continue;
+        let persona = null;
+        try { persona = getPersona(id); } catch { continue; }
+        const c = this.get(persona.id);
+        if (!c?.state) continue;
+        try {
+          if (this._storage?.getItem(c.state._key)) continue;   // local wins
+          c.state.data = { ...c.state._fresh(), ...stateData };
+          c.state.save();
+          adopted = true;
+        } catch { /* one bad state never blocks the rest */ }
+      }
+    } catch { /* fail-soft */ }
+    return adopted;
+  }
+
   /** Test/dev helper. */
   static reset(storage) {
     try { (storage ?? (typeof localStorage !== 'undefined' ? localStorage : null))?.removeItem(ROSTER_KEY); } catch {}

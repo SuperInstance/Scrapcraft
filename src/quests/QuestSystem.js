@@ -118,6 +118,14 @@ export class QuestSystem {
     if (had === 0 && earlIndex > 0) this.tracker.migrateEarlIndex(earlIndex);
   }
 
+  /** Adopt save-payload quest state (tracker + spine). Local side-storage
+   *  wins; the payload copy restores fresh browsers / classroom machines. */
+  fromSaveData(d) {
+    const a = d?.tracker ? this.tracker.fromSaveData?.(d.tracker) : false;
+    const b = d?.spine   ? this.spine.fromSaveData?.(d.spine)     : false;
+    return a || b;
+  }
+
   // ── the stream ────────────────────────────────────────────────────────────
 
   onEvent(event, data) {
@@ -138,7 +146,7 @@ export class QuestSystem {
   _afterEvents(done) {
     this._renderHud();
     this._checkSpine();
-    if (done.length) this.game.saveSystem?.markDirty?.();
+    if (done.length) this.game.saveSystem?.saveMilestone?.('quest');
   }
 
   // ── the spine, live (ceremonies + chapter re-key) ─────────────────────

@@ -27,13 +27,26 @@ export class SaveBackend {
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
-  /** Write save data. Always local-first; cloud async if available. */
-  async write(data) {
+  /** Write save data. Always local-first; cloud async if available.
+   *  `exit: true` rides a sendBeacon when possible — a fetch during
+   *  beforeunload is not guaranteed to leave the page alive. */
+  async write(data, { exit = false } = {}) {
     const serialized = JSON.stringify(data);
     try { localStorage.setItem(LOCAL_KEY, serialized); } catch { /* storage full */ }
     if (this._cloudAvailable && this._sessionId) {
+      if (exit && this._beacon(serialized)) return;      // beacon sent — done
       this._cloudWrite(serialized).catch(() => {}); // fire-and-forget
     }
+  }
+
+  /** Best-effort unload-safe cloud write. True when a beacon was queued. */
+  _beacon(body) {
+    try {
+      if (typeof navigator === 'undefined' || !navigator.sendBeacon) return false;
+      const url = `${this._workerUrl}/api/v1/save/beacon?sid=${encodeURIComponent(this._sessionId)}`;
+      const blob = new Blob([body], { type: 'application/json' });
+      return navigator.sendBeacon(url, blob);
+    } catch { return false; }
   }
 
   /** Read save data. Returns parsed object or null. Cloud preferred if available. */

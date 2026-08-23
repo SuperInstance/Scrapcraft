@@ -35,6 +35,7 @@ import { runInstanceLedgerTests } from '../../render/__tests__/ledger-tests.mjs'
 import { runTouchTests } from '../../touch/__tests__/touch-tests.mjs';
 import { runLearningTests } from '../../learning/__tests__/learning-tests.mjs';
 import { runRadioTests } from '../../radio/__tests__/radio-tests.mjs';
+import { runSaveRoundTripTests } from '../../__tests__/save-roundtrip.mjs';
 import { runPerfGuardTests } from '../../__tests__/perf-guards.mjs';
 
 let pass = 0, fail = 0;
@@ -1900,6 +1901,11 @@ runRadioTests(
   (name) => { pass++; console.log(`  ✓ ${name}`); },
   (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
 );
+
+// ── Save round-trip: full payload identity, unknown-field survival, ────────
+// dirty hooks, autosave cadence, exit guards, cloud parity, version gating ─
+console.log('\nSave round-trip');
+runSaveRoundTripTests(ok);
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
