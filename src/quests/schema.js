@@ -43,11 +43,13 @@ export const ARCS = ['earl', 'bolt', 'magma', 'juno', 'rivet', 'finale', 'chapte
 
 /** Quest ids per arc that must ALL exist for the campaign to be complete.
  *  The depth cut adds three arcs: 'chapter' (the lived ch7–9 B-sides, Earl-
- *  voiced), 'side' (companion side-quests, 3 beats × 4 personas, friend-
- *  gated), and 'yard' (the post-ch9 second-arc hook). None of them count
- *  toward the finale gate or Prestige marks — that stays bolt/magma/juno/rivet. */
+ *  voiced), 'side' (companion side-quests, friend-gated), and 'yard' (the
+ *  post-ch9 second-arc hook). None of them count toward the finale gate or
+ *  Prestige marks — that stays bolt/magma/juno/rivet. Side = 3 beats × 4
+ *  personas (12) + two late clinics: rivet's debug clinic and Bolt's
+ *  write-it-shorter optimization dare. */
 export const ARC_SIZES = { earl: 20, bolt: 5, magma: 5, juno: 5, rivet: 5, finale: 1,
-  chapter: 9, side: 12, yard: 1 };
+  chapter: 9, side: 14, yard: 1 };
 
 /** The finale gate: how many companion arcs (bolt/magma/juno/rivet) must be
  *  complete before the Midnight Race unlocks. The worldbible's campaign payoff. */

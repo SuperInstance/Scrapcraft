@@ -1,0 +1,44 @@
+{
+  "_doc": "TEACH-BACK CONTENT — placeholder authored by the systems coder so the engine + tests run. The content coder's file REPLACES this one; keep the schema EXACT: { questions: [{ id, conceptId, asker: 'rivet'|'bolt'|'juno'|'magma'|'spark', naiveQuestion, options: [{ text, correct, misconception }] (1 correct + 2 wrong, each wrong tagged with the misconception it reveals), taughtLine, retryLine }] }. conceptId must be one of the 16 fixed ids in src/learning/concepts.js.",
+  "questions": [
+    {
+      "id": "tb-conditionals-1",
+      "conceptId": "conditionals",
+      "asker": "rivet",
+      "naiveQuestion": "The if tile has two mouths. Which one eats the answer when the sensor says TRUE?",
+      "options": [
+        { "text": "The THEN mouth — it runs when the condition is TRUE", "correct": true, "misconception": null },
+        { "text": "The ELSE mouth — that one gets the true stuff", "correct": false, "misconception": "confuses-then-else" },
+        { "text": "Both mouths run every loop, one after the other", "correct": false, "misconception": "thinks-branches-always-run" }
+      ],
+      "taughtLine": "Exactly — THEN is the true road. You just taught a robot to choose.",
+      "retryLine": "Close! THEN is the road the robot takes when the condition is TRUE. ELSE is the other one."
+    },
+    {
+      "id": "tb-loops-until-1",
+      "conceptId": "loops-until",
+      "asker": "bolt",
+      "naiveQuestion": "My drive-to-the-wall program loops forever and never parks. What does it need?",
+      "options": [
+        { "text": "An exit — a break (or repeat-until) for when the wall is close", "correct": true, "misconception": null },
+        { "text": "A bigger forever loop — forever twice is more stopping", "correct": false, "misconception": "more-loop-means-more-stop" },
+        { "text": "Nothing, forever loops stop themselves when they get tired", "correct": false, "misconception": "thinks-forever-self-stops" }
+      ],
+      "taughtLine": "That's it — every forever needs a way out. The wall was telling it to stop all along.",
+      "retryLine": "Think again: a forever loop runs FOREVER. It stops when YOU build the exit — break or repeat-until."
+    },
+    {
+      "id": "tb-sensors-overview-1",
+      "conceptId": "sensors-overview",
+      "asker": "juno",
+      "naiveQuestion": "How does the robot even KNOW things? It doesn't have eyes. Or does it?",
+      "options": [
+        { "text": "Sensors — parts that turn the world into numbers the program can read", "correct": true, "misconception": null },
+        { "text": "It guesses from how the motors feel", "correct": false, "misconception": "thinks-robot-guesses" },
+        { "text": "The flashlight tells it what to do directly", "correct": false, "misconception": "confuses-actuator-with-sensor" }
+      ],
+      "taughtLine": "Yes — a sensor is how a robot asks the world a question, and readings are the answers.",
+      "retryLine": "Not quite — motors and lights are OUTPUTS. Sensors are the inputs: parts that turn the world into numbers."
+    }
+  ]
+}

@@ -95,9 +95,9 @@ export function runQuestTests(ok) {
   {
     const arcs = {};
     for (const q of CAMPAIGN) arcs[q.arc] = (arcs[q.arc] ?? 0) + 1;
-    ok('arc sizes: 20 earl + 4×5 companions + 1 finale + 9 chapter + 12 side + 1 yard',
+    ok('arc sizes: 20 earl + 4×5 companions + 1 finale + 9 chapter + 14 side + 1 yard',
        JSON.stringify(arcs) === JSON.stringify(ARC_SIZES), JSON.stringify(arcs));
-    ok('campaign is 63 quests', CAMPAIGN.length === 63, String(CAMPAIGN.length));
+    ok('campaign is 65 quests', CAMPAIGN.length === 65, String(CAMPAIGN.length));
 
     const ids = CAMPAIGN.map(q => q.id);
     ok('quest ids unique', new Set(ids).size === ids.length);

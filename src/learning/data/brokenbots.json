@@ -1,0 +1,55 @@
+{
+  "scenarios": [
+    {
+      "id": "left-forever",
+      "name": "The Bot That Turns Left Forever",
+      "symptom": "The bot spins left in an open space. No obstacles, no walls—just spinning. It never stops spinning left.",
+      "earlLine": "I've seen this one before. The bot sees nothing and decides nothing. Start by asking: what IS the ultrasonic sensor reading right now? Hover your hand. Watch the numbers. That's where the story starts.",
+      "hypotheses": [
+        {"text": "The sonar comparison is inverted — it thinks 'far' means 'obstacle,' so it turns left away from open space.", "correct": true},
+        {"text": "The left motor is broken and won't respond to commands to go straight.", "correct": false},
+        {"text": "The sensor sees ghosts — it's reading random numbers instead of real distances.", "correct": false}
+      ],
+      "hintLadder": [
+        "Look at the code: what's the if-statement ASKING the sensor? Is it checking 'distance LESS than threshold' or 'distance GREATER than threshold'? One of those is backwards.",
+        "The bot's doing the opposite of what you want, which means the logic is flipped. Flip the comparison—change < to > or > to <. Run it again. Do it in the open space first."
+      ],
+      "earlNod": "There. That's debugging. The bot wasn't broken. The decision was backwards. Flip the comparison and it finds the wall like it's supposed to. That's engineering—the thing works PERFECTLY at being wrong until you un-wrong it.",
+      "earlNudge": "Not quite. Let me ask it different: the bot's here, far from any wall. The ultrasonic reads 300 (far away). Your code says 'if distance < 100, turn left.' So… should it turn left or not?"
+    },
+    {
+      "id": "never-stops",
+      "name": "The Bot That Never Parks",
+      "symptom": "The bot drives toward a wall, gets close, but keeps driving into it. It never stops. It just slowly pushes against the wall, trying to go through it.",
+      "earlLine": "Stubbornness in code form. This one's missing a stop condition. Ask the bot: what's supposed to tell you to STOP moving? Right now, nothing is. The loop just runs forever, pushing.",
+      "hypotheses": [
+        {"text": "There's no 'break' or 'exit' statement. The loop runs forever, telling the motor 'keep going' even after it hits the wall.", "correct": true},
+        {"text": "The motor is stuck and won't stop no matter what the code says.", "correct": false},
+        {"text": "The wall is magnetic and pulls the bot in even after the program stops.", "correct": false}
+      ],
+      "hintLadder": [
+        "The bot has a goal: drive until the wall is close. What happens when the wall IS close? Is there a command to STOP? Look at your loop — when does it END? Does it have an exit condition?",
+        "You need an 'until' or 'if-then-break' — something that says: when distance gets close enough, STOP. Otherwise the loop will run forever, and 'forever' doesn't care about walls."
+      ],
+      "earlNod": "Right. You wrote 'keep going' but never wrote 'stop here.' The bot was doing exactly what you told it to do—infinitely. Add the stop condition. 'Until distance < 20, then park.' The bot stops because the code TELLS it to.",
+      "earlNudge": "Close. But: if the loop runs forever with no exit, what's supposed to END it? What message tells the motors 'stop'? There's nothing in the code that says that, is there?"
+    },
+    {
+      "id": "wrong-sensor",
+      "name": "The Light Runner With a Blind Spot",
+      "symptom": "The bot's supposed to follow light (flashlight), but it ignores it and crashes into obstacles instead. It's like the flashlight isn't there at all. But when you press the bot against a wall, it suddenly 'wakes up' and moves.",
+      "earlLine": "Wrong sensor on the job. This one's checking the bump sensor when it should be checking the light sensor. The bot's waiting for a WALL to tell it what to do. You're shining a light. Those are different conversations.",
+      "hypotheses": [
+        {"text": "The code is reading the bump/collision sensor instead of the light sensor. The bot responds to walls, not light, because it's listening to the wrong input.", "correct": true},
+        {"text": "The light sensor is broken and can't see the flashlight.", "correct": false},
+        {"text": "The flashlight is too dim for the sensor to read.", "correct": false}
+      ],
+      "hintLadder": [
+        "Look at the sensor reads in your program: which sensor is it ACTUALLY checking? 'if bump == true' or 'if light > 500'? You want light-following, but which sensor is the code asking?",
+        "The bot responds when you touch the wall—that's the bump sensor working. But the light sensor is reading too. The code is just asking the WRONG sensor. Change which sensor the 'if' statement reads."
+      ],
+      "earlNod": "There. You were trying to have a conversation with the light sensor but the code was listening to the bump sensor instead. Different wires, different messages. Point the code at the RIGHT sensor and it hears the flashlight.",
+      "earlNudge": "Not quite. Here's the thing: the bot HAS the light sensor. It works. The code HAS a light-reading line. But the decision-making part—the 'if' that decides what to do—is checking BUMP, not LIGHT. What does the 'if' statement actually read?"
+    }
+  ]
+}

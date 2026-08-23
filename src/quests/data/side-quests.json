@@ -167,6 +167,36 @@
       "prerequisites": {"quests": ["rivet-side-2"], "flags": [], "companionTier": {"rivet": "friend"}},
       "rewards": {"loot": [{"item": "crystal_fragment", "qty": 5}, {"item": "battery_pack", "qty": 2}], "xp": 45, "bond": {"rivet": 15}, "flags": ["rivet_opened"]},
       "teaching": {"concept": "The other redundancy — parts you keep for company", "kidPhrase": "Redundancy is keeping a second of something in case the first one fails. But there's another kind: parts you keep not because the system needs them, but because the system is better with them in it. Engineers call that company. Fine — everybody calls that company.", "memory": "Two slow laps and the tower chord, with Rivet at my shoulder carrying a flashlight it didn't need to carry. Not for the holding. For the company. That's the whole math. — with Rivet"}
+    },
+    {
+      "id": "rivet-debug-clinic",
+      "arc": "side",
+      "title": "The Bot That Turns Left Forever",
+      "brief": "Okay, so. Earl's shed has a trade-in bot that spins left in the open space. No walls, no obstacles, just spinning. I dragged you here because I'm good at spotting broken things, but I can't fix BRAINS. You can. Read what the bot is doing — actually watch it, don't guess — then change ONE thing to make it stop. Earl will nod. Barely. Come on.",
+      "affinity": "rivet",
+      "objectives": [
+        {"type": "RUN_PROGRAM", "count": 2, "label": "Run the bot in open space twice, watch it spin"},
+        {"type": "EVENT", "event": "program_edited", "count": 1, "label": "Edit the code and run it again"},
+        {"type": "EXPERIMENT", "hypothesis": "the comparison is inverted", "runs": 1, "label": "Test: flip the < or > and watch it work"}
+      ],
+      "prerequisites": {"quests": ["rivet-5"], "flags": [], "companionTier": {"rivet": "friend"}},
+      "rewards": {"loot": [{"item": "repair_kit", "qty": 1}, {"item": "copper_wire", "qty": 2}], "xp": 35, "bond": {"rivet": 10}, "flags": []},
+      "teaching": {"concept": "Debugging — symptoms to causes: read behavior, form a hypothesis, change ONE thing", "kidPhrase": "A bot acting wrong is telling you a story — look at what it's DOING first. Spinning left forever in open space? That's not random. That's a decision being made wrong. Read the symptom, form a guess, change one tile, run it again. Hypothesis-first debugging beats guessing every time.", "memory": "Rivet dragged me to Earl's shed where a bot was having an existential crisis, spinning forever. We watched it twice, figured out the sonar comparison was backwards, flipped it, ran it once, and the bot found a wall like it was always supposed to. Debugging is reading, really reading. — with Rivet"}
+    },
+    {
+      "id": "bolt-write-shorter",
+      "arc": "side",
+      "title": "Same Lap, Fewer Tiles",
+      "brief": "Your line-follower works — it runs clean laps, no drama. Now prove you understand it. Same lap time, same smooth run, but less code. Fewer tiles. You're not making it faster. You're making it smaller. Three runs, three changes, hypothesis: loops and subroutines compress behavior without breaking it. Call it optimization. I call it elegance. Show me the elegance.",
+      "affinity": "bolt",
+      "objectives": [
+        {"type": "RUN_PROGRAM", "count": 3, "label": "Run 3 optimized versions of the line-follower"},
+        {"type": "EXPERIMENT", "hypothesis": "same lap time with fewer tiles using loops or subroutines", "runs": 3, "label": "Run 3 experiments: test each optimization, time them"},
+        {"type": "STAT", "stat": "tileOptimized", "count": 1, "label": "Track that you optimized the tile count"}
+      ],
+      "prerequisites": {"quests": ["bolt-5"], "flags": [], "companionTier": {"bolt": "friend"}},
+      "rewards": {"loot": [{"item": "crystal_fragment", "qty": 4}, {"item": "battery_pack", "qty": 1}], "xp": 30, "bond": {"bolt": 8}, "flags": []},
+      "teaching": {"concept": "Optimization — same behavior, less code: loops and subroutines as compression", "kidPhrase": "Optimization isn't making things faster—it's doing the same job with fewer moving parts. Loops that replace repeated tiles, subroutines that get called ten times instead of written ten times—that's compression. The bot runs the same lap in the same time, but the code is cleaner, smarter, and ready for the next thing.", "memory": "Bolt watched me compress the line-follower from forty tiles to sixteen using loops and one subroutine. 'Economy,' it said, which was as close to praise as Bolt gets. Lap times matched. Code shrank. Win. — with Bolt"}
     }
   ]
 }
