@@ -90,13 +90,14 @@ export function runQuestTests(ok) {
        !vSize.ok && vSize.errors.some(e => e.includes('arc "earl" has 19 quests, expected 20')));
   }
 
-  // ══ 2. Campaign structure: the 41-quest worldbible shape ═════════════════
+  // ══ 2. Campaign structure: the 63-quest worldbible shape ═════════════════
   console.log('\nQuests · campaign structure');
   {
     const arcs = {};
     for (const q of CAMPAIGN) arcs[q.arc] = (arcs[q.arc] ?? 0) + 1;
-    ok('arc sizes 20 earl + 5+5+5+5 companions + 1 finale',
+    ok('arc sizes: 20 earl + 4×5 companions + 1 finale + 9 chapter + 12 side + 1 yard',
        JSON.stringify(arcs) === JSON.stringify(ARC_SIZES), JSON.stringify(arcs));
+    ok('campaign is 63 quests', CAMPAIGN.length === 63, String(CAMPAIGN.length));
 
     const ids = CAMPAIGN.map(q => q.id);
     ok('quest ids unique', new Set(ids).size === ids.length);
@@ -116,8 +117,11 @@ export function runQuestTests(ok) {
     ok('finale has NO quest prerequisites (engine gates it)',
        (byId.get(FINALE_ID).prerequisites.quests ?? []).length === 0);
 
-    ok('companion arc affinity matches its arc',
-       CAMPAIGN.every(q => q.arc === 'earl' || q.arc === 'finale' || q.affinity === q.arc));
+    ok('arc affinity matches (side quests carry their persona; chapter/yard carry their own arc)',
+       CAMPAIGN.every(q =>
+         q.arc === 'side' ? ['bolt', 'magma', 'juno', 'rivet'].includes(q.affinity)
+         : q.arc === 'earl' || q.arc === 'finale' ? true
+         : q.affinity === q.arc));
 
     const badLoot = [];
     for (const q of CAMPAIGN)
@@ -368,5 +372,72 @@ export function runQuestTests(ok) {
     // earl-12: full bill of materials + the G-key path (hold item, then use)
     ok('earl-12 brief carries the full bill of materials',
        /iron scrap/.test(q('earl-12').brief) && /hold/i.test(q('earl-12').brief));
+  }
+
+  // ══ 9. The depth cut: chapter B-sides, friend-gated sides, the yard hook ═
+  console.log('\nQuests · depth arcs (ch7–9, sides, second-arc hook)');
+  {
+    const avail = (t, id) => t.available().some(x => x.id === id);
+
+    // chapter quests: Earl's, no companion gate — surface when the chapter's
+    // opener carrier completes (B-side doctrine: available, never blocking)
+    {
+      const t = mkTracker();
+      ok('ch7-1 hidden before the ch7 opener (earl-8)', !avail(t, 'ch7-1'));
+      complete(t, 'earl-8');
+      ok('ch7-1 surfaces once earl-8 is walked — no companion needed', avail(t, 'ch7-1'));
+      ok('ch7-2 chains behind ch7-1', !avail(t, 'ch7-2'));
+      complete(t, 'ch7-1');
+      ok('ch7-2 follows the chain', avail(t, 'ch7-2'));
+    }
+    // ch8 rides juno-2, ch9 rides earl-12 — same pattern, different openers
+    {
+      const t = mkTracker();
+      complete(t, ['juno-2', 'ch8-1', 'ch8-2']);
+      ok('ch8 arc chains off juno-2 (walked beats free the next; ch9 stays shut)',
+         avail(t, 'ch8-3') && !avail(t, 'ch9-1'));
+    }
+
+    // side quests: earned at friend tier only (tier 3 of 3) — fail-soft hidden
+    for (const p of ['bolt', 'magma', 'juno', 'rivet']) {
+      const t0 = mkTracker({ tiers: { [p]: 'stranger' } });
+      const t1 = mkTracker({ tiers: { [p]: 'coworker' } });
+      ok(`${p}-side-1 hidden below friend (fail-soft)`,
+         !avail(t0, `${p}-side-1`) && !avail(t1, `${p}-side-1`));
+      const t2 = mkTracker({ tiers: { [p]: 'friend' } });
+      complete(t2, `${p}-5`);   // the persona's own arc, walked
+      ok(`${p}-side-1 surfaces at friend, after the arc`, avail(t2, `${p}-side-1`));
+      ok(`${p}-side-2 chains behind side-1`, !avail(t2, `${p}-side-2`));
+      complete(t2, `${p}-side-1`);
+      ok(`${p}-side-2 follows`, avail(t2, `${p}-side-2`));
+    }
+    // beat 3 cracks the persona open — the flag lands with the confession
+    {
+      const rivet3 = byId.get('rivet-side-3');
+      ok('beat-3 quests grant the <persona>_opened flag',
+         ['bolt', 'magma', 'juno', 'rivet'].every(p =>
+           (byId.get(`${p}-side-3`).rewards?.flags ?? []).includes(`${p}_opened`)));
+    }
+
+    // the second-arc hook: yard-1 appears exactly when ch9 is complete
+    {
+      const t = mkTracker();
+      ok('yard-1 hidden before ch9 carriers', !avail(t, 'yard-1'));
+      complete(t, 'earl-12');
+      ok('yard-1 still hidden after one ch9 carrier', !avail(t, 'yard-1'));
+      complete(t, 'bolt-3');
+      ok('yard-1 surfaces once ch9 is walked (both carriers)', avail(t, 'yard-1'));
+      ok('yard-1 grants the yard_knows_you flag',
+         (byId.get('yard-1').rewards?.flags ?? []).includes('yard_knows_you'));
+    }
+
+    // the hook never touches the finale gate or the arc math
+    {
+      const t = mkTracker();
+      complete(t, ['earl-12', 'bolt-3', 'yard-1',
+        'ch7-1', 'ch7-2', 'ch7-3', 'ch8-1', 'ch8-2', 'ch8-3', 'ch9-1', 'ch9-2', 'ch9-3',
+        'bolt-side-1', 'bolt-side-2', 'bolt-side-3']);
+      ok('depth arcs never count toward the finale arc gate', t.completedArcs().length === 0);
+    }
   }
 }

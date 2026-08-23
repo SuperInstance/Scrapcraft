@@ -28,13 +28,16 @@ src/quests/
                    migrates legacy Earl-chain saves.
   LogbookPanel.js  the journal UI + the quest-log HUD widget (press **L**).
                    Self-contained DOM (the field-notes pattern).
-  data/            THE CAMPAIGN — 41 quests as JSON. Nothing executable.
+  data/            THE CAMPAIGN — 63 quests as JSON. Nothing executable.
 ```
 
 ## The campaign
 
 - **earl-chain.json** — the original 20-quest chain, converted 1:1 (same checks, same loot; steps became typed objectives).
 - **bolt-arc.json / magma-arc.json / juno-arc.json / rivet-arc.json** — four companion arcs, 5 quests each. **Same events, different logs:** a Bolt-run player's tracker fills with lap-technique quests teaching PWM and control; a Magma-run fills with build quests teaching circuits. Arc quests unlock when you've met that companion (auto-prerequisite) and chain within the arc.
+- **chapter-quests.json** — **the lived chapters (depth cut)**: nine Earl-voiced B-sides carrying the worldbible beats no carrier quest owns — ch7's QA-Sticker #7 header ("The Header", "Same Brain, Two Bodies", "Friendly Research"), ch8's plaque pilgrimage ("The Fourteen Letters", "Ask Spark Why Someday", "Wrecks Worth Fixing"), ch9's candlelight watch ("Stand the Watch", "The Ledger Rules", "Precise and Quiet"). Arc `chapter`; they surface when their chapter's opener carrier completes and never block the spine.
+- **side-quests.json** — **companion side-quests**: one 3-beat mini-arc per persona (guarded reveal → the fight visible → cracked open), drawn from the roundness banks' want-vs-flaw DNA and gated on **friend tier** (tier 3 of 3 — schema-enforced). Beat 3 grants the `<persona>_opened` flag. Arc `side`; affinity is the persona.
+- **yard-arc.json** — **the second-arc hook**: `yard-1 "The Yard Knows Your Name"` fires when ch9's carriers are both walked — the soft post-ch9 arc-starter (Mo the evening pacer, the leaderboard's second page, the forty-third verse) that sets up post-game/NG+ without touching the finale or Earl's Back Room economy.
 - **finale.json** — **The Midnight Race** (worldbible payoff: the county letter gets its answer, Earl's hands off the gate). Gated on completing **any two arcs** — enforced by the engine (`FINALE_ARC_GATE`), not by quest prerequisites.
 - **spine.json** — **THE SPINE**: the worldbible campaign's twelve chapters as a chapter map over the campaign above — each chapter names its band, its 2–4 carrier quests (references, never duplicates), the four companions' pull-vector lines, and Earl's opening line. Validated by `validateSpine` (12 chapters, acts per the bible headers 4/6/2, monotonic unlock bands, quest-reference integrity). See **docs/SPINE.md**.
 
@@ -69,6 +72,11 @@ Briefs may reference "today's contract"; the HUD/logbook reads `game.dailyContra
 ## Tests
 
 `src/quests/__tests__/quest-tests.mjs` — wired into the maker harness
-(`npm test`): schema validation of all 41 quests, prerequisite acyclicity, arc
-completeness, finale gating (requires 2 arcs), tracker event-mapping, logbook
-ordering, legacy-save migration.
+(`npm test`): schema validation of all 63 quests, prerequisite acyclicity, arc
+completeness, finale gating (requires 2 arcs — the depth arcs never count),
+friend-tier gating of side-quests, the yard-1 hook timing, tracker
+event-mapping, logbook ordering, legacy-save migration.
+
+Depth-arc invariants (tested): `chapter`/`side`/`yard` pay no Prestige marks
+(Back Room stays 6-max), never count toward `completedArcs()`, and side quests
+hide below friend tier — fail-soft, invisible until earned.

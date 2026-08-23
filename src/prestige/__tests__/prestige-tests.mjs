@@ -127,10 +127,12 @@ export function runPrestigeTests(ok) {
     const f2 = p.onQuestCompleted(finaleQuest, fakeTracker([...doneIds, 'finale-midnight-race']));
     ok('finale award is once-ever', f2.length === 0);
 
-    // ARC_IDS mirrors schema ARC_SIZES — assert the mirror, not the memory
-    const arcCountInSchema = Object.keys(ARC_SIZES).filter(a => a !== 'earl' && a !== 'finale').length;
-    ok('ARC_IDS mirrors schema ARC_SIZES companion arcs',
-      ARC_IDS.length === arcCountInSchema);
+    // ARC_IDS mirrors the schema's COMPANION arcs — and the depth arcs
+    // (chapter/side/yard) deliberately pay no marks, keeping 6 max, forever
+    const companionArcs = Object.keys(ARC_SIZES).filter(a => ['bolt', 'magma', 'juno', 'rivet'].includes(a));
+    ok('ARC_IDS mirrors schema companion arcs; depth arcs pay no marks',
+      JSON.stringify([...ARC_IDS].sort()) === JSON.stringify([...companionArcs].sort())
+      && !ARC_IDS.includes('chapter') && !ARC_IDS.includes('side') && !ARC_IDS.includes('yard'));
 
     // total economy: arcs × 1 + finale × 2 = 6, forever finite
     const maxEarnable = ARC_IDS.length * MARK_AWARDS.arc + MARK_AWARDS.finale;
@@ -141,6 +143,18 @@ export function runPrestigeTests(ok) {
     const earlAll = CAMPAIGN.filter(q => q.arc === 'earl').map(q => q.id);
     const eAwards = p.onQuestCompleted(CAMPAIGN.find(q => q.arc === 'earl'), fakeTracker(earlAll));
     ok("Earl's own chain pays no marks (companions are the prestige)", eAwards.length === 0);
+
+    // the depth cut (chapter B-sides, side-quests, the yard hook) pays
+    // NOTHING — Earl's Back Room economy stays exactly 6 marks, forever
+    const pDepth = new PrestigeSystem(null, { storage: new MemStore() });
+    const depthQuests = CAMPAIGN.filter(q => ['chapter', 'side', 'yard'].includes(q.arc));
+    const depthAll = depthQuests.map(q => q.id);
+    let depthPaid = 0;
+    for (const qd of depthQuests) {
+      depthPaid += pDepth.onQuestCompleted(qd, fakeTracker(depthAll)).length;
+    }
+    ok('depth arcs (chapter/side/yard) pay zero marks — Back Room unbroken',
+       depthPaid === 0 && pDepth.marks === 0, `paid ${depthPaid}`);
   }
 
   // ── The board: catalog validity + purchasing ─────────────────────────────
@@ -260,8 +274,8 @@ export function runPrestigeTests(ok) {
       ch11.title === 'The Back Room');
 
     // Earl copy present and non-empty everywhere
-    ok('Earl board lines exist (3), kid-warm, no urgency words',
-      EARL_BOARD_LINES.length === 3 &&
+    ok('Earl board lines exist (4), kid-warm, no urgency words',
+      EARL_BOARD_LINES.length === 4 &&
       !EARL_BOARD_LINES.join(' ').match(/hurry|now or never|last chance|don't miss/i));
     ok('first-mark and cant-afford Earl lines exist',
       !!EARL_FIRST_MARK_LINE && !!EARL_CANT_AFFORD_LINE &&

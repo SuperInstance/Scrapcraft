@@ -18,6 +18,8 @@
  * (the scoreboard: what's active now, story-pulled by companion arc).
  */
 
+import { WAKE_EVENTS } from '../story/Wakes.js';
+
 const ARC_BADGE = {
   earl:  { icon: '☕', label: 'Earl’s chain' },
   bolt:  { icon: '⚡', label: 'Bolt — racing' },
@@ -25,6 +27,9 @@ const ARC_BADGE = {
   juno:  { icon: '✨', label: 'Juno — exploration' },
   rivet: { icon: '🔩', label: 'Rivet — the yard' },
   finale:{ icon: '🏁', label: 'The Midnight Race' },
+  chapter:{ icon: '📗', label: "The yard’s chapters" },
+  side:  { icon: '🤝', label: 'Side-quests' },
+  yard:  { icon: '🌾', label: 'The second page' },
 };
 
 const ACT_NAMES = { 1: 'ACT ONE', 2: 'ACT TWO', 3: 'ACT THREE' };
@@ -128,6 +133,49 @@ export function renderChapterCeremony(game, chapter) {
       ${line ? `<div style="margin:12px auto 0;max-width:40ch;font-size:12px;opacity:.8;color:#c9e8b0">
         ${icon} ${line}
       </div>` : ''}
+      <div style="margin-top:18px;font-size:10px;opacity:.45">click to return to the yard</div>
+    </div>`;
+  const dismiss = () => card.remove();
+  card.addEventListener('click', dismiss);
+  document.body.appendChild(card);
+  game?.audio?.questComplete?.();
+  setTimeout(dismiss, 9000);   // the yard never holds a kid hostage
+  return true;
+}
+
+/** The chapter-completion ceremony: title card when a chapter is fully walked.
+ *  Shows the chapter's closingLine (or an Earl default), and any associated
+ *  wake event. Mirrors renderChapterCeremony styling. No-ops safely headless. */
+export function renderChapterCompleteCeremony(game, chapter) {
+  if (typeof document === 'undefined' || !chapter) return false;
+  document.getElementById('spine-ceremony-done')?.remove();
+  document.exitPointerLock?.();
+
+  const closingLine = chapter.closingLine || 'Another chapter walked. The yard keeps it — kid like you, it keeps extra.';
+  let bodyHTML = `<p style="margin:0">☕ “${closingLine}”</p>`;
+
+  const wake = WAKE_EVENTS.find(w => w.chapter === chapter.n);
+  if (wake) {
+    bodyHTML += `<p style="margin:8px 0 0">👁 Something woke — <b>${wake.name}</b>.</p>`;
+  }
+
+  const card = document.createElement('div');
+  card.id = 'spine-ceremony-done';
+  card.style.cssText = `
+    position: fixed; inset: 0; z-index: 180; display: flex;
+    align-items: center; justify-content: center;
+    background: rgba(8, 6, 3, 0.55); font-family: 'Courier New', monospace;
+    cursor: pointer;`;
+  card.innerHTML = `
+    <div style="
+        width: min(560px, 90vw); text-align: center;
+        background: #17120a; border: 2px solid #6b5a33; border-radius: 10px;
+        color: #e8dcc0; padding: 26px 30px; font-size: 14px; line-height: 1.6;">
+      <div style="letter-spacing:3px;font-size:11px;opacity:.6;margin-top:4px">· chapter ${chapter.n ?? '?'} · closed ·</div>
+      <h2 style="margin:8px 0 2px;font-size:22px;letter-spacing:2px;color:#ffd97a">${chapter.title}</h2>
+      <div style="margin:14px auto 0;max-width:44ch;font-style:italic;color:#e8dcc0">
+        ${bodyHTML}
+      </div>
       <div style="margin-top:18px;font-size:10px;opacity:.45">click to return to the yard</div>
     </div>`;
   const dismiss = () => card.remove();

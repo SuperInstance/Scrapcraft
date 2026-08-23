@@ -75,6 +75,38 @@ export function runSpineLiveTests(ok) {
     const n = s3.markAllStartedAsOpened();
     ok('migration marks every started chapter (no catch-up wall)', n >= 3, `n=${n}`);
     ok('after migration nothing is due', s3.dueCeremonies().length === 0);
+
+    // completion ceremonies: like open ceremonies but for completed chapters
+    const t4 = mkTracker();
+    const s4 = new SpineState({ spine: SPINE, tracker: t4, storage: null });
+    complete(t4, SPINE[0].quests);
+    const due = s4.dueCompletedCeremonies();
+    ok('completed chapter has a due completion ceremony', due.some(c => c.id === 'ch01'), `got ${due.map(c => c.id).join(',')}`);
+    s4.markCompleted('ch01');
+    ok('marked → not due again', !s4.dueCompletedCeremonies().some(c => c.id === 'ch01'));
+    // a merely STARTED chapter owes no completion ceremony (open ≠ closed)
+    const t4b = mkTracker();
+    const s4b = new SpineState({ spine: SPINE, tracker: t4b, storage: null });
+    complete(t4b, SPINE[0].quests[0]);
+    ok('started-but-not-complete chapter owes no closing ceremony', s4b.dueCompletedCeremonies().length === 0);
+
+    // markAllCompletedAsCeremonied for returning players (no catch-up wall)
+    const t5 = mkTracker();
+    complete(t5, [SPINE[0].quests, SPINE[1].quests, SPINE[2].quests].flat());
+    const s5 = new SpineState({ spine: SPINE, tracker: t5, storage: null });
+    const count = s5.markAllCompletedAsCeremonied();
+    ok('migration marks every completed chapter', count >= 3, `count=${count}`);
+    ok('after migration no ceremonies due', s5.dueCompletedCeremonies().length === 0);
+
+    // completion ceremony persistence
+    const store2 = { m: new Map(), getItem(k){return this.m.has(k)?this.m.get(k):null;}, setItem(k,v){this.m.set(k,String(v));} };
+    const t6 = mkTracker();
+    complete(t6, SPINE[0].quests);
+    const s6 = new SpineState({ spine: SPINE, tracker: t6, storage: store2 });
+    s6.markCompleted('ch01');
+    const s6b = new SpineState({ spine: SPINE, tracker: t6, storage: store2 });
+    s6b.load();
+    ok('completed ceremony gate survives reload', !s6b.dueCompletedCeremonies().some(c => c.id === 'ch01'));
   }
 
   // ══ 3. Soft bands: nudge once, never block ══════════════════════════════

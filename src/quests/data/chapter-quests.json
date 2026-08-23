@@ -1,0 +1,129 @@
+{
+  "quests": [
+    {
+      "id": "ch7-1",
+      "arc": "chapter",
+      "title": "The Header",
+      "brief": "That diagram you exported? It's got a header — top of the file, where the boring-but-important stuff lives. Most kids scroll right past it. Not you. Pull up a build receipt, read the header top to bottom, and see who signed it. Then ask Spark about the author — QA-Sticker #7. Watch Spark's face when you say the name. Count the seconds.",
+      "affinity": "chapter",
+      "objectives": [
+        {"type": "RECEIPT", "count": 1, "label": "Read a build receipt top to bottom — header included"},
+        {"type": "SPARK_ASK", "topic": "author", "label": "Ask Spark who wrote the export template"}
+      ],
+      "prerequisites": {"quests": ["earl-8"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "circuit_board", "qty": 2}, {"item": "battery_pack", "qty": 1}], "xp": 30, "bond": {}, "flags": []},
+      "teaching": {"concept": "Attribution and provenance — every program has an author", "kidPhrase": "Every program has an author — someone who made it on purpose. The header of a file is where they sign their work, like a plaque on a wreck. Reading it tells you who to thank, who to ask, and whose bugs you inherited. Always read the header.", "memory": "Found the credit in the header: QA-Sticker #7. Spark read it over my shoulder and went quiet for exactly one second too long. I counted. — with Earl"}
+    },
+    {
+      "id": "ch7-2",
+      "arc": "chapter",
+      "title": "Same Brain, Two Bodies",
+      "brief": "One brain, two bodies. Run your tile program three times on the game bot — then flash that same brain to a real board. Same tiles, same code, different body. The brain doesn't care what it's riding in. That's the whole trick, kid, and it isn't a trick.",
+      "affinity": "chapter",
+      "objectives": [
+        {"type": "RUN_PROGRAM", "count": 3, "label": "Run your program 3 times on the game bot"},
+        {"type": "FLASH_BOARD", "count": 1, "label": "Flash the same program to a real board"}
+      ],
+      "prerequisites": {"quests": ["ch7-1"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "battery_pack", "qty": 2}], "xp": 32, "bond": {}, "flags": []},
+      "teaching": {"concept": "Hardware abstraction — one brain, many bodies", "kidPhrase": "A good program doesn't know what body it's running in. Game bot, Wokwi simulator, a real chip on your desk — same brain, different bodies. Engineers call it hardware abstraction, and it's why your code can move house without starting over.", "memory": "Three runs in the game, one flash on real silicon, one brain the whole way through. Game robot, real robot, same program. Earl wasn't kidding. He rarely is. — with Earl"}
+    },
+    {
+      "id": "ch7-3",
+      "arc": "chapter",
+      "title": "Friendly Research",
+      "brief": "June wants a copy of your export. Her exact words: 'for… research. Friendly research.' I don't negotiate exports, so that's your problem now. Give her something worth copying — three clean laps on the oval and one tidy build receipt. A rival who studies your work and makes you faster for it? Keep that kind. They're rare.",
+      "affinity": "chapter",
+      "objectives": [
+        {"type": "LAP", "count": 3, "label": "Complete 3 clean laps worth copying"},
+        {"type": "RECEIPT", "count": 1, "label": "Pull one tidy build receipt for June"}
+      ],
+      "prerequisites": {"quests": ["ch7-2"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "copper_wire", "qty": 4}, {"item": "ir_module", "qty": 2}], "xp": 34, "bond": {}, "flags": []},
+      "teaching": {"concept": "Sharing work — the open-source spirit", "kidPhrase": "Sharing your build isn't giving away your speed — it's raising everybody's. When a rival studies your export, you both get faster: they find your good ideas, and their questions find your soft spots. That's the open-source spirit. Friendly rivalry is just peer review with chalk.", "memory": "Handed June the export like a baseball card. 'Friendly research,' she said. Next morning she had a note about my corner two. I hate how right she was. — with Earl"}
+    },
+    {
+      "id": "ch8-1",
+      "arc": "chapter",
+      "title": "The Fourteen Letters",
+      "brief": "The wrecks out in the yard aren't wrecks, kid. They're mail. Brightworks bolted a plaque to every crash — brownout, stall current, the whole curriculum of almost — and every one of those plaques is a letter to whoever's next. You're next. Read eight of them. Take your time. Mail this old keeps.",
+      "affinity": "chapter",
+      "objectives": [
+        {"type": "PLAQUE_READ", "count": 8, "label": "Read 8 landmark plaques (open the mail)"}
+      ],
+      "prerequisites": {"quests": ["juno-2"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "crystal_fragment", "qty": 3}], "xp": 34, "bond": {}, "flags": []},
+      "teaching": {"concept": "Failure analysis — post-mortems as mail from the future", "kidPhrase": "A post-mortem is mail from the future. Somebody crashed so you wouldn't have to, and they wrote down why and bolted it to the wreck. Reading their plaque means you skip their tuition. Failure, analyzed, is the cheapest education in engineering.", "memory": "Eight plaques, eight letters from robots I never met. Zappa's flyback diode. Fizz's beautiful cheap fuse. Every one of them wrote to me. — with Earl"}
+    },
+    {
+      "id": "ch8-2",
+      "arc": "chapter",
+      "title": "Ask Spark Why Someday",
+      "brief": "There's one plaque out there that works different. Sparky IV's. It says: 'ask Spark why someday.' So — read all ten plaques (yes, all ten; the yard keeps finding more), and then go ask Spark about Sparky. Fair warning: Spark doesn't know either. Its logs have a hole where the answer should be. Ask anyway. Holes don't get smaller by being ignored.",
+      "affinity": "chapter",
+      "objectives": [
+        {"type": "PLAQUE_READ", "count": 10, "label": "Read all 10 landmark plaques"},
+        {"type": "SPARK_ASK", "topic": "sparky", "label": "Ask Spark about Sparky IV"}
+      ],
+      "prerequisites": {"quests": ["ch8-1"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "crystal_fragment", "qty": 4}, {"item": "glass_shard", "qty": 3}], "xp": 36, "bond": {}, "flags": []},
+      "teaching": {"concept": "Post-mortems and missing data", "kidPhrase": "Sometimes the data has a hole in it — pages missing, static where the answer should be. Engineers don't pretend the hole isn't there; they mark it, write down what's around it, and keep asking. A hole is information too: it tells you exactly where to dig.", "memory": "Sparky IV's plaque says 'ask Spark why someday.' I asked. Spark did its half-second static blink — 'log's got a hole in it, like Earl's screen door' — and changed the subject once, honestly. First time I watched not-knowing cost something. — with Earl"}
+    },
+    {
+      "id": "ch8-3",
+      "arc": "chapter",
+      "title": "Wrecks Worth Fixing",
+      "brief": "You've read the mail. Now answer some. Three repairs and two clean program runs — take something that almost worked and give it a second shift. Not every wreck gets one. The ones that taught you something? Those earned the effort. Fix forward, kid. It's how the dead robots vote.",
+      "affinity": "chapter",
+      "objectives": [
+        {"type": "REPAIR", "count": 3, "label": "Repair 3 almosts (second shift)"},
+        {"type": "RUN_PROGRAM", "count": 2, "label": "Run 2 clean verification programs"}
+      ],
+      "prerequisites": {"quests": ["ch8-2"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "repair_kit", "qty": 1}, {"item": "spring", "qty": 3}], "xp": 38, "bond": {}, "flags": []},
+      "teaching": {"concept": "Post-mortem to preventive maintenance", "kidPhrase": "A post-mortem that doesn't change your behavior is just a sad story. The point is prevention: tighten the connector the plaque warned about, fuse the line Fizz died to fuse. Reading failure is step one. Doing the maintenance it prescribes is the whole staircase.", "memory": "Three repairs, two clean runs, zero repeated mistakes from anybody's plaque. Fizz would've liked that one. Cheap fuses, expensive lessons, no reruns. — with Earl"}
+    },
+    {
+      "id": "ch9-1",
+      "arc": "chapter",
+      "title": "Stand the Watch",
+      "brief": "You've got a headlamp now. Good. Head into Circuit City after dark and find yourself a view of the oval's last corner. Stand still. Watch. Don't holler — that part's not negotiable. And ask Spark about the ghost while you're out there. It's got something to say about its dock schedule. It's been chewing on it.",
+      "affinity": "chapter",
+      "objectives": [
+        {"type": "VISIT", "biome": "band2", "label": "Reach Circuit City after dark"},
+        {"type": "SPARK_ASK", "topic": "ghost", "label": "Ask Spark about the ghost"}
+      ],
+      "prerequisites": {"quests": ["earl-12"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "battery_pack", "qty": 2}, {"item": "copper_wire", "qty": 3}], "xp": 38, "bond": {}, "flags": []},
+      "teaching": {"concept": "Evidence discipline — observe before concluding", "kidPhrase": "Good engineers observe before they conclude. Don't guess what the light is — record where it appears, how it moves, where it never goes. Evidence first, theories second, hollering never. The corner was there long before your opinion of it was.", "memory": "Stood the watch at the candlelight corner, still as a fencepost. Spark confessed it's never awake at midnight — the dock's schedule predates it, can't be edited, it's TRIED. 'Which is starting to feel like a setting,' it said. It wasn't joking. — with Earl"}
+    },
+    {
+      "id": "ch9-2",
+      "arc": "chapter",
+      "title": "The Ledger Rules",
+      "brief": "June runs the sighting ledger, and June has rules: mark it, time it, angle it. Drop three waypoint flags — three lines of sight onto that corner, three angles in the book. Then ask Spark how GPS actually works, because June will ask YOU, and 'a wizard did it' is the wrong answer.",
+      "affinity": "chapter",
+      "objectives": [
+        {"type": "EVENT", "event": "waypoint_drop", "count": 3, "label": "Drop 3 waypoint flags (three angles on the corner)"},
+        {"type": "SPARK_ASK", "topic": "gps", "label": "Ask Spark how GPS actually works"}
+      ],
+      "prerequisites": {"quests": ["ch9-1"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "waypoint_flag", "qty": 2}], "xp": 40, "bond": {}, "flags": []},
+      "teaching": {"concept": "Data logging, timestamping, and correlation", "kidPhrase": "One reading is an anecdote. Three readings with positions, angles, and timestamps are a dataset. Write down where, when, and which way you were looking, and patterns run out of places to hide. That's data logging — a ledger is a lab notebook with better gossip.", "memory": "Three flags, three angles, one ledger. June checked my timestamps and said 'acceptable,' which from June is a parade. Then she quizzed me on GPS. I had the answer. She wrote THAT down too. — with Earl"}
+    },
+    {
+      "id": "ch9-3",
+      "arc": "chapter",
+      "title": "Precise and Quiet",
+      "brief": "Last watch. One lap, under thirty seconds — and that's slow on purpose, kid. This isn't a race. It's a watch: eyes on the candlelight corner the whole way around, clean enough that you never have to look at the track. Then ask Spark about the '98 crash. Fair warning — I'm going to get precise and quiet. Notice what I do and don't say. That's data too.",
+      "affinity": "chapter",
+      "objectives": [
+        {"type": "LAP", "underSecs": 30, "label": "Run one deliberate watch-lap under 30 seconds"},
+        {"type": "SPARK_ASK", "topic": "sparky", "label": "Ask Spark about the '98 crash"}
+      ],
+      "prerequisites": {"quests": ["ch9-2"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "crystal_fragment", "qty": 4}, {"item": "signal_flare", "qty": 2}], "xp": 44, "bond": {}, "flags": []},
+      "teaching": {"concept": "Reading people like sensors — signal vs noise in testimony", "kidPhrase": "People are sensors too — they just read out in tone instead of numbers. When someone goes precise and quiet, that's signal, not noise: it marks the spot where the important part lives, even when the words don't. Listen for what's missing. It's the loudest channel there is.", "memory": "The slow lap took twenty-nine seconds and I never took my eyes off the corner. Then Earl on the '98 crash: short sentences, careful hands, not one word about who. The hole in his answer had a shape. I didn't have a name for it yet. — with Earl"}
+    }
+  ]
+}

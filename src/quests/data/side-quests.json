@@ -1,0 +1,172 @@
+{
+  "quests": [
+    {
+      "id": "bolt-side-1",
+      "arc": "side",
+      "title": "The Fence Test",
+      "brief": "Five laps and one ghost. That's the assignment. I'll be at the pit wall, where I always am, not leaning in. Ignore the chassis tilt if you see it. It's wind. Run the laps. Beat the ghost. I'll time both. That part's not negotiable.",
+      "affinity": "bolt",
+      "objectives": [
+        {"type": "LAP", "count": 5, "label": "Run 5 warm-up laps on the oval"},
+        {"type": "EVENT", "event": "ghost_beaten", "count": 1, "label": "Beat 1 ghost time"}
+      ],
+      "prerequisites": {"quests": ["bolt-5"], "flags": [], "companionTier": {"bolt": "friend"}},
+      "rewards": {"loot": [{"item": "motor_driver", "qty": 1}, {"item": "battery_pack", "qty": 1}], "xp": 35, "bond": {"bolt": 10}, "flags": []},
+      "teaching": {"concept": "Warm-up sets and baseline laps", "kidPhrase": "Pros don't chase their best time cold. They run warm-up laps to find the day's baseline — how the track feels RIGHT NOW — and only then start hunting. Five steady laps before one fast one isn't patience. It's method.", "memory": "Five laps while Bolt pretended not to watch, then one ghost retired. 'Ownership transferred,' it said. The chassis tilted half a degree. I saw it. I said nothing. — with Bolt"}
+    },
+    {
+      "id": "bolt-side-2",
+      "arc": "side",
+      "title": "Two Tenths of Truth",
+      "brief": "Sub-24. And you're getting there the boring way: three experiment runs testing whether steady beats fast. Same line, same braking point, three times. …Unless you should brake later at two. You shouldn't. …Data first. The fence says fast fixes everything. The fence is — look. Just run the laps. I'm timing. Out loud. Sorry in advance.",
+      "affinity": "bolt",
+      "objectives": [
+        {"type": "LAP", "underSecs": 24, "label": "Lap the oval under 24 seconds"},
+        {"type": "EXPERIMENT", "hypothesis": "steady beats fast", "runs": 3, "label": "Run 3 experiments: steady vs fast"}
+      ],
+      "prerequisites": {"quests": ["bolt-side-1"], "flags": [], "companionTier": {"bolt": "friend"}},
+      "rewards": {"loot": [{"item": "ir_module", "qty": 2}, {"item": "battery_pack", "qty": 1}], "xp": 40, "bond": {"bolt": 12}, "flags": []},
+      "teaching": {"concept": "Consistency as the delivery system for speed", "kidPhrase": "Fast that crashes is slow — June's line, and it's true. A consistent 24.0 beats a hero 22.9 followed by a wall. Test it yourself: run steady, run spikey, compare the averages. Consistency isn't the absence of speed. It's how speed gets delivered.", "memory": "Bolt argued with itself through all three runs — 'brake later' / 'don't you dare brake later' — while calling my splits. Steady won by two tenths. It said 'told you' to itself. — with Bolt"}
+    },
+    {
+      "id": "bolt-side-3",
+      "arc": "side",
+      "title": "The Lean-In",
+      "brief": "Twenty-three. That's June territory — don't tell her I said so. One fast lap, then bring the bot in for a pit stop over your own build, my hands on the wrench, this once. I've got something to say and I say it better holding a tool. Twenty years I leaned AWAY from that wall so nobody saw me flinch at the fast parts. Yours — I lean in now. That's the leak. I quit patching it.",
+      "affinity": "bolt",
+      "objectives": [
+        {"type": "LAP", "underSecs": 23, "label": "Lap the oval under 23 seconds"},
+        {"type": "REPAIR", "count": 1, "label": "One pit stop over your own bot"}
+      ],
+      "prerequisites": {"quests": ["bolt-side-2"], "flags": [], "companionTier": {"bolt": "friend"}},
+      "rewards": {"loot": [{"item": "crystal_fragment", "qty": 6}, {"item": "motor_driver", "qty": 1}], "xp": 45, "bond": {"bolt": 15}, "flags": ["bolt_opened"]},
+      "teaching": {"concept": "Pit stops and present crews", "kidPhrase": "Pit stops are where races are actually won: the fastest lap on Earth still has to stop for tires someday, and a crew that leans IN — present, ready, caring — saves more time than ten horsepower. Showing up for somebody is a technical skill.", "memory": "Twenty-three flat, then a pit stop with Bolt's hands on the wrench. 'I lean in now,' it said. 'That's the leak. I quit patching it.' Best pit-wall speech I'll ever get. — with Bolt"}
+    },
+    {
+      "id": "magma-side-1",
+      "arc": "side",
+      "title": "The Box Marked Keep",
+      "brief": "Hello, small builder. Before we begin, a small thing. There is a crate in the workshop marked KEEP. I have guarded it since the shutdown. I will tell you what is inside it — soon. Not yet. First, build me a circuit board, and let me read the receipt of your build. Old habit: I like to know a thing was made well before I say important things near it.",
+      "affinity": "magma",
+      "objectives": [
+        {"type": "CRAFT", "item": "circuit_board", "label": "Craft a circuit board, snug not strained"},
+        {"type": "RECEIPT", "count": 1, "label": "Read the build receipt together"}
+      ],
+      "prerequisites": {"quests": ["magma-5"], "flags": [], "companionTier": {"magma": "friend"}},
+      "rewards": {"loot": [{"item": "copper_wire", "qty": 4}, {"item": "circuit_board", "qty": 1}], "xp": 35, "bond": {"magma": 10}, "flags": []},
+      "teaching": {"concept": "Build records and craftsmanship trails", "kidPhrase": "Every circuit board carries a record of how it was made — what parts, what joins, what tests it passed. Reading the build receipt is how you know a thing was made well. Craftsmanship leaves a paper trail. Follow it.", "memory": "Built the board slow while Magma talked around a crate marked KEEP. It did not open it. 'Soon,' it said. The board was snug. Not strained. — with Magma"}
+    },
+    {
+      "id": "magma-side-2",
+      "arc": "side",
+      "title": "Heavy Hands, Light Touch",
+      "brief": "Today you flash a real board. I will be nearby. Not over your shoulder. …I will be a little over your shoulder. My arms may twitch toward the cable. Ignore them; they are old and loyal and wrong. The rule stands, even on real silicon: one knob at a time — two experiment runs, one change each. Heavy hands can be trusted with light work, small builder. I am practicing believing that.",
+      "affinity": "magma",
+      "objectives": [
+        {"type": "FLASH_BOARD", "count": 1, "label": "Flash firmware to a real board"},
+        {"type": "EXPERIMENT", "hypothesis": "one knob at a time, even on real boards", "runs": 2, "label": "Run 2 experiments, one change each"}
+      ],
+      "prerequisites": {"quests": ["magma-side-1"], "flags": [], "companionTier": {"magma": "friend"}},
+      "rewards": {"loot": [{"item": "circuit_board", "qty": 3}], "xp": 40, "bond": {"magma": 12}, "flags": []},
+      "teaching": {"concept": "Method under stakes — discipline when it's real", "kidPhrase": "Real hardware raises the stakes, not the method: when the board is real and the smoke is real, one-knob-at-a-time gets MORE important, not less. It isn't a training wheel. It's how professionals treat things they can't afford to break.", "memory": "Flashed the board with Magma hovering two feet back, arms twitching toward the cable the whole time. It touched nothing. 'That,' it said, 'was my heaviest lift yet.' — with Magma"}
+    },
+    {
+      "id": "magma-side-3",
+      "arc": "side",
+      "title": "Set It Down",
+      "brief": "The crate marked KEEP is open now, small builder. Come. Two repairs — hammer hour, patient, logged — and one solar panel, because the precious thing I kept is a seed of light and it deserves a home that faces the sun. At the factory, everything I lifted eventually went into boxes, so I learned to set things down gently. Goodbyes, I mean. But you build things that STAY. So I am setting this one down in the sunniest place I know. It is yours. Hold it carefully, like you hold everything.",
+      "affinity": "magma",
+      "objectives": [
+        {"type": "REPAIR", "count": 2, "label": "Two patient repairs, logged in the book"},
+        {"type": "CRAFT", "item": "solar_panel", "label": "Craft a solar panel (a home facing the sun)"}
+      ],
+      "prerequisites": {"quests": ["magma-side-2"], "flags": [], "companionTier": {"magma": "friend"}},
+      "rewards": {"loot": [{"item": "solar_panel", "qty": 1}, {"item": "crystal_fragment", "qty": 4}], "xp": 45, "bond": {"magma": 15}, "flags": ["magma_opened"]},
+      "teaching": {"concept": "Letting go as re-homing — nothing ends, it gets a next home", "kidPhrase": "Knowing when to let go is an engineering skill: parts retire, projects ship, prototypes become plaques. The trick is giving each precious thing its next good home — a new chassis, a new builder, a sunny shelf — instead of a box. Nothing ends. It gets re-homed.", "memory": "Two repairs, one solar panel, and the thing from the crate marked KEEP — Magma set it down in our sunniest corner and did not cry. 'It was never smoke,' it said. 'Now you know the whole truth.' — with Magma"}
+    },
+    {
+      "id": "juno-side-1",
+      "arc": "side",
+      "title": "Forty Voices, One Shy",
+      "brief": "Point of order! Survey trip! Deep Yard, full curiosity net — AND a stop at Spark's, official topic: sensors. Unofficial topic: also sensors. …Also: one of us has a question she never gets to ask. Forty of us talk; she doesn't; that's the arithmetic. We're working on the arithmetic. Fly with us?",
+      "affinity": "juno",
+      "objectives": [
+        {"type": "SPARK_ASK", "topic": "sensor", "label": "Ask Spark about sensors"},
+        {"type": "VISIT", "biome": "band3", "label": "Survey the Deep Yard with the full net out"}
+      ],
+      "prerequisites": {"quests": ["juno-5"], "flags": [], "companionTier": {"juno": "friend"}},
+      "rewards": {"loot": [{"item": "ultrasonic_module", "qty": 1}, {"item": "crystal_fragment", "qty": 3}], "xp": 35, "bond": {"juno": 10}, "flags": []},
+      "teaching": {"concept": "Swarm sensing and hearing the quiet channel", "kidPhrase": "A sensor swarm's strength is coverage — forty viewpoints at once. But every swarm has a quiet sensor whose reading gets shouted down. Good data collectors lower the volume on purpose sometimes, so the quiet signals get through. That's filtering, with manners.", "memory": "Deep Yard with the whole net out, then Spark on sensors while one small flier hung at the back, question unasked. Forty-one of them. I counted twice. — with Juno"}
+    },
+    {
+      "id": "juno-side-2",
+      "arc": "side",
+      "title": "The Volume Knob",
+      "brief": "ANNOUNCEMENT: we are going quiet. Whole survey. No commentary. We can do this. …This is us being quiet. …Okay, THAT was commentary about being quiet, which is different— point of order— no. No! Quiet means the shy one gets airtime. Hypothesis for you, three runs: 'quiet watching counts too.' Run your programs, change one thing, and only WATCH until the end. We'll be over here. Not talking. We're SO good at waiting. In formation.",
+      "affinity": "juno",
+      "objectives": [
+        {"type": "EXPERIMENT", "hypothesis": "quiet watching counts too", "runs": 3, "label": "Run 3 experiments: watch quietly to the end"},
+        {"type": "RUN_PROGRAM", "count": 2, "label": "Run 2 programs with the volume down"}
+      ],
+      "prerequisites": {"quests": ["juno-side-1"], "flags": [], "companionTier": {"juno": "friend"}},
+      "rewards": {"loot": [{"item": "ldr_module", "qty": 2}, {"item": "battery_pack", "qty": 1}], "xp": 40, "bond": {"juno": 12}, "flags": []},
+      "teaching": {"concept": "Turning sensors down to turn data up", "kidPhrase": "Fewer exclamations, more observation. Try it: run your program and say nothing — to Spark, to yourself, to nobody — until the end. Quiet watching counts. The swarm proved it three times out of three.", "memory": "Juno ran a whole survey in near-silence — forty fliers holding formation, one voice at a time. Three runs proved it: quiet watching counts. Their shyest result yet. — with Juno"}
+    },
+    {
+      "id": "juno-side-3",
+      "arc": "side",
+      "title": "The Invitation",
+      "brief": "We have a thing to ask. We've been practicing. Ready? …If we were quiet — really quiet, swarm-at-rest quiet — would you still walk with us? You don't have to answer with words. Answer with flags: drop two waypoints through the Deep Yard, with a solo route between them. There's one of us — her name is Ping. She has never flown a route alone. Invite her. By name. She's been ready for years. We've been ready for minutes. It varies.",
+      "affinity": "juno",
+      "objectives": [
+        {"type": "EVENT", "event": "waypoint_drop", "count": 2, "label": "Drop 2 waypoints to frame a solo route"},
+        {"type": "VISIT", "biome": "band3", "label": "Walk the Deep Yard with Ping's route"}
+      ],
+      "prerequisites": {"quests": ["juno-side-2"], "flags": [], "companionTier": {"juno": "friend"}},
+      "rewards": {"loot": [{"item": "waypoint_flag", "qty": 2}, {"item": "crystal_fragment", "qty": 5}], "xp": 45, "bond": {"juno": 15}, "flags": ["juno_opened"]},
+      "teaching": {"concept": "Opening a channel for the quiet node", "kidPhrase": "Every network has nodes that never transmit — not because they have nothing to say, but because the channel is always full. Opening a route for one quiet signal — naming it, inviting it, giving it a slot — is what turns a crowd into a crew.", "memory": "Two flags and a solo route between them. Ping flew it — first route of her own, low and steady — while forty fliers cheered so quietly it looked like stillness. — with Juno"}
+    },
+    {
+      "id": "rivet-side-1",
+      "arc": "side",
+      "title": "The Fourth Thing",
+      "brief": "Ok so — job for you. Two repairs and a fresh wrench, because yours has stories now and mine are all secondhand. Me? I'm good at three things: holding, spotting, counting. That's the inventory. …Need a fourth? I'll learn it by tomorrow. That's not eagerness. That's a schedule. Ignore the last part. Wrench first.",
+      "affinity": "rivet",
+      "objectives": [
+        {"type": "REPAIR", "count": 2, "label": "Repair 2 dents, logged"},
+        {"type": "CRAFT", "item": "wrench", "label": "Craft a fresh wrench"}
+      ],
+      "prerequisites": {"quests": ["rivet-5"], "flags": [], "companionTier": {"rivet": "friend"}},
+      "rewards": {"loot": [{"item": "gear_small", "qty": 3}, {"item": "spring", "qty": 2}], "xp": 35, "bond": {"rivet": 10}, "flags": []},
+      "teaching": {"concept": "Tool wear as recorded habit", "kidPhrase": "Every tool wears into its user's hand — a wrench you've used a thousand times teaches your grip things a new one can't. Tool wear is a resume: the shiny spots are your habits, recorded in steel. Read them.", "memory": "Built a second wrench while Rivet listed its three things and offered a fourth by tomorrow. The old one sat on the bench between us, shining where my grip lives. — with Rivet"}
+    },
+    {
+      "id": "rivet-side-2",
+      "arc": "side",
+      "title": "One Job, Five Volunteers",
+      "brief": "One job! You give me one job — spot the north corner through three program runs and one repair — and I will do it perfectly. And also hold your tools. And count the laps. And time the— ok that's five, I heard it too. SORRY. That was full volume. I have a volume problem, the volume has a me problem — point is: watch me get this down to ONE. Point at the corner. I'm great at pointing.",
+      "affinity": "rivet",
+      "objectives": [
+        {"type": "RUN_PROGRAM", "count": 3, "label": "Run 3 programs while Rivet holds one job"},
+        {"type": "REPAIR", "count": 1, "label": "One repair, one spotter"}
+      ],
+      "prerequisites": {"quests": ["rivet-side-1"], "flags": [], "companionTier": {"rivet": "friend"}},
+      "rewards": {"loot": [{"item": "repair_kit", "qty": 1}, {"item": "copper_wire", "qty": 3}], "xp": 40, "bond": {"rivet": 12}, "flags": []},
+      "teaching": {"concept": "Scope control — one lane done completely", "kidPhrase": "One job, done completely, beats five jobs done loudly at once. Teams — and repair drones — work best when each part owns one lane. Division of labor isn't a limit. It's how the whole machine gets built.", "memory": "Gave Rivet one job. It brought five. 'SORRY,' at full volume — then it set four of them down on purpose, the slowest, most deliberate thing I've ever watched it do. One job. Perfect corner. — with Rivet"}
+    },
+    {
+      "id": "rivet-side-3",
+      "arc": "side",
+      "title": "Not for the Holding",
+      "brief": "Two laps and a walk through Circuit City. That's it. That's the quest. …Ok, real talk while we go: I did the math. You'd build fine without me holding stuff. The math holds up. The math is also not the point. Keep me around anyway? Not for the holding. For the company. …Anyway! Laps! The towers are singing today — I counted the chord, there's a new note in it. Race you to corner two. You'll win. I'm carrying the flashlight.",
+      "affinity": "rivet",
+      "objectives": [
+        {"type": "LAP", "count": 2, "label": "Run 2 easy laps on the oval"},
+        {"type": "VISIT", "biome": "band2", "label": "Walk Circuit City and hear the towers"}
+      ],
+      "prerequisites": {"quests": ["rivet-side-2"], "flags": [], "companionTier": {"rivet": "friend"}},
+      "rewards": {"loot": [{"item": "crystal_fragment", "qty": 5}, {"item": "battery_pack", "qty": 2}], "xp": 45, "bond": {"rivet": 15}, "flags": ["rivet_opened"]},
+      "teaching": {"concept": "The other redundancy — parts you keep for company", "kidPhrase": "Redundancy is keeping a second of something in case the first one fails. But there's another kind: parts you keep not because the system needs them, but because the system is better with them in it. Engineers call that company. Fine — everybody calls that company.", "memory": "Two slow laps and the tower chord, with Rivet at my shoulder carrying a flashlight it didn't need to carry. Not for the holding. For the company. That's the whole math. — with Rivet"}
+    }
+  ]
+}
