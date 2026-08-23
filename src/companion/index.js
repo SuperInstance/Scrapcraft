@@ -35,6 +35,9 @@ export {
 export { PERSONAS, PERSONA_IDS, getPersona } from './personas.js';
 export { pickCrosstalk, pickObjection, CROSSTALK, OBJECTIONS } from './party.js';
 export {
+  LineMemory, ChatterGuard, pickBanterFresh, pickObservationFresh, DEFAULT_RING_CAP,
+} from './variety.js';
+export {
   ENTRY_QUESTIONS, recommendCompanion, gateDeliveryLine, CompanionGate,
 } from './entry.js';
 export { storySummary, storySummaryText, quiltCells } from './story.js';

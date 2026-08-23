@@ -87,6 +87,7 @@ export class CompanionState {
       recent: [],            // ring of recent shared events (prompt context)
       nudgesDone: [],        // progress topics the player has actually tried
       firstMetAt: null,      // timestamp of the day you two met
+      banterRecent: {},      // per-bank rings of recently spoken lines (variety.js)
     };
   }
 
@@ -238,6 +239,17 @@ export class CompanionState {
     if (Array.isArray(d.recent)) f.recent = d.recent.slice(-RECENT_CAP);
     if (Array.isArray(d.nudgesDone)) f.nudgesDone = d.nudgesDone.map(String);
     if (d.firstMetAt) f.firstMetAt = d.firstMetAt;
+    // variety rings — shape { bankKey: [lineTexts] }, fail-soft, bounded
+    if (d.banterRecent && typeof d.banterRecent === 'object' && !Array.isArray(d.banterRecent)) {
+      const br = {};
+      for (const [k, v] of Object.entries(d.banterRecent)) {
+        if (typeof k === 'string' && k.length <= 64 && Array.isArray(v)) {
+          const texts = v.filter(t => typeof t === 'string').slice(-10);
+          if (texts.length) br[k] = texts;
+        }
+      }
+      f.banterRecent = br;
+    }
     this.data = f;
   }
 }
