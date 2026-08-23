@@ -48,6 +48,16 @@ export class SpineState {
   save() {
     try { this._storage?.setItem(SPINE_KEY, JSON.stringify(this.data)); } catch { /* corrupt-world tolerant */ }
   }
+
+  /** Adopt save-payload state (cloud/fresh-browser restore). Local copy wins. */
+  fromSaveData(d) {
+    if (!d || d.v !== 1) return false;
+    try { if (this._storage?.getItem(SPINE_KEY)) return false; } catch {}
+    this.data = { v: 1, opened: d.opened ?? {}, bandNudged: d.bandNudged ?? {},
+      completedCh: d.completedCh ?? {}, completedEver: d.completedEver ?? false };
+    this.save();
+    return true;
+  }
   load() {
     try {
       const raw = this._storage?.getItem(SPINE_KEY);

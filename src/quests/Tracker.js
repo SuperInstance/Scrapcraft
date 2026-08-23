@@ -135,6 +135,16 @@ export class QuestTracker {
     return n;
   }
 
+  /** Adopt save-payload state (cloud/fresh-browser restore). Local copy wins:
+   *  applied only when this machine has none. Returns true when adopted. */
+  fromSaveData(d) {
+    if (!d || d.v !== 1) return false;
+    try { if (this._storage?.getItem('scrapcraft_quests')) return false; } catch {}
+    this.data = { completed: d.completed ?? {}, progress: d.progress ?? {}, flags: d.flags ?? [], v: 1 };
+    this.save();
+    return true;
+  }
+
   // ── availability & status ─────────────────────────────────────────────────
 
   isCompleted(id) { return Boolean(this.data.completed[id]); }
