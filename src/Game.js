@@ -45,11 +45,8 @@ import { CompanionRoster, EARL_PAIRING_LINE } from './companion/registry.js';
 import { RivetAvatar } from './companion/avatar.js';
 import { CompanionGate, gateDeliveryLine } from './companion/entry.js';
 import { QuestSystem, CAMPAIGN } from './quests/index.js';
-<<<<<<< HEAD
 import { openMosLedgerPanel } from './quests/MosLedger.js';
-=======
 import { TouchControls, touchSupported } from './touch/TouchControls.js';
->>>>>>> e14bb43
 
 export class Game {
   /** @param {HTMLCanvasElement} canvas
@@ -98,10 +95,9 @@ export class Game {
     // Ghost-racer intro — shown once per game
     this._ghostRacerIntroShown = false;
 
-<<<<<<< HEAD
     // Opening cinematic — world-before-menu orbit (set up in start())
     this._openingCinematic = null;
-=======
+
     // Touch layer — null until init() proves the device wants it. Desktop
     // (touchSupported === false) never builds one, so its paths stay identical.
     this.touch       = null;
@@ -111,7 +107,6 @@ export class Game {
     this._floodTimer     = 0;
     this._lastSkillId    = null;
     this._lastSkillCount = -1;
->>>>>>> e14bb43
   }
 
   init() {

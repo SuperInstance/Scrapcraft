@@ -87,41 +87,11 @@ document.addEventListener('keydown', e => {
   if (msg) showPreGameToast(msg);
 });
 
-<<<<<<< HEAD
-function boot() {
-  if (booted) return;   // double-click CLOCK IN must not double-boot (duplicate loops)
-  booted = true;
-
-  game.init();
-  // Wire game reference so CraftingSystem can call back
-  game.craftingSystem.setGame(game);
-
-  // Load shared blueprint from URL param ?brain=<shareCode>
-  const brainParam = new URLSearchParams(location.search).get('brain');
-  if (brainParam) {
-    try {
-      const prog = TileProgram.fromShareCode(brainParam);
-      game.tileEditor.loadProgram(prog);
-      // Strip the param from the URL without a reload so sharing again gives a clean link
-      history.replaceState(null, '', location.pathname);
-    } catch (e) {
-      console.warn('[main] Bad ?brain= param, ignoring.', e);
-    }
-  }
-
-  game.start();
-  // First run: the opening cinematic owns the camera behind the wizard +
-  // gate overlays — pointer lock waits for the overlays to close (the
-  // overlays need the cursor; _endOpening takes the lock with the kid's
-  // final click). Returning players: straight to the controls, as before.
-  if (!game.openingPending) canvas.requestPointerLock();
-  if (brainParam) game.ui?.notify('🔗 Shared brain loaded — open Maker Bench to run it!');
-}
-
 startBtn.addEventListener('click', () => {
-=======
+  boot();   // boot() owns the splash fade — it shows loading progress first
+});
+
 function fadeStartScreen() {
->>>>>>> e14bb43
   startScreen.style.opacity = '0';
   startScreen.style.transition = 'opacity 0.6s';
   // Remove the splash from the layout after the fade — an invisible full-screen
@@ -168,7 +138,7 @@ async function boot() {
     // Pointer lock is a desktop affordance — touch devices run the virtual
     // joystick layer instead (game._touchMode), where requestPointerLock
     // would only throw/reject.
-    if (!game._touchMode) {
+    if (!game._touchMode && !game.openingPending) {
       // Chrome returns a Promise that can reject if the click's user-gesture
       // activation expired during the dynamic import — the pause overlay's
       // click-to-resume is the safety net, so just swallow it.
