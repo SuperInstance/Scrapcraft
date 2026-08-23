@@ -383,6 +383,53 @@
     #ch-bar-fill { height:100%; width:0%; background:#44cc44; border-radius:3px; transition:width 0.3s ease, background 0.3s; }
     #ch-counter { text-align:right; color:#44cc44; margin-top:3px; font-size:9px; }
 
+    /* ── Daily Contract HUD (top-right, under the Salvage Run + bot badge) ── */
+    #daily-hud {
+      position:absolute; top:112px; right:16px;
+      background:rgba(0,0,0,0.72); border:1px solid #8a6a1a;
+      border-radius:7px; padding:7px 10px; min-width:170px; max-width:200px;
+      font-size:10px; color:#aaa; pointer-events:none;
+      transition: border-color 0.4s ease;
+    }
+    #daily-hud.complete { border-color:#f0b429; }
+    #dc-title { color:#c8a04a; font-weight:bold; letter-spacing:0.5px; margin-bottom:3px; font-size:9px;
+                display:flex; justify-content:space-between; }
+    #dc-streak { color:#ff8844; }
+    #dc-label { color:#ddd; line-height:1.35; margin-bottom:5px; }
+    #dc-bar-wrap { background:rgba(255,255,255,0.08); border-radius:3px; height:5px; overflow:hidden; }
+    #dc-bar-fill { height:100%; width:0%; background:#c88a2a; border-radius:3px; transition:width 0.3s ease, background 0.3s; }
+    #dc-counter { text-align:right; color:#c88a2a; margin-top:3px; font-size:9px; }
+
+    /* ── Welcome Back card (center, returning sessions) ── */
+    #welcome-back {
+      position:absolute; top:50%; left:50%;
+      transform:translate(-50%, -46%) scale(0.96);
+      width:min(420px, 88vw);
+      background:rgba(10,12,16,0.94); border:1px solid #6a5a2a; border-radius:12px;
+      padding:22px 26px 18px; z-index:600;
+      opacity:0; pointer-events:none;
+      transition:opacity 0.35s ease, transform 0.35s ease;
+      box-shadow:0 10px 40px rgba(0,0,0,0.6);
+    }
+    #welcome-back.show { opacity:1; pointer-events:auto; transform:translate(-50%, -50%) scale(1); }
+    #wb-title {
+      font-size:20px; font-weight:bold; letter-spacing:2px; color:#f0b429;
+      text-align:center; margin-bottom:2px;
+    }
+    #wb-subtitle { text-align:center; font-size:10px; color:#887755; letter-spacing:1px;
+                   text-transform:uppercase; margin-bottom:14px; }
+    .wb-row { display:flex; gap:10px; align-items:flex-start; padding:7px 0;
+              border-top:1px solid rgba(255,255,255,0.06); font-size:12px; color:#ccc; line-height:1.45; }
+    .wb-row:first-of-type { border-top:none; }
+    .wb-icon { font-size:16px; flex-shrink:0; width:20px; text-align:center; }
+    .wb-text b { color:#f0b429; }
+    #wb-close {
+      margin-top:14px; width:100%; padding:8px; font-size:11px; letter-spacing:1px;
+      background:#2a2416; color:#f0b429; border:1px solid #6a5a2a; border-radius:7px;
+      cursor:pointer; font-family:inherit;
+    }
+    #wb-close:hover { background:#3a3220; }
+
     /* ── Ore Scanner HUD (center, above hotbar) ── */
     #ore-scanner-hud {
       position:absolute; bottom:100px; left:50%; transform:translateX(-50%);
@@ -1277,6 +1324,14 @@
       padding:4px 6px; border-radius:3px; font-family:inherit; font-size:10px; outline:none;
     }
     .sp-input::placeholder { color:#2a4a5a; }
+    .sp-chips { display:flex; flex-wrap:wrap; gap:4px; padding:5px 8px 7px; }
+    .sp-chip {
+      background:#12283a; color:#7ec8ff; border:1px solid #1e4a6a; border-radius:10px;
+      font-size:9px; font-family:inherit; padding:3px 8px; cursor:pointer;
+      transition:background 0.15s, border-color 0.15s;
+    }
+    .sp-chip:hover { background:#1a3a52; border-color:#3a7aaa; }
+    .sp-chip-dice { color:#f0b429; border-color:#6a5a2a; background:#241f12; }
     .sp-send {
       background:#082030; border:1px solid #00aacc; color:#00ccff;
       padding:4px 8px; border-radius:3px; cursor:pointer; font-family:inherit; font-size:11px;
@@ -1367,6 +1422,22 @@
       <div id="ch-label">Loading challenge…</div>
       <div id="ch-bar-wrap"><div id="ch-bar-fill"></div></div>
       <div id="ch-counter">0 / ?</div>
+    </div>
+
+    <!-- Daily Salvage Contract (top-right, under the Salvage Run) -->
+    <div id="daily-hud">
+      <div id="dc-title"><span>📜 DAILY CONTRACT</span><span id="dc-streak">🔥</span></div>
+      <div id="dc-label">…</div>
+      <div id="dc-bar-wrap"><div id="dc-bar-fill"></div></div>
+      <div id="dc-counter">0 / ?</div>
+    </div>
+
+    <!-- Welcome Back card (returning sessions, minute 0 of day 2) -->
+    <div id="welcome-back">
+      <div id="wb-title">WELCOME BACK</div>
+      <div id="wb-subtitle">the yard kept your spot</div>
+      <div id="wb-rows"></div>
+      <button id="wb-close">BACK TO WORK</button>
     </div>
 
     <!-- Bot name badge (top-right) -->

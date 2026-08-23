@@ -361,6 +361,60 @@ export class UI {
     }
   }
 
+  // ── Daily Contract HUD (under the Salvage Run chip) ───────────────────
+
+  updateDaily(contract, progress, claimed) {
+    const hud     = document.getElementById('daily-hud');
+    const label   = document.getElementById('dc-label');
+    const fill    = document.getElementById('dc-bar-fill');
+    const counter = document.getElementById('dc-counter');
+    const streak  = document.getElementById('dc-streak');
+    if (!hud || !label || !fill || !counter) return;
+    const c = contract.contract ?? contract;
+    if (!c) { hud.style.display = 'none'; return; }
+    hud.style.display = 'block';
+    const pct = Math.min(1, progress / c.need);
+    const col = claimed ? '#f0b429' : '#c88a2a';
+    hud.classList.toggle('complete', claimed);
+    label.textContent   = `${c.icon} ${c.label}`;
+    fill.style.width      = `${pct * 100}%`;
+    fill.style.background = col;
+    counter.style.color   = col;
+    if (claimed) {
+      counter.textContent = `✓ +${c.reward.xp} XP`;
+    } else if (c.type === 'bot_run') {
+      counter.textContent = `${Math.floor(progress)}s / ${c.need}s`;
+    } else {
+      counter.textContent = `${Math.floor(progress)} / ${c.need}`;
+    }
+    if (streak) {
+      const n = contract.streak?.count ?? 1;
+      streak.textContent = n > 1 ? `🔥×${n}` : '🔥';
+      streak.title = `${n}-day streak (best ${contract.streak?.best ?? n})`;
+    }
+  }
+
+  // ── Welcome Back card (returning sessions) ────────────────────────────
+
+  showWelcomeBack(report) {
+    const card = document.getElementById('welcome-back');
+    if (!card) return;
+    const sub  = document.getElementById('wb-subtitle');
+    const rows = document.getElementById('wb-rows');
+    if (sub)  sub.textContent  = report.subtitle;
+    if (rows) rows.innerHTML   = report.rows.map(r =>
+      `<div class="wb-row"><span class="wb-icon">${r.icon}</span><span class="wb-text">${r.text}</span></div>`).join('');
+    card.classList.add('show');
+    clearTimeout(this._wbTimer);
+    this._wbTimer = setTimeout(() => this.hideWelcomeBack(), 9000);
+    document.getElementById('wb-close')?.addEventListener('click', () => this.hideWelcomeBack());
+    card.onclick = e => { if (e.target === card) this.hideWelcomeBack(); };
+  }
+
+  hideWelcomeBack() {
+    document.getElementById('welcome-back')?.classList.remove('show');
+  }
+
   // ── Zone / Time HUD ──────────────────────────────────────────────────
 
   setZone(zone, timeLabel) {

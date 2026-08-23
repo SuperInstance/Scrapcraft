@@ -20,6 +20,8 @@ import { XPSystem } from './XPSystem.js';
 import { WeatherSystem } from './WeatherSystem.js';
 import { ProjectileSystem } from './ProjectileSystem.js';
 import { Challenge } from './Challenge.js';
+import { DailyContract } from './DailyContract.js';
+import { WelcomeBack } from './WelcomeBack.js';
 import { BotUpgrades, UPGRADE_DEFS } from './BotUpgrades.js';
 import { ScrapExchange, EXCHANGE_POS, EXCHANGE_RADIUS } from './ScrapExchange.js';
 import { OnboardingWizard } from './onboarding/OnboardingWizard.js';
@@ -151,6 +153,7 @@ export class Game {
     this.tileEditor = new TileEditor(this);
     this.saveSystem   = new SaveSystem(this);
     this.challenge    = new Challenge(this);
+    this.dailyContract = new DailyContract(this);   // before load() — state restores below
     this.botUpgrades  = new BotUpgrades();
     this.exchange     = new ScrapExchange();
     this.raceBoard    = new RaceBoard();
@@ -320,14 +323,25 @@ export class Game {
     };
     this.ui.setHealth(100, 100);
 
-    // Load saved state — if none, show first-time greeting + tutorial
+    // Load saved state — if none, show first-time greeting + tutorial.
+    // Returning players get the Welcome Back flow after CLOCK IN (see start()).
     const loaded = this.saveSystem.load();
     if (!loaded) {
       setTimeout(() => this.foreman.greet(), 1200);
       this._startTutorial();
     } else {
-      setTimeout(() => this.foreman.say('idle'), 1200);
+      this._returningSession = true;
     }
+
+    // Never lose a session to a closed tab — save on exit / tab hide.
+    // (Autosave is 60s; a kid yanking the power cord shouldn't lose a lap.)
+    window.addEventListener('beforeunload', () => this.saveSystem.saveOnExit());
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') this.saveSystem.saveOnExit();
+    });
+
+    // Paint today's contract chip right away (progress may be mid-contract)
+    this.ui?.updateDaily(this.dailyContract, this.dailyContract.progress, this.dailyContract.claimed);
 
     // Classroom join prompt — shown if a Worker URL is configured and no session exists
     setTimeout(() => this.classRoom.showJoinPromptIfNeeded(), 2000);
@@ -430,6 +444,14 @@ export class Game {
     this._tutorialActive = false;
     if (this._mcEl) this._mcEl.classList.remove('show');
     if (this._tutorialHintEl) this._tutorialHintEl.classList.remove('show');
+    this._maybeAnnounceDaily();
+  }
+
+  /** Fresh players hear about the daily contract only once the tutorial
+   *  stops competing for their attention — never during the first 5 minutes. */
+  _maybeAnnounceDaily() {
+    if (this._returningSession) return;   // announced with the Welcome Back card
+    this.dailyContract?.announce();
   }
 
   // kept for backward compat with code that calls _showTutorialHint
@@ -683,6 +705,7 @@ export class Game {
         this.challenge.onCollect(drop);
         // Rivet was there — every block mined together counts
         this.rivet?.observe('block_mined');
+        this.dailyContract?.onCollect(drop);
       }
     };
     if (def.drop    && Math.random() < def.dropChance)    {
@@ -757,6 +780,7 @@ export class Game {
 
     this.achievements.track('mine', { isNight });
     this.challenge.onMine(id);
+    this.dailyContract?.onMine(id);
     if (id === B.CRYSTAL_ORE) {
       this.achievements.track('crystal_mine', {});
       this.xpSystem.gain(5);  // bonus XP for rare ore
@@ -1538,6 +1562,7 @@ export class Game {
     const isNew = !this.achievements.stats.crafted.has(output);
     this.achievements.track('craft', { id: output });
     this.challenge.onCraft();
+    this.dailyContract?.onCraft();
     this.xpSystem.gain(isNew ? 10 : 3);
     this.saveSystem.markDirty();
     this.audio.craft();
@@ -1575,6 +1600,7 @@ export class Game {
     this.achievements.track('quest', {});
     this.xpSystem.gain(25);
     this.audio.questComplete();
+    this._maybeAnnounceDaily();
   }
 
   start() {
@@ -1582,6 +1608,41 @@ export class Game {
     this._running = true;
     this._lastTime = performance.now();
     this._loop();
+    if (this._returningSession) this._showWelcomeBack();
+  }
+
+  // ── Welcome Back — the minute-0-of-day-2 moment ────────────────────────
+
+  _showWelcomeBack() {
+    const snap = {
+      ...(this._comeback ?? {}),
+      // live truth beats the snapshot where available
+      botName:    this.scrapBot?.personality?.name ?? this._comeback?.botName,
+      botBond:    this.scrapBot?.personality?.bond ?? this._comeback?.botBond ?? 0,
+      ovalBestMs: this._ovalLapState?.bestMs === Infinity ? this._comeback?.ovalBestMs : this._ovalLapState.bestMs,
+      daysPlayed: this.dailyContract?.daysPlayed ?? this._comeback?.daysPlayed ?? 1,
+      dayStreak:  this.dailyContract?.streak?.count ?? this._comeback?.dayStreak ?? 1,
+    };
+
+    // Open quest + its next actionable step, live from the foreman
+    const q = this.foreman.currentQuestDef?.();
+    if (q) {
+      snap.questTitle = q.title;
+      const step = q.steps.find(s => {
+        try { return !s.check(this.player, this); } catch { return false; }
+      });
+      snap.questStep = step?.label;
+    }
+
+    const report = WelcomeBack.build(snap);
+    if (report.rows.length === 0) return;
+    this.ui?.showWelcomeBack(report);
+    this.foreman.say('welcome_back', { force: true });
+
+    // Then: the open quest comes back (4s), and today's contract gets its
+    // moment after Earl's speaking gate clears (11s) — one voice at a time.
+    setTimeout(() => this.foreman.resumeQuest(), 4000);
+    setTimeout(() => this.dailyContract?.announce(), 11000);
   }
 
   _loop() {
@@ -1864,6 +1925,7 @@ export class Game {
     this.audio.tick(dt, this.player, this.world);
     this.saveSystem.tick(dt);
     this.challenge.tick(dt);
+    this.dailyContract?.tick(dt);
     this.challengeSystem.tick(dt);
 
     const locked = !!document.pointerLockElement;
@@ -2476,6 +2538,7 @@ export class Game {
         this.achievements.track('lap_complete', {});
         this.challenge.onLapComplete();
         this.noteBotTaskComplete(bot);   // panic reset: a lap is a completed task
+        this.dailyContract?.onLapComplete();
         this.xpSystem.gain(20);
         this.rivet?.observe('lap_complete', { secs, note: `${secs}s${improved ? ' PB' : ''}` });
         // The heart: this lap is remembered
@@ -2594,6 +2657,7 @@ export class Game {
         this.achievements.track('lap_complete', {});
         this.challenge.onLapComplete();
         this.noteBotTaskComplete(bot);   // panic reset: a lap is a completed task
+        this.dailyContract?.onLapComplete();
         this.xpSystem.gain(improved ? 30 : 20);
         bot.speak(bot.personality.quip(improved ? 'lap_record' : 'lap_complete'));
         // Voice announcements for race

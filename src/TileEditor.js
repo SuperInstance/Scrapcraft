@@ -422,6 +422,7 @@ export class TileEditor {
       const text = this._sparkInput.value.trim();
       if (!text) return;
       this._sparkInput.value = '';
+      this._hideSparkChips();
       this._sparkLog.innerHTML += `<div class="sp-msg sp-user">${_esc(text)}</div>`;
       this._sparkLog.scrollTop = this._sparkLog.scrollHeight;
 
@@ -440,6 +441,7 @@ export class TileEditor {
       if (reply.kind === 'program') {
         this._game.achievements?.track('spark_program', {});
         this._game.xpSystem?.gain(10);
+        this._game.dailyContract?.onSpark();
       }
       this._sparkLog.scrollTop = this._sparkLog.scrollHeight;
     };
@@ -484,6 +486,69 @@ export class TileEditor {
 
     // Seed with a welcome line
     this._sparkLog.innerHTML = `<div class="sp-msg sp-spark">⚡ Tell me what your robot should do and I'll build it!</div>`;
+
+    this._buildSparkChips(send);
+  }
+
+  // ── Starter chips — kill the blank-page problem ─────────────────────────
+  // Every chip matches an offline recipe, so one tap works even with NO api
+  // key and NO internet: a kid's first Spark success never depends on setup.
+
+  _chipPool() {
+    return [
+      { label: '🏁 follow the track',   prompt: 'make it follow the track' },
+      { label: '🟨 drive in a square',  prompt: 'make it drive in a square' },
+      { label: '💡 chase the light',    prompt: 'chase the brightest light' },
+      { label: '⚡ zigzag',             prompt: 'make it drive in a zigzag' },
+      { label: '🌈 rainbow lights',     prompt: 'blink rainbow colors' },
+      { label: '🛡️ avoid walls',        prompt: 'avoid walls and turn away' },
+      { label: '🏎️ max speed',         prompt: 'go as fast as possible' },
+      { label: '🎵 play a song',        prompt: 'play a song' },
+      { label: '😴 sneak slowly',       prompt: 'move slowly and carefully' },
+      { label: '🧭 go to the flag',     prompt: 'navigate to the waypoint flag' },
+    ];
+  }
+
+  _buildSparkChips(send) {
+    const inputRow = this._sparkInput?.parentElement;
+    if (!inputRow) return;
+    this._sparkChips = document.createElement('div');
+    this._sparkChips.className = 'sp-chips';
+    this._sparkPanel.insertBefore(this._sparkChips, inputRow);
+
+    const die = document.createElement('button');
+    die.className = 'sp-chip sp-chip-dice';
+    die.textContent = '🎲';
+    die.title = 'More ideas';
+    die.addEventListener('click', () => { this._chipOffset += 4; this._renderSparkChips(send); });
+
+    this._chipOffset = 0;
+    this._renderSparkChips(send, die);
+  }
+
+  _renderSparkChips(send, die) {
+    const pool = this._chipPool();
+    if (!die) die = this._sparkChips?.querySelector('.sp-chip-dice');
+    this._sparkChips.innerHTML = '';
+    const start = this._chipOffset % pool.length;
+    for (let i = 0; i < 4; i++) {
+      const c = pool[(start + i) % pool.length];
+      const chip = document.createElement('button');
+      chip.className = 'sp-chip';
+      chip.textContent = c.label;
+      chip.title = c.prompt;
+      chip.addEventListener('click', () => {
+        this._sparkInput.value = c.prompt;
+        send();
+      });
+      this._sparkChips.appendChild(chip);
+    }
+    if (die) this._sparkChips.appendChild(die);
+  }
+
+  /** After the first real send the kid knows what Spark is — chips retire. */
+  _hideSparkChips() {
+    if (this._sparkChips) this._sparkChips.style.display = 'none';
   }
 
   // Push-to-talk: begin recording (hold V or first mic click)
@@ -531,6 +596,7 @@ export class TileEditor {
       const q = this._sparkInput.value.trim();
       if (!q) { this._voiceInProgress = false; return; }
       this._sparkInput.value = '';
+      this._hideSparkChips();
       this._sparkLog.innerHTML += `<div class="sp-msg sp-user">${_esc(q)}</div>`;
       const thinking = document.createElement('div');
       thinking.className = 'sp-msg sp-spark sp-thinking';
@@ -561,6 +627,7 @@ export class TileEditor {
           if (reply.kind === 'program') {
             this._game.achievements?.track('spark_program', {});
             this._game.xpSystem?.gain(10);
+            this._game.dailyContract?.onSpark();
           }
           this._sparkLog.scrollTop = this._sparkLog.scrollHeight;
           // Speak the in-game Spark's reply through the voice worker

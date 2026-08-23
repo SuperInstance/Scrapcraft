@@ -10,6 +10,7 @@
 
 import { TileProgram } from './maker/TileProgram.js';
 import { SaveBackend } from './SaveBackend.js';
+import { BotLedger } from './BotLedger.js';
 
 const SAVE_KEY     = 'scrapcraft_save_v6';
 const AUTOSAVE_INT = 60;  // seconds between autosaves
@@ -36,6 +37,14 @@ export class SaveSystem {
 
   /** Flag that saveable state has changed. Resets the autosave countdown. */
   markDirty() { this._dirty = true; this._timer = 0; }
+
+  /**
+   * Exit-time save: only persists when there's something worth persisting —
+   * pending changes or an existing save (a 10-second peek shouldn't create one).
+   */
+  saveOnExit() {
+    if (this._dirty || this.hasSave()) this.save();
+  }
 
   hasSave() { return !!localStorage.getItem(SAVE_KEY); }
 
@@ -185,6 +194,27 @@ export class SaveSystem {
       botPersonality:  g.scrapBot?.personality?.toSaveData()  ?? null,
       bot2Personality: g.scrapBot2?.personality?.toSaveData() ?? null,
 
+      // Daily Salvage Contract — progress, streak, lifetime count
+      daily: g.dailyContract?.toSaveData() ?? null,
+
+      // Welcome Back snapshot — what day-2-you needs to remember at a glance.
+      // Live ledger first (session truth); a throwaway ledger re-reads
+      // localStorage when no brain ran yet this session.
+      comeback: (() => {
+        const ledger = g.scrapBot?.ledger
+          ?? (g.scrapBot ? new BotLedger('?', g.scrapBot._slotKey ?? 'bot1') : null);
+        return {
+          botName:    g.scrapBot?.personality?.name ?? ledger?.name ?? null,
+          botBond:    g.scrapBot?.personality?.bond ?? 0,
+          botLaps:    ledger?.laps ?? 0,
+          botDents:   ledger?.dents?.length ?? 0,
+          ovalBestMs: (g._ovalLapState?.bestMs ?? Infinity) === Infinity ? null : g._ovalLapState.bestMs,
+          questIndex: g.foreman?._questIndex ?? 0,
+          daysPlayed: g.dailyContract?.daysPlayed ?? 1,
+          dayStreak:  g.dailyContract?.streak?.count ?? 1,
+        };
+      })(),
+
       ghostLap:     g._bestGhostFrames?.length     ? g._bestGhostFrames     : null,
       ovalGhostLap: g._bestOvalGhostFrames?.length ? g._bestOvalGhostFrames : null,
       ovalBestMs:   g._ovalLapState?.bestMs < Infinity ? g._ovalLapState.bestMs : null,
@@ -270,16 +300,20 @@ export class SaveSystem {
       });
     }
 
-    // Foreman quest state
+    // Foreman quest state — index restored; Game resumes the tracker after load
+    // (a returning player's quest must come BACK, not silently vanish).
     const ed = data.earl;
     if (ed) {
       g.foreman._questIndex = ed.questIndex ?? 0;
       g.foreman._history    = ed.history ?? [];
-      // Resume the active quest if there is one
-      if (g.foreman._questIndex > 0) {
-        g.foreman._activeQuest = null;   // will be started by _startNextQuest
-      }
+      g.foreman._activeQuest = null;
     }
+
+    // Daily Salvage Contract — progress survives the reload (finish tomorrow)
+    if (data.daily) g.dailyContract?.fromSaveData(data.daily);
+
+    // Welcome Back snapshot (day-2 briefing) — Game shows it after CLOCK IN
+    g._comeback = data.comeback ?? null;
 
     // XP system
     if (data.xp) g.xpSystem?.fromSaveData(data.xp);

@@ -252,6 +252,26 @@ const QUIPS = {
     "Done. On time, on target. That feeling in your chest right now? That's the whole paycheck. Keep it.",
     "Task complete. In a real fab shop, that's called meeting your production quota. You're ahead of schedule. Don't let it go to your head.",
   ],
+  welcome_back: [
+    "Well, look who clawed their way back into my yard. The scrap piled up. So did my opinions.",
+    "You're back. Good — the seagulls were starting to think they ran the place.",
+    "Back again, rookie? The yard remembered. So did your bot. Mostly the dents.",
+  ],
+  daily_contract_new: [
+    "Today's contract is on the board. Same one for everybody in the yard. First one done buys the bragging rights.",
+    "New daily contract. It resets at midnight, not when you feel like it. Deadlines, kid. Welcome to engineering.",
+    "Contract's posted. It's the same deal for every kid in every yard today. Finish it and keep that streak burning.",
+  ],
+  daily_contract_done: [
+    "Contract closed. Streak intact. That's called reliability — the number one thing employers ask for, right after 'can you weld'.",
+    "Daily's done. Come back tomorrow and do it again. Consistency beats talent. I read that on a mug once. Mugs don't lie.",
+    "Contract complete and the streak lives. Your bot's keeping count, you know. It remembers.",
+  ],
+  streak_milestone: [
+    "That's a real streak you've got going. Days add up. So do skills. Nobody notices until suddenly everybody does.",
+    "Streak like that, you're not a tourist anymore. You're yard crew. Don't tell HR I said that. We don't have HR.",
+    "Showing up every day is ninety percent of engineering. The other ten percent is not losing your wrench. You've got the first part down.",
+  ],
   storm_exposed: [
     "GET INSIDE. Lightning is 30,000 Kelvin. That's five times hotter than the sun's surface. Metal scrapyard. You are the tallest thing. MOVE.",
     "Lightning looks for the path of least resistance to ground. Standing in an open scrapyard makes you that path. Find a roof.",
@@ -630,6 +650,10 @@ export class Foreman {
       'bot_battery_dead':   'bot_battery_dead',
       'storm_exposed':      'storm_exposed',
       'challenge_complete': 'challenge_complete',
+      'welcome_back':        'welcome_back',
+      'daily_contract_new':  'daily_contract_new',
+      'daily_contract_done': 'daily_contract_done',
+      'streak_milestone':    'streak_milestone',
       'receipt_view':             'receipt_view',
       'class_joined':             'class_joined',
       'class_challenge_assigned': 'class_challenge_assigned',
@@ -689,6 +713,28 @@ export class Foreman {
     this._activeQuest = QUESTS[this._questIndex];
     this._ui?.showQuest(this._activeQuest);
     this.sayLine(this._activeQuest.intro);
+  }
+
+  /** The quest definition currently on the books (or null if the chain is done). */
+  currentQuestDef() {
+    return this._questIndex < QUESTS.length ? QUESTS[this._questIndex] : null;
+  }
+
+  /**
+   * A returning player's quest tracker was dead on arrival — the save restores
+   * the index but nothing restarted it. This does: re-show the quest box and
+   * have Earl acknowledge it's still open. Steps already satisfied while away
+   * will complete on the next game event (satisfying, not jarring).
+   */
+  resumeQuest() {
+    if (this._activeQuest) return false;
+    const q = this.currentQuestDef();
+    if (!q) return false;
+    this._activeQuest = q;
+    this._ui?.showQuest(q);
+    this.sayLine(`Still on the books: ${q.title.toLowerCase()}. ${q.steps[0]?.label.toLowerCase()}. Get to it.`);
+    this._checkQuest();   // maybe it already got done while you were away
+    return true;
   }
 
   _checkQuest() {

@@ -1553,6 +1553,141 @@ console.log('\nPanic button — Rocket Overdrive');
   ok('loot cache is salvage (iron), never empty', loot.length >= 1 && loot[0].id === 'iron_scrap');
 }
 
+
+// ── DailyContract: the come-back-tomorrow engine ────────────────────────────
+console.log('\nDailyContract');
+{
+  const { DailyContract, pickContract, rollStreak, todayKey, CONTRACT_POOL } =
+    await import('../../DailyContract.js');
+
+  // mock game — records everything the contract pays out
+  const mkGame = () => {
+    const log = { xp: 0, items: [], notifies: [], events: [] };
+    return {
+      log,
+      xpSystem: { gain: n => { log.xp += n; } },
+      player:   { addItem: (id, q) => { log.items.push([id, q]); } },
+      ui:       { notify: t => { log.notifies.push(t); }, updateDaily: () => {} },
+      foreman:  { onEvent: e => { log.events.push(e); } },
+    };
+  };
+  const DAY = new Date('2026-08-22T10:00:00');           // local-time fixture
+  const drive = (dc, c, when, dt = 1) => ({
+    collect:    () => dc.onCollect(c.target),
+    mine_block: () => dc.onMine(c.target),
+    craft:      () => dc.onCraft(),
+    spark:      () => dc.onSpark(),
+    bot_lap:    () => dc.onLapComplete(),
+    bot_run:    () => dc.tick(dt, when),
+  })[c.type];
+
+  // determinism — every kid in every yard gets the same contract today
+  ok('pick is deterministic for a day', pickContract('2026-08-22').id === pickContract('2026-08-22').id);
+  ok('pick comes from the pool', CONTRACT_POOL.some(c => c.id === pickContract('2026-08-22').id));
+  ok('todayKey is local-calendar', todayKey(new Date(2026, 7, 22, 23, 59)) === '2026-08-22');
+
+  // mine contracts carry numeric block targets (wired like Challenge.js)
+  ok('mine contracts have block targets', CONTRACT_POOL.filter(c => c.type === 'mine_block')
+     .every(c => typeof c.target === 'number'));
+
+  // progress → claim exactly once, rewards exactly once
+  {
+    const g = mkGame();
+    const dc = new DailyContract(g, DAY);
+    const c = dc.contract;
+    ok('fresh contract unclaimed, zero progress', !dc.claimed && dc.progress === 0);
+    for (let i = 0; i < c.need; i++) drive(dc, c, DAY)();
+    ok('completes on the last unit', dc.claimed && dc.progress === c.need);
+    ok('reward XP granted once', g.log.xp === c.reward.xp + Math.min(dc.streak.count, 7) * 15);
+    ok('reward item granted once', g.log.items.length === 1 && g.log.items[0][0] === c.reward.item);
+    ok('Earl hears daily_contract_done', g.log.events.includes('daily_contract_done'));
+    const xpAfter = g.log.xp;
+    drive(dc, c, DAY)();                                    // stray event post-claim
+    ok('no double claim', g.log.xp === xpAfter && dc.claimed);
+    ok('announce() is one-shot', dc.announce() === true && dc.announce() === false);
+  }
+
+  // partial progress survives the reload (finish tonight's daily tomorrow)
+  {
+    const g = mkGame();
+    const dc = new DailyContract(g, DAY);
+    const c = dc.contract;
+    for (let i = 0; i < Math.ceil(c.need / 2); i++) drive(dc, c, DAY)();
+    const half = dc.progress;
+
+    const dc2 = new DailyContract(mkGame(), new Date(1999, 0, 1));   // unrelated epoch
+    dc2.fromSaveData(dc.toSaveData(), DAY);
+    ok('progress persists across sessions', dc2.progress === half && dc2.contract.id === c.id && !dc2.claimed);
+    for (let i = dc2.progress; i < c.need; i++) drive(dc2, c, DAY)();
+    ok('completes the day after', dc2.claimed);
+  }
+
+  // streak math — the whole game
+  {
+    let s = rollStreak(null, '2026-08-20');
+    ok('first ever day starts the streak at 1', s.count === 1 && s.best === 1);
+    s = rollStreak(s, '2026-08-20');
+    ok('same day, second session: no change', s.count === 1);
+    s = rollStreak(s, '2026-08-21');
+    ok('next day grows the streak', s.count === 2 && s.best === 2);
+    s = rollStreak(s, '2026-08-24');
+    ok('skipped days break the chain', s.count === 1 && s.best === 2);
+  }
+
+  // midnight rollover between sessions: fresh contract, streak grows, daysPlayed counts
+  {
+    const g = mkGame();
+    const dc = new DailyContract(g, new Date('2026-08-21T20:00:00'));
+    const oldId = dc.contract.id;
+    ok('daysPlayed counts day 1', dc.daysPlayed === 1);
+
+    const dc2 = new DailyContract(mkGame(), new Date(1999, 0, 1));
+    dc2.fromSaveData(dc.toSaveData(), new Date('2026-08-22T09:00:00'));
+    ok('rollover resets progress and claim', dc2.progress === 0 && !dc2.claimed);
+    ok('rollover rolls a seeded contract', dc2.contract.id === pickContract('2026-08-22').id);
+    ok('rollover increments the streak', dc2.streak.count === 2);
+    ok('rollover counts day 2', dc2.daysPlayed === 2);
+    // (same-contract days are legal — the point is it's the seeded pick, not the old one's shadow)
+    ok('old contract id came from yesterday', oldId === pickContract('2026-08-21').id);
+  }
+
+  // bot_run contracts accumulate runtime via tick
+  {
+    const g = mkGame();
+    const dc = new DailyContract(g, new Date(2026, 7, 22, 10, 0, 0));
+    dc._state.contractId = 'endurance';                     // need: 120s of runtime
+    const bot = { _brainMode: true, battery: 80 };
+    const game = mkGame();
+    const dc2 = new DailyContract({ ...game, scrapBot: bot }, DAY);
+    dc2._state.contractId = 'endurance';
+    for (let i = 0; i < 121; i++) dc2.tick(1, DAY);
+    ok('endurance contract completes via runtime', dc2.claimed);
+  }
+}
+
+// ── WelcomeBack: the minute-0-of-day-2 briefing ─────────────────────────────
+console.log('\nWelcomeBack');
+{
+  const { WelcomeBack } = await import('../../WelcomeBack.js');
+
+  const full = WelcomeBack.build({
+    botName: 'Rivet', botBond: 34, botLaps: 7, botDents: 2,
+    ovalBestMs: 18420, questTitle: 'Build a Brain', questStep: 'Craft the Tin Brain',
+    dayStreak: 3, daysPlayed: 4,
+  });
+  ok('card names the bot first', full.rows[0].icon === '🤖' && full.rows[0].text.includes('<b>Rivet</b>'));
+  ok('card shows bond, laps, dents', full.rows[0].text.includes('bond 34%') && full.rows[0].text.includes('7 laps'));
+  ok('card shows the open quest', full.rows.some(r => r.text.includes('Build a Brain') && r.text.includes('Tin Brain')));
+  ok('card shows the streak', full.rows.some(r => r.text.includes('3-day streak')));
+  ok('card shows the clock to beat', full.rows.some(r => r.text.includes('18.42s')));
+  ok('subtitle counts days', full.subtitle.includes('day 4'));
+
+  const empty = WelcomeBack.build({});
+  ok('empty snapshot yields no rows', empty.rows.length === 0);
+
+  const day1 = WelcomeBack.build({ botName: 'Bolt', dayStreak: 1 });
+  ok('day 1 reads as day 1', day1.rows.some(r => r.text.includes('Day 1 of a new streak')));
+}
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
