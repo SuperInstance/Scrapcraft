@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scrapcraft — Teacher Pack: Unit 1 "Teach Your Robot"</title>
+<style>
+  /* Print-first standalone page. Single file, no JS, no assets —
+     open in any browser, Ctrl+P, hand to a sub. Source: TEACHER-PACK-1.md */
+  :root { --ink:#1a1a1a; --dim:#5a6b5a; --line:#c9d4c9; --green:#1c5c34; --paper:#fff; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family: Georgia, 'Times New Roman', serif; color:var(--ink); background:var(--paper);
+         max-width:7.5in; margin:0 auto; padding:0.5in 0.4in; line-height:1.45; }
+  header { border-bottom:3px solid var(--green); padding-bottom:8px; margin-bottom:14px; }
+  h1 { font-size:20pt; color:var(--green); }
+  .sub { font-size:10pt; color:var(--dim); margin-top:2px; }
+  h2 { font-size:13pt; color:var(--green); margin:18px 0 6px; border-bottom:1px solid var(--line); padding-bottom:2px; }
+  h3 { font-size:11pt; margin:10px 0 3px; }
+  .card { border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin:8px 0; break-inside:avoid; }
+  .card .num { display:inline-block; background:var(--green); color:#fff; border-radius:4px;
+               padding:0 7px; font-size:9pt; font-family:Arial,sans-serif; margin-right:6px; }
+  .tag { float:right; font-family:Arial,sans-serif; font-size:8pt; color:var(--dim); }
+  .earl { font-style:italic; color:var(--dim); margin:4px 0; }
+  .earl::before { content:"— "; }
+  .row { font-size:9.5pt; font-family:Arial,sans-serif; color:var(--dim); margin-top:4px; }
+  table { width:100%; border-collapse:collapse; font-size:9.5pt; }
+  th, td { border:1px solid var(--line); padding:4px 6px; text-align:left; vertical-align:top; }
+  th { background:#eef3ee; font-family:Arial,sans-serif; font-size:9pt; }
+  .privacy { border:2px solid var(--green); border-radius:6px; padding:10px 12px; margin:10px 0; font-size:10pt; }
+  .privacy strong { color:var(--green); }
+  footer { margin-top:16px; font-size:8.5pt; color:var(--dim); border-top:1px solid var(--line); padding-top:6px; }
+  .pagebreak { break-before:page; }
+  @media print { body { max-width:none; } .card, table { break-inside:avoid; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Teach Your Robot — Teacher Pack</h1>
+  <div class="sub">Scrapcraft Unit 1 · Grades 6–8 · 8 lessons × 45 min · browser-only · no accounts · print freely</div>
+</header>
+
+<h2>Materials (whole unit)</h2>
+<p><b>Every lesson:</b> student browser (Chromebook OK) · paper + pencil.<br>
+<b>Specific:</b> tape + index cards (L2) · grey paint chips or printed gradient (L3) · printed bug-triage cards (L6) · printer/shared doc (L8).<br>
+That's the whole list. No installs, no accounts, no downloads.</p>
+
+<h2>Access &amp; Day-Zero (before Lesson 1)</h2>
+<p><b>URL:</b> any modern browser; pilots get the URL from the project (public hosting pending) — board before students arrive. <b>Same machine every lesson</b> (saves are local); assign cart seats. <b>Room codes (optional):</b> first names / initials only for display names. <b>Offline plan:</b> every warm-up runs on paper + each lesson has a named paper fallback — no lesson dies with the Wi-Fi. <b>Timing:</b> warm-up (6–7) + frame (3–4) + game (22–25) + teach-back (8–12) + close (2) = <b>45 exactly</b>; the close is one exit sentence.</p>
+
+<h2>Lesson cards</h2>
+
+<div class="card"><span class="num">L1</span><b>A Pile of Parts Is Not a Robot</b><span class="tag">Big Ideas 1·5 (seed)</span>
+<p class="earl">"I got a crate of motors that never once talked to a sensor. Paperweights."</p>
+<p><b>Learn:</b> power / structure / actuation are three systems; no senses = paperweight.</p>
+<p><b>Do:</b> 7 min Human-Bot pairs → 25 min game Ch1–3, earl-1…earl-5 (first contact is SLOW; the boot beep opens L2 for slow classes) → 8 min Magma teach-back → 2 min close. <b>Tech fails?</b> Paper-design a bot: POWER / STRUCTURE / MOVEMENT boxes + what it still can't do.</p>
+<p><b>Mastery:</b> names all three systems without prompting.</p>
+<div class="row">Game: earl-1…earl-5 (earl-6 opens L2)</div></div>
+
+<div class="card"><span class="num">L2</span><b>Sense, Think, Act</b><span class="tag">Big Ideas 2·1</span>
+<p class="earl">"If the bot never checks anything, it just keeps doing the first thing forever?"</p>
+<p><b>Learn:</b> if-tiles inside forever loops; sense→decide→act→repeat.</p>
+<p><b>Do:</b> 6 min Walk-the-Flowchart (taped path; flip one card absurd — the walker never breaks the rule, the rule was wrong) → 25 min Ch4, one knob per run → 8 min teach-back tb-conditionals-1.</p>
+<p><b>Mastery:</b> explains THEN-vs-ELSE; volunteers that both never run in one pass.</p>
+<div class="row">Game: earl-6, earl-7</div></div>
+
+<div class="card"><span class="num">L3</span><b>Drawing the Line</b><span class="tag">Big Idea 1</span>
+<p class="earl">"Rivet keeps insisting gray is basically white. You gonna let him get away with that?"</p>
+<p><b>Learn:</b> thresholds are choices, not facts; recalibrate when the world changes.</p>
+<p><b>Do:</b> 6 min "Where does black become white?" (private answers, compare — there is no wrong answer, there is a choice you must justify) → 25 min line-follower + calibration → 8 min Juno teach-back ("why is it drunk in the dusty stacks?").</p>
+<p><b>Mastery:</b> "the sensor's world changed — the old threshold is a lie; recalibrate."</p>
+<div class="row">Game: earl-9, bolt-3, ch9-1 (stretch)</div></div>
+
+<div class="card"><span class="num">L4</span><b>Same Job, Less Code</b><span class="tag">Big Idea 2</span>
+<p class="earl">"You wrote the same three tiles eight times. You building a program or a wall?"</p>
+<p><b>Learn:</b> counted/until loops, variables, subroutines as compression — same lap, fewer tiles.</p>
+<p><b>Do:</b> 7 min shoelace pseudocode + 2-min scoreboard beat ("where does the robot write the lap count?" — a variable is the scoreboard; introduced, not quiz-stressed) → 25 min "Same Lap, Fewer Tiles" (hypothesis sentence required) → 8 min teach-back: forever vs until vs counted.</p>
+<p><b>Mastery:</b> picks loops by "do I know when it ends?" — not by syntax.</p>
+<div class="row">Game: bolt-write-shorter, earl-19 (stretch)</div></div>
+
+<div class="card"><span class="num">L5</span><b>Which Friend Actually Learns?</b><span class="tag">Big Ideas 3·4 ⚡ AI-literacy center</span>
+<p class="earl">"Folks ask if I 'know' 'em from last time. Nah — you do the remembering. That's kinda the point."</p>
+<p><b>Learn:</b> Earl &amp; co. are scripts; Spark is a real learned model; "learning from data" in kid words.</p>
+<p><b>Do:</b> 6 min Rule-follower-or-Learner sort (thermostat / autocomplete / adventure book / dog / spam filter — the book is the trick) → 25 min scripted-companion vs Spark (paper fallback if offline) → 8 min "which one LEARNED?"</p>
+<p><b>Mastery:</b> "Earl's writers wrote everything he'll ever say; Spark generates from patterns — new things, and new wrong things."</p>
+<div class="row">Offline fallback: paper transcripts — lesson runs with no network</div></div>
+
+<div class="card"><span class="num">L6</span><b>The Detective's Clinic</b><span class="tag">Big Ideas 2·1</span>
+<p class="earl">"The bot sees nothing and decides nothing. Start by asking: what IS the sensor reading right now?"</p>
+<p><b>Learn:</b> hypothesis-first debugging — symptom → hypothesis → ONE change → re-run.</p>
+<p><b>Do:</b> 7 min bug-triage card sort (sensor/logic/power) → 25 min Broken-Bot Clinic ×3 (hypothesis sentence BEFORE touching code) → 8 min Rivet teach-back.</p>
+<p><b>Mastery:</b> reconstructs the evidence chain (symptom → reading → hypothesis → one change), not just the fix.</p>
+<div class="row">Game: brokenbot-left-forever / never-stops / wrong-sensor, rivet-2 + bolt-side-3 (stretch)</div></div>
+
+<div class="card"><span class="num">L7</span><b>Fail Loudly, Learn Publicly</b><span class="tag">Big Idea 5 💥 societal impact</span>
+<p class="earl">"Every wreck wrote a letter. Reading it is the cheapest education you'll ever get."</p>
+<p><b>Learn:</b> failures are data; real robot failures have human costs; write an honest plaque.</p>
+<p><b>Do:</b> 6 min "Who's at fault?" (robot in a pond — pick ONE: sensor/coder/calibration/company, defend) → 25 min plaque wall + write your own plaque → 8 min "why is yours worth one?"</p>
+<p><b>Mastery:</b> the plaque names a <i>cause</i>, not just a crash. (ch8-2's title is narrative; content is offline — no Spark call.)</p>
+<div class="row">Game: ch8-1…ch8-3</div></div>
+
+<div class="card"><span class="num">L8</span><b>Export Day: The Same Robot, Real</b><span class="tag">Big Ideas 2·5 🎓 capstone</span>
+<p class="earl">"Chips don't think — they do exactly what you told 'em, in a language you couldn't read last month."</p>
+<p><b>Learn:</b> tiles really compile to C++/MicroPython; every student leaves holding real code with their name in the header.</p>
+<p><b>Do:</b> 6 min Be-the-Compiler → 22 min export chain (print the firmware; flash a board ONLY if IT allows) → 12 min <b>partner-pair expo</b> (60 s each way; teacher circulates with the 3-item checklist: names the idea / shows it in their bot / answers one question; 2–3 volunteers close) → 2 min close.</p>
+<p><b>Capstone debate:</b> "Your threshold works on THIS floor. The school buys darker floors. Who should have thought about that?"</p>
+<p><b>Mastery:</b> finds their name in the firmware header; maps three C++ lines to three tiles.</p>
+<div class="row">Game: ch7-1…ch7-3, earl-8/18/20, magma-3…5 · Simulation-first: unit is complete without hardware</div></div>
+
+<h2 class="pagebreak">Misconception guide</h2>
+<table>
+<tr><th>Students say…</th><th>What's actually true</th><th>When</th></tr>
+<tr><td>"If means maybe"</td><td>If is a test: TRUE road or ELSE road, never both in one pass</td><td>L2</td></tr>
+<tr><td>"Forever loops drain the battery faster"</td><td>Same speed forever; power is about what's inside the loop</td><td>L2</td></tr>
+<tr><td>"The sensor is wrong"</td><td>Sensor reports a number; the THRESHOLD decides — and we chose it</td><td>L3, L6</td></tr>
+<tr><td>"One threshold works everywhere"</td><td>Thresholds are promises to one room (also how bias enters machines — seed it)</td><td>L3, L8</td></tr>
+<tr><td>"Calibration means broken"</td><td>Calibration is maintenance, not repair</td><td>L3</td></tr>
+<tr><td>"Variables stay locked"</td><td>Changing is a variable's whole job</td><td>L4</td></tr>
+<tr><td>"Shorter code is always better"</td><td>Fewer tiles AND still readable — budgets include humans</td><td>L4</td></tr>
+<tr><td>"Everything that talks is AI"</td><td>The companions are scripted; Spark is the learned model — knowing which is which IS the lesson</td><td>L5</td></tr>
+<tr><td>"Spark understands me"</td><td>Spark predicts likely language; it can be wrong in new ways</td><td>L5</td></tr>
+<tr><td>"Debugging means fixing"</td><td>Debugging means EXPLAINING first — hypothesis, one change, evidence</td><td>L6</td></tr>
+<tr><td>"It's broken" (reflex)</td><td>Two of three clinic bugs are logic, not hardware</td><td>L6</td></tr>
+<tr><td>"Failure is bad"</td><td>Failure is data; the yard displays it on purpose</td><td>L7</td></tr>
+<tr><td>"The export is magic"</td><td>It's a translation — find your name, map three lines to three tiles</td><td>L8</td></tr>
+<tr><td>"Simulation is fake"</td><td>The simulation enforced real constraints all unit</td><td>L8</td></tr>
+</table>
+
+<h2>Assessment quick-reference</h2>
+<p>The game tracks <b>unseen → seen → practiced → taught</b> per concept — teaching is the test; rungs only rise; wrong answers route back to practice.</p>
+<ul style="font-size:10pt; margin:6px 0 6px 18px;">
+<li><b>SENSE:</b> readings are numbers, thresholds are choices; recalibrates unprompted</li>
+<li><b>THINK:</b> predicts before running; picks loops by "do I know when it ends?"; defends compression</li>
+<li><b>ACT:</b> names the three systems; describes the loop unprompted; respects budgets</li>
+<li><b>ENGINEER:</b> hypothesis chains; honest plaque (cause, not crash); maps tiles → C++ lines</li>
+</ul>
+<p style="font-size:10pt;"><i>"Not yet" is a location, not a failure.</i></p>
+
+<div class="privacy">
+<strong>Privacy card (sub folder / district file).</strong>
+Solo mode (default): no accounts, everything local. Classroom mode (optional): room code + student-typed display name in the project save backend — first names / initials only. <strong>USCP telemetry stays OFF in classroom default — nothing to opt out of; it does not ship on. No voice features ship.</strong> Spark (optional, L5 only) sends the typed question to the project-run scrap-spark service for a cached reply — no account, no profile — but plainly: typed questions can contain personal info (guidance: no real names in questions) and the content-keyed cache is shared (same question replays the same reply). <strong>Recommended for pilots: Spark off — the unit is complete without it.</strong>
+</div>
+
+<footer>Scrapcraft Unit 1 v1 · research bet #1 (docs/RESEARCH-2026-08.md) · frameworks: AI4K12 (ai4k12.org), Experience AI (experience-ai.org) · full plans: docs/classroom/UNIT-1.md · data: src/learning/data/unit1.json</footer>
+
+</body>
+</html>
