@@ -15,6 +15,7 @@ import magmaArc from './magma-arc.json' with { type: 'json' };
 import junoArc from './juno-arc.json' with { type: 'json' };
 import rivetArc from './rivet-arc.json' with { type: 'json' };
 import finale from './finale.json' with { type: 'json' };
+import spineFile from './spine.json' with { type: 'json' };
 
 export const CAMPAIGN = [
   ...earlChain.quests,
@@ -24,3 +25,7 @@ export const CAMPAIGN = [
   ...rivetArc.quests,
   ...finale.quests,
 ];
+
+/** THE SPINE — the bible's twelve chapters as a chapter map over CAMPAIGN
+ *  (references existing quest ids; never new content). See docs/SPINE.md. */
+export const SPINE = spineFile.chapters;

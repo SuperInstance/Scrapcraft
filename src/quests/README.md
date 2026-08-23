@@ -36,6 +36,7 @@ src/quests/
 - **earl-chain.json** — the original 20-quest chain, converted 1:1 (same checks, same loot; steps became typed objectives).
 - **bolt-arc.json / magma-arc.json / juno-arc.json / rivet-arc.json** — four companion arcs, 5 quests each. **Same events, different logs:** a Bolt-run player's tracker fills with lap-technique quests teaching PWM and control; a Magma-run fills with build quests teaching circuits. Arc quests unlock when you've met that companion (auto-prerequisite) and chain within the arc.
 - **finale.json** — **The Midnight Race** (worldbible payoff: the county letter gets its answer, Earl's hands off the gate). Gated on completing **any two arcs** — enforced by the engine (`FINALE_ARC_GATE`), not by quest prerequisites.
+- **spine.json** — **THE SPINE**: the worldbible campaign's twelve chapters as a chapter map over the campaign above — each chapter names its band, its 2–4 carrier quests (references, never duplicates), the four companions' pull-vector lines, and Earl's opening line. Validated by `validateSpine` (12 chapters, acts per the bible headers 4/6/2, monotonic unlock bands, quest-reference integrity). See **docs/SPINE.md**.
 
 ## Quest shape
 
