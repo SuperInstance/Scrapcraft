@@ -39,10 +39,15 @@ export const OBJECTIVE_TYPES = [
 ];
 
 /** Companion arcs a quest can belong to. */
-export const ARCS = ['earl', 'bolt', 'magma', 'juno', 'rivet', 'finale'];
+export const ARCS = ['earl', 'bolt', 'magma', 'juno', 'rivet', 'finale', 'chapter', 'side', 'yard'];
 
-/** Quest ids per arc that must ALL exist for the campaign to be complete. */
-export const ARC_SIZES = { earl: 20, bolt: 5, magma: 5, juno: 5, rivet: 5, finale: 1 };
+/** Quest ids per arc that must ALL exist for the campaign to be complete.
+ *  The depth cut adds three arcs: 'chapter' (the lived ch7–9 B-sides, Earl-
+ *  voiced), 'side' (companion side-quests, 3 beats × 4 personas, friend-
+ *  gated), and 'yard' (the post-ch9 second-arc hook). None of them count
+ *  toward the finale gate or Prestige marks — that stays bolt/magma/juno/rivet. */
+export const ARC_SIZES = { earl: 20, bolt: 5, magma: 5, juno: 5, rivet: 5, finale: 1,
+  chapter: 9, side: 12, yard: 1 };
 
 /** The finale gate: how many companion arcs (bolt/magma/juno/rivet) must be
  *  complete before the Midnight Race unlocks. The worldbible's campaign payoff. */
@@ -87,6 +92,14 @@ export function validateQuest(q) {
 
   need(typeof q.id === 'string' && /^[a-z0-9-]+$/.test(q.id), `bad id: ${q.id}`);
   need(ARCS.includes(q.arc), `${q.id}: unknown arc "${q.arc}"`);
+
+  // side quests must have affinity in [bolt, magma, juno, rivet]
+  if (q.arc === 'side') {
+    const validAffinities = ['bolt', 'magma', 'juno', 'rivet'];
+    need(validAffinities.includes(q.affinity), `side quest ${q.id}: affinity must be one of [${validAffinities.join(',')}], got "${q.affinity}"`);
+    need(q.prerequisites?.companionTier?.[q.affinity] === 'friend', `side quest ${q.id}: must set prerequisites.companionTier[${q.affinity}] === 'friend'`);
+  }
+
   need(typeof q.title === 'string' && q.title.length > 0, `${q.id}: missing title`);
   need(typeof q.brief === 'string' && q.brief.length > 0, `${q.id}: missing brief`);
   need(typeof q.affinity === 'string' && q.affinity.length > 0, `${q.id}: missing affinity`);
@@ -206,13 +219,17 @@ export function validateCampaign(quests) {
   };
   for (const q of quests) if ((color.get(q.id) ?? WHITE) === WHITE) visit(q.id, [q.id]);
 
-  // arcs complete
+  // arcs complete — every declared arc must ship its exact count
   for (const [arc, size] of Object.entries(ARC_SIZES)) {
     const n = quests.filter(q => q.arc === arc).length;
     if (n !== size) errors.push(`arc "${arc}" has ${n} quests, expected ${size}`);
   }
-  // every arc quest's affinity matches its arc (earl arc → earl affinity)
+  // every arc quest's affinity matches its arc (earl arc → earl affinity), except side quests
   for (const q of quests) {
+    if (q.arc === 'side') {
+      // side quests: affinity is one of [bolt, magma, juno, rivet], not the arc
+      continue;
+    }
     if (q.arc !== 'finale' && q.affinity !== q.arc) {
       errors.push(`${q.id}: affinity "${q.affinity}" ≠ arc "${q.arc}"`);
     }
@@ -276,6 +293,11 @@ export function validateSpine(spine, quests = []) {
     need(typeof c?.delight === 'string' && c.delight.length > 0, `${where}: missing delight`);
     need(typeof c?.openingLine === 'string' && c.openingLine.length > 0 && c.openingLine.length <= 200,
       `${where}: openingLine must be one Earl sentence (≤200 chars)`);
+    // closingLine: optional chapter closing quote for completion ceremony
+    if (c?.closingLine !== undefined) {
+      need(typeof c.closingLine === 'string' && c.closingLine.length >= 1 && c.closingLine.length <= 200,
+        `${where}: closingLine must be string 1..200 chars`);
+    }
     // teaser: the one mystery word the Logbook rail shows for a future
     // chapter (title hidden). Optional but, if present, short and wordlike.
     if (c?.teaser !== undefined) {

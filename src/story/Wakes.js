@@ -8,10 +8,13 @@
  * sleeps again (monotonic), and nothing here ever gates the spine or race.
  */
 
+// 7 wakes across the spine: ch2, ch4, ch6, ch7, ch8, ch9, ch12
 export const WAKE_EVENTS = [
   { id: 'wake-yardlight',    chapter: 2,  hint: 'nightLight',   name: 'The East Road Light' },
   { id: 'wake-fencewhistle', chapter: 4,  hint: 'audioCue',     name: 'The Fence Whistle' },
   { id: 'wake-smelterpilot', chapter: 6,  hint: 'pilotLight',   name: "The Smelter's Own Flame" },
+  { id: 'wake-crategreen',   chapter: 7,  hint: 'crateLight',   name: 'The Steady Green' },
+  { id: 'wake-plaquelights', chapter: 8,  hint: 'plaqueLights', name: 'The Honor Guard' },
   { id: 'wake-oldbot-turn',  chapter: 9,  hint: 'oldBotShift',  name: 'The Long Route Home' },
   { id: 'wake-racenight',    chapter: 12, hint: 'allLights',    name: 'The Night Everything Was On' },
 ];

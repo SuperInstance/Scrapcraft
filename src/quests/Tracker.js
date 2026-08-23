@@ -19,6 +19,9 @@
 
 import { validateCampaign, FINALE_ARC_GATE } from './schema.js';
 
+/** Arcs that auto-inject companionTier prerequisite (open arcs, not companion-gated). */
+const OPEN_ARCS = ['earl', 'finale', 'chapter', 'yard'];
+
 /** Spark topic aliases — a kid types it a dozen ways; all of them count. */
 const TOPIC_ALIASES = {
   pwm: ['pwm', 'pulse width', 'pulse-width', 'motor speed', 'duty cycle', 'gas pedal'],
@@ -32,6 +35,7 @@ const TOPIC_ALIASES = {
   maintenance: ['maintenance', 'repair', 'fix my bot', 'preventive', 'checkup'],
   crystal: ['crystal', 'ore', 'magnet sensor'],
   gps: ['gps', 'waypoint', 'navigate', 'compass'],
+  author: ['qa sticker', 'qa-sticker', 'sticker 7', '#7', 'who wrote', 'wrote the', 'author', 'header credit'],
 };
 
 function topicMatches(topic, text) {
@@ -85,7 +89,7 @@ export class QuestTracker {
     if (!ok) throw new Error(`campaign invalid: ${errors.join('; ')}`);
     for (const def of quests) {
       let q = def;
-      if (q.arc !== 'earl' && q.arc !== 'finale' && !q.prerequisites?.companionTier) {
+      if (!OPEN_ARCS.includes(q.arc) && !q.prerequisites?.companionTier) {
         q = {
           ...q,
           prerequisites: {

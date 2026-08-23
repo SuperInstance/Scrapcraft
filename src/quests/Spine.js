@@ -40,7 +40,7 @@ export class SpineState {
     this._tracker = tracker;
     this._storage = storage !== undefined ? storage
       : (typeof localStorage !== 'undefined' ? localStorage : null);
-    this.data = { v: 1, opened: {}, bandNudged: {} };   // ceremony gates, once ever
+    this.data = { v: 1, opened: {}, bandNudged: {}, completedCh: {}, completedEver: false };
   }
 
   // ── persistence (cold-start-gate style) ───────────────────────────────────
@@ -54,7 +54,8 @@ export class SpineState {
       if (!raw) return;
       const d = JSON.parse(raw);
       if (d && d.v === 1) {
-        this.data = { v: 1, opened: d.opened ?? {}, bandNudged: d.bandNudged ?? {} };
+        this.data = { v: 1, opened: d.opened ?? {}, bandNudged: d.bandNudged ?? {},
+          completedCh: d.completedCh ?? {}, completedEver: d.completedEver ?? false };
       }
     } catch { /* fresh start on corrupt saves */ }
   }
@@ -129,6 +130,26 @@ export class SpineState {
   markAllStartedAsOpened() {
     let n = 0;
     for (const c of this.dueCeremonies()) { this.data.opened[c.id] = 'migrated'; n++; }
+    if (n) this.save();
+    return n;
+  }
+
+  // ── chapter completion ceremonies: once ever per completed chapter ────────
+
+  /** Chapters that are complete but whose completion ceremony hasn't fired. */
+  dueCompletedCeremonies() {
+    return this.chapters.filter(c => this.chapterComplete(c) && !this.data.completedCh[c.id]);
+  }
+
+  /** Mark a chapter's completion ceremony as shown (persisted — the card
+   *  must never re-fire after a reload). Accepts the chapter id. */
+  markCompleted(id) { this.data.completedCh[id] = new Date().toISOString(); this.save(); }
+
+  /** Silently mark every completed chapter as ceremonied — returning players
+   *  don't get a wall of catch-up completion cards. @returns count marked */
+  markAllCompletedAsCeremonied() {
+    let n = 0;
+    for (const c of this.dueCompletedCeremonies()) { this.data.completedCh[c.id] = 'migrated'; n++; }
     if (n) this.save();
     return n;
   }

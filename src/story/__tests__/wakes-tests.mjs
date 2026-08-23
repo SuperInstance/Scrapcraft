@@ -48,10 +48,22 @@ export function runWakesTests(ok) {
     fresh.sync(fakeSpine(t0));
     ok('completions can never put the yard back to sleep (monotonic)', fresh.active('wake-yardlight'));
 
-    // full spine → all five wakes, names ordered
+    // new wake events: chapter 7 & 8
+    const t2 = mkTracker();
+    const w5 = new Wakes({ storage: null });
+    complete(t2, SPINE[6].quests);
+    const newlyAt7 = w5.sync(fakeSpine(t2));
+    ok('ch7 complete → crategreen wakes', w5.active('wake-crategreen') && newlyAt7.length === 1);
+    complete(t2, SPINE[7].quests);
+    const newlyAt8 = w5.sync(fakeSpine(t2));
+    ok('ch8 complete → plaquelights wakes', w5.active('wake-plaquelights') && newlyAt8.length === 1);
+
+    // full spine → all seven wakes, names ordered
     for (const c of SPINE) complete(t, c.quests);
     w.sync(fakeSpine(t));
-    ok('full spine → all 5 wakes (count ' + w.count() + ')', w.count() === WAKE_EVENTS.length);
+    ok('full spine → all 7 wakes (count ' + w.count() + ')', w.count() === WAKE_EVENTS.length);
+    ok('awakeNames include new wakes',
+       w.awakeNames().includes('The Steady Green') && w.awakeNames().includes('The Honor Guard'));
     ok('awakeNames are the yard\'s names, not ids',
        w.awakeNames().includes('The Night Everything Was On'));
 

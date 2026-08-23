@@ -23,7 +23,8 @@
         "juno": "Forty little fliers buzz the gate — Juno's already asking who you are and what you'll break.",
         "rivet": "Arrived the same day you did — Rivet walks the Gate band at your shoulder, learning the yard as you learn it."
       },
-      "openingLine": "You showed up with a wagon and no plan. Good — the yard's got plans enough for both of us."
+      "openingLine": "You showed up with a wagon and no plan. Good — the yard's got plans enough for both of us.",
+      "closingLine": "The yard lit up at dusk and you lit up with it. That's the whole trick, kid — it was never locked."
     },
     {
       "id": "ch02",
@@ -46,7 +47,8 @@
         "juno": "Bored by benches — Juno drifts, but pockets a copper wire 'for a question I'm saving.'",
         "rivet": "Certifies your first build by sleeping on it — the slow-blink is this chapter's whole grade."
       },
-      "openingLine": "Bench is open, sympathy's closed — build yourself a wrench."
+      "openingLine": "Bench is open, sympathy's closed — build yourself a wrench.",
+      "closingLine": "Earl is pleased. Earl doesn't show it. But the wrench came out right the first time, and the little drone's slow blink don't lie."
     },
     {
       "id": "ch03",
@@ -70,7 +72,8 @@
         "juno": "The swarm escorts your battery delivery — to Juno, ceremony is just a very polite sensor reading.",
         "rivet": "First shift with a teammate — Rivet logs the boot beep before it finishes."
       },
-      "openingLine": "A pile of parts is just a pile, kid — right up until the day it beeps."
+      "openingLine": "A pile of parts is just a pile, kid — right up until the day it beeps.",
+      "closingLine": "It beeped, you built it, and every head in the yard turned. Same six notes as always. Welcome to the tradition, genius."
     },
     {
       "id": "ch04",
@@ -94,7 +97,8 @@
         "juno": "The confound discipline IS a weird question — Juno leans in hard: hypothesis, run, watch.",
         "rivet": "The balanced curriculum says program's next on the card — Rivet sits on the desk like a paperweight with opinions."
       },
-      "openingLine": "One knob at a time, genius — change everything and you'll learn nothing but confusion."
+      "openingLine": "One knob at a time, genius — change everything and you'll learn nothing but confusion.",
+      "closingLine": "Crashed once, fixed one knob, ran it clean. That's not a lesson, kid — that's a career. You just started it early."
     },
     {
       "id": "ch05",
@@ -118,7 +122,8 @@
         "juno": "Surveys the Oval's geometry for the swarm map — and asks June what the chalk colors mean.",
         "rivet": "The curriculum says race — Rivet patrols the oval edge, keeping your bot together lap after lap."
       },
-      "openingLine": "June runs it in twenty-three flat. You're about to lose by four tenths — go find out what a tenth is."
+      "openingLine": "June runs it in twenty-three flat. You're about to lose by four tenths — go find out what a tenth is.",
+      "closingLine": "Four tenths slow and grinning anyway. June chalked your name on the board. Boards remember, kid. So do rivals."
     },
     {
       "id": "ch06",
@@ -142,7 +147,8 @@
         "juno": "This is Juno's chapter — wind-chimes, weird questions, sensors that matter; the swarm goes in first.",
         "rivet": "Walks point through the clutter — a repair drone's map of 'almost worked' is a parts list."
       },
-      "openingLine": "Past the warehouses the pavement quits and the junk gets honest — that's the Deep Yard."
+      "openingLine": "Past the warehouses the pavement quits and the junk gets honest — that's the Deep Yard.",
+      "closingLine": "Quill paid you in a crystal that hums when the weather turns — and it was right. Don't ask how it knows. Some engineering is just listening."
     },
     {
       "id": "ch07",
@@ -167,7 +173,8 @@
         "juno": "Asks Spark who QA-Sticker #7 is — then goes quiet for exactly one second too long itself.",
         "rivet": "Certifies the export the only way Rivet certifies: sleeps on the receipt, slow-blinks the diagram."
       },
-      "openingLine": "Game robot, real robot, same program — today you find out I wasn't kidding."
+      "openingLine": "Game robot, real robot, same program — today you find out I wasn't kidding.",
+      "closingLine": "Watched your program scroll past as real code while Spark nearly vibrated off its mount. Game robot, real robot, same program. Told you."
     },
     {
       "id": "ch08",
@@ -191,7 +198,8 @@
         "juno": "The plaque trail is Juno's syllabus — every wreck is a question the yard already answered.",
         "rivet": "Patrols plaque to plaque — the keeper's round was always this walk, just unnamed."
       },
-      "openingLine": "Every wreck out there wrote a letter to whoever's next. You're next, kid — read your mail."
+      "openingLine": "Every wreck out there wrote a letter to whoever's next. You're next, kid — read your mail.",
+      "closingLine": "You read your mail and every floodlight flickered on in sequence — failure, lit up like an honor guard. That's this yard's whole heart, kid. Now you're in it."
     },
     {
       "id": "ch09",
@@ -214,7 +222,8 @@
         "juno": "Low-signal sensing is Juno's favorite mystery — the swarm dims its lights to watch with you.",
         "rivet": "Sits at your boot the whole watch — the first to believe you about the candlelight."
       },
-      "openingLine": "Floods dip at 11:58 — stand still, watch the candlelight corner, and don't you dare holler."
+      "openingLine": "Floods dip at 11:58 — stand still, watch the candlelight corner, and don't you dare holler.",
+      "closingLine": "You stood still. You watched the candlelight take the corner and you didn't holler. Good. Some things don't need an audience jumping around — just a witness."
     },
     {
       "id": "ch10",
@@ -239,7 +248,8 @@
         "juno": "Correlation is a weird question asked forty ways — the swarm times the 11:58 clicks to the second.",
         "rivet": "Walks the manifest route with Ox — twenty years of patrol finally has a reason."
       },
-      "openingLine": "Hunches don't open shed doors — bring me numbers: treads, ticks, timestamps."
+      "openingLine": "Hunches don't open shed doors — bring me numbers: treads, ticks, timestamps.",
+      "closingLine": "The numbers never lied — treads, ticks, timestamps, all lining up with my old certification choreography. Bring the chalk inside, kid. Tomorrow we open the back room."
     },
     {
       "id": "ch11",
@@ -263,7 +273,8 @@
         "juno": "The swarm stands honor guard at the back room door — even forty fliers know a somebody when she beeps.",
         "rivet": "The keeper's round ends at the bench where it started — Rivet supervises the rebuild, then sleeps on it."
       },
-      "openingLine": "Back room's open. First time in twenty-six years — mind the boxes marked M."
+      "openingLine": "Back room's open. First time in twenty-six years — mind the boxes marked M.",
+      "closingLine": "She asked for a name and you put in Mo. Been twenty-six years since anybody said it out loud. Earl don't show it. Earl is pleased."
     },
     {
       "id": "ch12",
@@ -288,7 +299,8 @@
         "juno": "Times the anthem's six notes from every bot in the yard — the swarm's chorus, on cue at the line.",
         "rivet": "Takes the last corner post with Earl — the certification slow-blink is already loaded for Mo."
       },
-      "openingLine": "Floodlights, midnight, whole town in the bleachers — you get the gate, kid. I'll take the last corner."
+      "openingLine": "Floodlights, midnight, whole town in the bleachers — you get the gate, kid. I'll take the last corner.",
+      "closingLine": "Good lap, genius. Yard knows your name now — ask it what's next."
     }
   ]
 }

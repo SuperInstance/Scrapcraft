@@ -1,0 +1,18 @@
+{
+  "quests": [
+    {
+      "id": "yard-1",
+      "arc": "yard",
+      "title": "The Yard Knows Your Name",
+      "brief": "That's the story told, kid — the first one, anyway. You stood the watch. You kept your voice down. And somewhere between the floodlights and that last corner, the yard noticed you noticing it. Take one more lap, any pace you like, and ask Spark what it thinks about the ghost now. Then keep your ear to the ground: something paces the oval some evenings, unhurried, like it's saving laps up for something. The leaderboard's grown a second page nobody chalks on. And Quill's forty-third verse is called 'The Drum' — he says it isn't finished. Neither is this place. The yard knows your name now. Ask it what's next.",
+      "affinity": "yard",
+      "objectives": [
+        {"type": "SPARK_ASK", "topic": "ghost", "label": "Ask Spark what it thinks about the ghost now"},
+        {"type": "LAP", "count": 1, "label": "Take one more lap — any pace"}
+      ],
+      "prerequisites": {"quests": ["earl-12", "bolt-3"], "flags": [], "companionTier": null},
+      "rewards": {"loot": [{"item": "crystal_fragment", "qty": 5}], "xp": 50, "bond": {}, "flags": ["yard_knows_you"]},
+      "teaching": {"concept": "Post-game as open door — a finished story is a yard with more rooms", "kidPhrase": "A finished story is just a yard with more rooms. Every project you 'finish' opens doors instead of closing them — new questions, new routes, second pages. The end of a build isn't a wall. It's a doorway wearing a bow.", "memory": "One more lap for nobody's benefit, one more question with no hurry in it at all. The yard knows my name now. I'm going to ask it what's next. — with Earl"}
+    }
+  ]
+}

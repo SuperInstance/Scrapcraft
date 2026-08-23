@@ -18,7 +18,7 @@
 
 import { QuestTracker } from './Tracker.js';
 import { Logbook } from './Logbook.js';
-import { renderQuestHud, openLogbookPanel, renderChapterCeremony } from './LogbookPanel.js';
+import { renderQuestHud, openLogbookPanel, renderChapterCeremony, renderChapterCompleteCeremony } from './LogbookPanel.js';
 import { SpineState } from './Spine.js';
 import { SPINE } from './data/index.js';
 import { FINALE_ARC_GATE } from './schema.js';
@@ -51,6 +51,11 @@ export class QuestSystem {
     if (!this.spine.data.opened.__ever) {
       if (Object.keys(this.tracker.data.completed).length) this.spine.markAllStartedAsOpened();
       this.spine.data.opened.__ever = true; this.spine.save();
+    }
+    // returning players also skip completion ceremony catch-up wall
+    if (!this.spine.data.completedEver) {
+      this.spine.markAllCompletedAsCeremonied();
+      this.spine.data.completedEver = true; this.spine.save();
     }
     this._lastChapterIdx = this.spine.currentChapterIndex();
 
@@ -154,6 +159,11 @@ export class QuestSystem {
       this.spine.markOpened(c.id);
       const withN = { ...c, n: this.spine.indexOf(c.id) };
       try { renderChapterCeremony(this.game, withN); } catch { /* DOM-optional */ }
+    }
+    for (const c of this.spine.dueCompletedCeremonies()) {
+      this.spine.markCompleted(c.id);
+      const withN = { ...c, n: this.spine.indexOf(c.id) };
+      try { renderChapterCompleteCeremony(this.game, withN); } catch { /* DOM-optional */ }
     }
     const idx = this.spine.currentChapterIndex();
     if (idx !== this._lastChapterIdx) {

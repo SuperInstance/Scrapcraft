@@ -9,7 +9,7 @@ The spine is the bible's twelve chapters as **declarative data riding the quest 
 
 ```
 worldbible/campaign.md          src/quests/data/spine.json        src/quests/data/*.json
-  (the screenplay)      ──▶  THE CHAPTER MAP (12 entries)  ◀── references ── (41 quests, unchanged machinery)
+  (the screenplay)      ──▶  THE CHAPTER MAP (12 entries)  ◀── references ── (63 quests — 41 original + the depth cut)
                                      │
                      data/index.js exports SPINE alongside CAMPAIGN
                                      │
@@ -65,3 +65,16 @@ Known same-pattern issue **not** touched here (other lane's data): `rivet-4` als
 - [ ] Point the finale gate at spine-complete (in addition to FINALE_ARC_GATE)
 - [ ] Ch 5+ authoring follows the pattern: each chapter ships its **delight beat first**
 - [ ] Fix `rivet-4`'s crystal-objective mismatch (same fix as earl-11)
+
+
+## The depth cut — chapters 7–9 lived, wakes for every chapter, the second-arc hook (branch `scrap-depth`)
+
+Ch7–9 were always on the map; the depth cut makes them **lived**:
+
+- **Wakes for ch7/ch8** (`src/story/Wakes.js`): ch7 completes → **The Steady Green** (one Circuit City crate stops blinking and stays on — the yard recognizing a real brain when it sees one); ch8 → **The Honor Guard** (the plaque wrecks' floodlights hold their sequence-light at night). Seven wakes now: ch2, 4, 6, 7, 8, 9, 12.
+- **Chapter completion ceremonies** (`Spine.js` + `LogbookPanel.renderChapterCompleteCeremony`): once ever per chapter, cold-start-gate persisted, no catch-up wall for returning players (`markAllCompletedAsCeremonied`, mirroring the open-ceremony `__ever` guard). Every chapter ships a data `closingLine` (one Earl sentence, ≤200 chars, validated) — ch12's is the second-arc title drop.
+- **Lived chapter B-sides** (`data/chapter-quests.json`, arc `chapter`): the worldbible beats no carrier owned — the QA-Sticker #7 header read (new Spark topic `author`), June's friendly-research export, the full plaque pilgrimage + Sparky IV, the 11:58 watch, June's ledger rules, the precise-and-quiet '98 lap. They chain off each chapter's opener carrier (earl-8 / juno-2 / earl-12) and never block the spine — B-side doctrine.
+- **The second-arc hook** (`data/yard-arc.json`, arc `yard`): `yard-1` surfaces exactly when ch9 is walked and grants `yard_knows_you`. It teases the post-campaign yard (Mo the pacer, the second page, "The Drum") and leaves the door open. **Earl's Back Room is untouched**: marks stay 6-max, the depth arcs pay nothing (tested), and Earl gained exactly one garnish board line.
+- **Companion side-quests** (`data/side-quests.json`, arc `side`): 3 beats × 4 personas from the roundness want-vs-flaw banks, friend-gated (tier 3 of 3, schema-enforced). Guarded reveal → the fight visible → cracked open; beat 3 grants `<persona>_opened`.
+
+Engine deltas (all fail-soft): `schema.ARC_SIZES` grows three arcs; `Tracker` gets `OPEN_ARCS` (earl/finale/chapter/yard skip the auto companion-met gate) and the `author` Spark topic; `QuestSystem._checkSpine` fires completion ceremonies after open ones.
