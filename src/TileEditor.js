@@ -1491,6 +1491,28 @@ export class TileEditor {
       ${dents.length ? dents.map(d => `<div class="bc-li">💥 at (${d.x}, ${d.z}) · speed ${Math.round(d.speed * 100)}% · ${ago(d.at)}</div>`).join('')
                       : '<div class="bc-dim">none yet — suspiciously careful driving</div>'}
 
+      ${(() => {
+        // ── Dumpster-Fire Panic Button (fun-review #5) ──
+        // 3+ crashes without a completed task → the big red button. Not a fix — a recovery toy.
+        const panic = this._game?.panicStatusFor?.(bot);
+        if (!panic?.show) return '';
+        if (!panic.enabled) {
+          const mins = Math.ceil(panic.cooldownRemainingMs / 60000);
+          return `<div class="bc-sec">🚨 PANIC</div>
+            <button id="bc-panic" disabled style="width:100%;padding:10px;margin:4px 0 8px;
+              background:#3a0d0d;color:#a66;border:2px solid #733;border-radius:8px;
+              font-family:inherit;font-size:13px;font-weight:bold;letter-spacing:2px;cursor:not-allowed;">
+              🔥 PANIC — cooling down (${mins}m)</button>`;
+        }
+        return `<div class="bc-sec">🚨 PANIC</div>
+          <button id="bc-panic" style="width:100%;padding:12px;margin:4px 0 8px;
+            background:#c62828;color:#fff;border:2px solid #ff5252;border-radius:8px;
+            font-family:inherit;font-size:15px;font-weight:bold;letter-spacing:3px;cursor:pointer;
+            box-shadow:0 0 18px rgba(255,40,40,0.45); animation:bpanic 0.9s ease-in-out infinite alternate;">
+            🚨 PANIC — ROCKET OVERDRIVE 🚨</button>
+          <div class="bc-dim" style="margin-bottom:6px">${panic.crashCount} crashes, no completed task. Push it. You know you want to. (Smoke, speed, smashes 5 junk blocks, pops a loot cache. 5 min cooldown.)</div>`;
+      })()}
+
       <div class="bc-sec">🔧 REPAIR LOG</div>
       ${repairs.length ? repairs.map(r => `<div class="bc-li">🩹 ${r.dentsFixed} dent${r.dentsFixed > 1 ? 's' : ''} fixed (${r.tool}) · ${ago(r.at)}</div>`).join('')
                        : '<div class="bc-dim">no repairs needed so far</div>'}
@@ -1513,6 +1535,11 @@ export class TileEditor {
     </div>`;
 
     el.querySelector('.bc-close').addEventListener('click', () => this._toggleBotCard());
+    el.querySelector('#bc-panic')?.addEventListener('click', () => {
+      const fired = this._game?.triggerPanic?.(bot);
+      if (!fired) this._game?.ui?.notify?.('🚨 PANIC not ready — still cooling down.');
+      else { this._toggleBotCard(); this._toggleBotCard(); }   // re-render (button gone, cooldown started)
+    });
     el.querySelector('#bc-rename')?.addEventListener('click', () => {
       const v = el.querySelector('#bc-name').value.trim();
       if (v && ledger.rename(v)) {
@@ -1976,7 +2003,7 @@ export class TileEditor {
     const div = document.createElement('div');
     div.className = 'sp-msg sp-hint';
     div.style.cssText = 'border-left:3px solid #ffb020;padding-left:8px;opacity:.95';
-    div.innerHTML = `🎯 <b>Today's Challenge — ${_esc(dc.challenge.title)}</b><br>${_esc(dc.challenge.brief)}` +
+    div.innerHTML = `🎯 <b>DAILY MISSION — ${_esc(dc.challenge.title)}</b><br>${_esc(dc.challenge.brief)}` +
       (fails ? `<br><span style="opacity:.8">Most Interesting Failures of the Week:</span><br>${fails}` : '') +
       `<br><span style="opacity:.6">Failures are publishable art. Crash loud, learn loud.</span>`;
     this._sparkLog.prepend(div);
@@ -2027,6 +2054,11 @@ export class TileEditor {
     this._open = false;
     this._exitStepMode();
     if (this._rafId) { cancelAnimationFrame(this._rafId); this._rafId = null; }
+    // Workshop OOM hardening — dispose live sub-views on close. Quilt (X-RAY)
+    // and pin views each run a 200ms interval + their own DOM; leaving them
+    // alive behind a hidden panel leaks memory in fragile environments.
+    if (this._quiltOpen) this._toggleQuilt();
+    if (this._pinOpen)   this._togglePinView();
   }
 
   // ── Step debugger ─────────────────────────────────────────────────────────

@@ -31,8 +31,8 @@ export class QuiltView {
     }
 
     let html = `<div class="quilt-head">
-      <span>🧾 QUILT VIEW</span>
-      <span class="quilt-sub">your bot, as a live spreadsheet — watch values flash when they change</span>
+      <span>🩻 X-RAY MODE</span>
+      <span class="quilt-sub">see your robot's insides — every value flashes when it changes</span>
     </div><div class="quilt-body">`;
     for (const [gid, cells] of byGroup) {
       const g = GROUPS[gid];

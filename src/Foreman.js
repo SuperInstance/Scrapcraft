@@ -179,8 +179,8 @@ const QUIPS = {
     "Storm rolling in. Get your bot under cover if you care about it. I don't. (I do.)",
     "Thunder. Lightning. Perfect weather for building things indoors. Which we don't have. Well, sheds.",
     "Thunderstorm. You want a tip? Don't hold copper wire over your head right now.",
-    "Storm's interfering with sonar. Your bot's distance readings will jitter. Use the weatherIntensity sensor in your program to detect it and slow down. That's how real field robots handle weather.",
-    "Rain scatter kills ultrasonic sensors. Your bot's seeing noise right now. Read the weatherIntensity tile to compensate — it returns 0 (clear) to 1 (storm). Good robotics teaches fault tolerance.",
+    "Storm's junking up your bot's ears. Sonar lies in the rain — everybody's distance readings go fuzzy. Tell it to check the weatherIntensity tile and ease off the gas. Even a toaster knows when to cool down.",
+    "Rain makes your bot's distance sensor fib. Have it read the weatherIntensity tile — 0's a picnic, 1's a monsoon — and slow down when the sky's in a mood. Good manners, good robotics.",
   ],
   weather_clear: [
     "Sun's out. No excuses now, rookie. The scrap doesn't sort itself.",
@@ -215,9 +215,17 @@ const QUIPS = {
     "Waypoint reached! Your bot navigated there using math I won't pretend to fully understand. Good job.",
   ],
   ore_detect: [
-    "Bot's magnetic sensor just picked up crystal ore. Hall-effect chip, same as the real ones. That's not a game gimmick — that's actual I2C sensor protocol.",
+    "Magnetic sensor's tingling — crystal's close. Same little chip that tells your phone which way north is, finally doing honest work.",
     "Signal spike! Your bot found ore. The LED went green, which is the universal language for 'dig here, genius.'",
     "Ore detected. I put those crystals back there myself. Don't tell anyone they light up.",
+  ],
+  panic_button: [
+    "ROCKET OVERDRIVE. I saw that. The smoke, the speed, the... enthusiasm. My shed is still standing, so we're calling it a win.",
+    "That button's for emergencies, not birthdays. ...Fine. It was a little bit of a birthday.",
+    "You panicked MAGNIFICENTLY. Loot's yours. The wall's mine to grumble about.",
+  ],
+  all_plaques: [
+    "You read 'em all. Every wreck in this yard taught somebody something — now it taught you. Fournier said it best: a kid with no plaques is a kid with no shoulders to stand on. Go make a few of your own.",
   ],
   grenade_fire: [
     "Scrap Grenade. I see you found the fun one. Keep it away from my workbench.",
@@ -241,7 +249,7 @@ const QUIPS = {
   ],
   challenge_complete: [
     "Salvage run complete. Materials secured, skill confirmed. That's what working to a spec feels like — engineers do it every single day.",
-    "Done. On time, on target. Every real engineering project has a goal and a deadline. You just practiced both.",
+    "Done. On time, on target. That feeling in your chest right now? That's the whole paycheck. Keep it.",
     "Task complete. In a real fab shop, that's called meeting your production quota. You're ahead of schedule. Don't let it go to your head.",
   ],
   storm_exposed: [
@@ -251,7 +259,7 @@ const QUIPS = {
   ],
   bot_battery_dead: [
     "Your bot ran out of power. This is how electric vehicles work — lithium-ion pack, charge it or park it. Use a charging pad.",
-    "Battery dead. Real robots have battery management systems (BMS) that shut down cleanly at 0% to protect the cells. Your bot does the same.",
+    "Battery dead. Zero percent. It shut itself down clean, though — didn't fry its cells doing it. Stick it on a charging pad and don't take it personal. Batteries don't.",
     "Bot's done. Zero percent battery. Charge it with a charging pad. Real autonomous vehicles have the same problem — ask any delivery drone operator.",
   ],
   acid_hazard: [
@@ -262,7 +270,7 @@ const QUIPS = {
   waypoint_drop: [
     "Flag's down. Bot knows where to go. Real autonomous vehicles use the same trick — GPS coordinate, compass bearing, distance sensor. You just built basic autopilot.",
     "Waypoint set. Load the Waypoint Navigator brain and watch it steer. Bearing plus distance. That's how delivery drones navigate.",
-    "There's your flag. Your bot will drive straight to it. Same math NASA uses for rover navigation. Just... fewer craters here.",
+    "There's your flag. Your bot will drive straight to it — bearing and distance, the whole trick. A toaster could find toast with those two numbers.",
   ],
   lucky_find: [
     "Lucky find. I put that there on purpose. (I did not put that there on purpose.)",
@@ -282,7 +290,7 @@ const QUIPS = {
     "Solar power in a scrapyard. The irony is not lost on me. Neither is the free electricity.",
   ],
   place_beacon: [
-    "Signal beacon, placed. That teal pulse is your bot's North Star now. Load the beacon_signal sensor in your program and watch it home in. That's BLE RSSI — same thing your phone uses to find AirTags.",
+    "Signal beacon, placed. That teal pulse is your bot's North Star now. Signal gets louder the closer it gets — like me when the kettle boils. Point your bot at the loudest thing in the yard and it'll find it.",
     "Beacon down. In real robotics, this is called an IR beacon or Bluetooth anchor. Your bot reads signal strength and triangulates. You just built indoor positioning. Don't let it go to your head.",
     "That glowing thing you just placed? Your bot can see it from 12 blocks away via sensor. Program it to chase the signal. It's the same reason airports use ILS landing beacons. True story.",
   ],
@@ -296,7 +304,7 @@ const QUIPS = {
   ],
   receipt_view: [
     "That right there? That's C++ code. Arduino dialect. Going to a real ATmega chip. I'm not emotional about it. My eye just itches.",
-    "See those lines? You wrote that. Not with text — with tiles. The compiler turned your idea into instructions a microcontroller actually runs. That's called compilation. Welcome to engineering.",
+    "See those lines? That's your idea, translated. Tiles in, instructions out, real chip in the middle. I'd get misty, but I'm rated for toast, not tears.",
     "Real firmware. From a visual program you built in a scrapyard. If that doesn't blow your mind, I don't know what will. Go ahead, stare at it.",
   ],
   class_joined: [
@@ -319,14 +327,14 @@ const QUIPS = {
     "Lean program. Fast loop. Low budget. You're thinking like an embedded engineer now. I've met ECE graduates who couldn't do what you just did.",
   ],
   first_variable_program: [
-    "You used a variable. Your bot now has memory. It remembers something between loop iterations. That's state. Every real program you've ever used runs on state.",
+    "You used a variable. Your bot remembers things now — between laps, between moods. Careful with that. Remembering is how attachments start. Ask any toaster.",
     "Variables. Named storage. Right there in your scrapyard robot. That's what separates 'reacts to sensors' from 'actually thinks'. Good call, rookie.",
     "Count, track, remember — that's what variables do. Congratulations, your bot just crossed the line from automation into actual programming.",
   ],
   variable_cond_used: [
     "You just read a variable inside an IF. That's conditional logic based on accumulated state. Congratulations, you've independently reinvented the core of every scoring system in the history of computing.",
     "Your bot checked a variable in a condition. It evaluated its own memory. That's the difference between a dumb timer and an intelligent agent. You built the intelligent version.",
-    "Condition reads from a variable. That's runtime decision-making based on program state. That pattern runs in everything from a game scoreboard to a satellite guidance system.",
+    "It checked its own memory before deciding. Thinks, remembers, chooses. That's not a toy anymore, kid. That's a somebody.",
   ],
 };
 

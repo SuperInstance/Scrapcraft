@@ -1111,6 +1111,7 @@
     /* Bot Card — the heart */
     #bot-card { position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center;
       background:rgba(4,8,6,.7); }
+    @keyframes bpanic { from { box-shadow:0 0 10px rgba(255,40,40,0.35); } to { box-shadow:0 0 26px rgba(255,40,40,0.8); } }
     .bc-card { width:min(480px, 92vw); max-height:82vh; overflow:auto; background:#0d1410;
       border:1px solid #2d4a38; border-radius:8px; padding:14px 16px;
       font:11px/1.7 'Courier New',monospace; color:#b9d8c2;
@@ -1800,7 +1801,7 @@
         <button id="te-hex-flash" class="te-btn te-flash-btn" title="Flash a compiled .hex to an AVR109/STM32duino board via USB — or keep simulating!" style="display:none;">🔥 Flash .hex</button>
         <input type="file" id="te-hex-file" accept=".hex,.hexfile" style="display:none;" />
         <button id="te-pin-view" class="te-btn" title="Hardware twin: see your program driving a virtual Arduino Uno's pins">📐 Wiring</button>
-        <button id="te-quilt-btn" class="te-btn" title="Quilt view: your bot as a live spreadsheet — flip to watch every value flash">🧾 Quilt</button>
+        <button id="te-quilt-btn" class="te-btn" title="X-RAY MODE: see your robot's insides — flip to watch every value flash">🩻 X-RAY</button>
       </div>
       <pre id="te-code-pre"></pre>
       <div id="te-wiring-svg" style="display:none;overflow:auto;padding:8px;"></div>

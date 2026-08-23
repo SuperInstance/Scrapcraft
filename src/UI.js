@@ -903,6 +903,40 @@ export class UI {
    * four components are seated, an ACTIVATE button. Reuses the field-notes
    * overlay pattern (DOM panel appended to #hud, releases pointer lock).
    */
+  // ── Landmark plaques — readable signage ────────────────────────────────
+
+  showPlaquePanel(plaque, onRead) {
+    document.getElementById('plaque-panel')?.remove();
+    if (document.pointerLockElement) document.exitPointerLock();
+
+    const panel = document.createElement('div');
+    panel.id = 'plaque-panel';
+    panel.style.cssText = `
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      width:360px; background:rgba(12,10,4,0.97); border:2px solid #b08d57;
+      border-radius:10px; padding:18px; font-family:'Courier New',monospace;
+      color:#e8d5a3; z-index:400; box-shadow:0 0 40px rgba(176,141,87,0.3);`;
+
+    panel.innerHTML = `
+      <div style="font-size:10px;color:#8a744c;letter-spacing:2px;margin-bottom:6px;">🪧 BRASS PLAQUE · BRIGHTWORKS YARD</div>
+      <div style="font-size:15px;font-weight:bold;color:#ffd98a;margin-bottom:2px;">${plaque.name} <span style="font-weight:normal;color:#b08d57;">— ${plaque.epithet}</span></div>
+      <div style="font-size:11px;line-height:1.7;margin:10px 0;color:#d8c696;font-style:italic;">${plaque.line}</div>
+      <div style="font-size:11px;line-height:1.7;padding:10px;background:rgba(176,141,87,0.08);border-left:3px solid #b08d57;border-radius:4px;">
+        <b style="color:#ffd98a;">What it taught us:</b> ${plaque.lesson}
+      </div>
+      <div style="font-size:10px;color:#8a744c;margin-top:10px;text-align:center;">Thank this machine.</div>
+      <button id="plq-close" style="margin-top:12px;width:100%;padding:9px;
+        background:#2a2114;color:#e8d5a3;border:1px solid #b08d57;border-radius:6px;
+        font-family:inherit;font-weight:bold;cursor:pointer;letter-spacing:1px;">CLOSE  [E]</button>`;
+    document.body.appendChild(panel);
+
+    panel.querySelector('#plq-close').addEventListener('click', () => {
+      panel.remove();
+      document.getElementById('game-canvas')?.requestPointerLock();
+    });
+    onRead?.();
+  }
+
   showTowerPanel(slots, reqs, activated, onInstall, onActivate) {
     document.getElementById('tower-panel')?.remove();
     if (document.pointerLockElement) document.exitPointerLock();

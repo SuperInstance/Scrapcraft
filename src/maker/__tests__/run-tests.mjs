@@ -1448,6 +1448,104 @@ console.log('\nRivet — the companion');
   await runRivetTests(ok);
 }
 
+// ── Render mode (?lite=1 / deviceMemory heuristic) ──────────────────────────
+console.log('\nRender mode — workshop OOM hardening');
+{
+  const { resolveRenderMode, effectivePixelRatio, FULL_PIXEL_RATIO_CAP, LITE_PIXEL_RATIO } = await import('../../renderMode.js');
+
+  const forced = resolveRenderMode({ search: '?lite=1', deviceMemory: 8 });
+  ok('?lite=1 forces lite render', forced.lite === true && forced.forced === true && forced.pixelRatioCap === LITE_PIXEL_RATIO);
+
+  const off = resolveRenderMode({ search: '?lite=0', deviceMemory: 2 });
+  ok('?lite=0 forces full render (overrides heuristic)', off.lite === false && off.pixelRatioCap === FULL_PIXEL_RATIO_CAP);
+
+  const auto = resolveRenderMode({ search: '', deviceMemory: 2 });
+  ok('deviceMemory < 4 auto-suggests lite', auto.lite === true && auto.auto === true && auto.reason === 'deviceMemory');
+
+  const fine = resolveRenderMode({ search: '', deviceMemory: 8 });
+  ok('healthy deviceMemory stays full', fine.lite === false && fine.reason === 'default');
+
+  const unknown = resolveRenderMode({ search: '', deviceMemory: undefined });
+  ok('missing deviceMemory trusts the machine (full)', unknown.lite === false);
+
+  ok('full mode caps pixel ratio at 1.5', effectivePixelRatio(fine, 3) === 1.5);
+  ok('lite mode forces pixel ratio 1', effectivePixelRatio(forced, 3) === 1);
+  ok('ratio never drops below 1', effectivePixelRatio(forced, 0.5) === 1);
+}
+
+// ── Pre-game hotkey toast ────────────────────────────────────────────────────
+console.log('\nPre-game hotkey toast');
+{
+  const { maybePreGameHint, PRE_GAME_HINT_MSG } = await import('../../preGameHint.js');
+  let store = null;
+  const ctx = (code, booted) => ({ code, booted, getSession: () => store, setSession: v => { store = v; } });
+
+  ok('E pre-game shows the CLOCK IN toast', maybePreGameHint(ctx('KeyE', false)) === PRE_GAME_HINT_MSG);
+  store = null;
+  ok('T pre-game shows the toast', maybePreGameHint(ctx('KeyT', false)) === PRE_GAME_HINT_MSG);
+  ok('toast fires once per session', maybePreGameHint(ctx('KeyF', false)) === null);
+  ok('other keys stay silent', maybePreGameHint(ctx('KeyQ', false)) === null && maybePreGameHint(ctx('Space', false)) === null);
+
+  store = null;
+  ok('post-boot keys need no toast', maybePreGameHint(ctx('KeyE', true)) === null && store === null);
+}
+
+// ── Landmark plaques — the new wrecks ──────────────────────────────────────
+console.log('\nLandmark plaques — the new wrecks');
+{
+  const { PLAQUES, PLAQUE_CONCEPTS, plaqueConceptName } = await import('../../data/plaques.js');
+
+  ok('ten new plaques shipped', PLAQUES.length === 10);
+  ok('every plaque names a real component', PLAQUES.every(p => PLAQUE_CONCEPTS.includes(plaqueConceptName(p))));
+  ok('each plaque teaches a different concept', new Set(PLAQUES.map(plaqueConceptName)).size === 10);
+  ok('kid format: "Here fell …"', PLAQUES.every(p => /here fell/i.test(p.line)));
+  ok('plaques sit at fixed in-bounds yard positions', PLAQUES.every(p => Number.isInteger(p.x) && Number.isInteger(p.z) && p.x >= 0 && p.x < 128 && p.z >= 0 && p.z < 128));
+  ok('the kid asked for Sparky + capacitors — honored', plaqueConceptName(PLAQUES.find(p => p.id === 'sparky_ix')) === 'capacitor');
+  ok('plaque ids unique', new Set(PLAQUES.map(p => p.id)).size === 10);
+  ok('every plaque keeps the doctrine (thank this machine)', PLAQUES.every(p => /thank this machine/i.test('What it taught us: ' + p.lesson + ' Thank this machine.')));
+}
+
+// ── Dumpster-Fire Panic Button ───────────────────────────────────────────
+console.log('\nPanic button — Rocket Overdrive');
+{
+  const { createPanicState, noteCrash, noteTaskComplete, panicStatus, consumePanic, smashTargets, rollLootCache, PANIC_THRESHOLD, PANIC_COOLDOWN_MS } = await import('../../PanicButton.js');
+
+  ok('threshold is 3 crashes, cooldown 5 min', PANIC_THRESHOLD === 3 && PANIC_COOLDOWN_MS === 5 * 60 * 1000);
+
+  let s = createPanicState();
+  noteCrash(s); noteCrash(s);
+  ok('2 crashes → button stays hidden', panicStatus(s, 1000).show === false);
+  noteCrash(s);
+  const st = panicStatus(s, 1000);
+  ok('3 crashes → button shows, armed', st.show === true && st.enabled === true);
+
+  ok('consumePanic fires and starts cooldown', consumePanic(s, 2000) !== null && s.lastPanicAt === 2000 && s.crashCount === 0);
+  noteCrash(s); noteCrash(s); noteCrash(s);
+  ok('cooldown blocks for the full 5 minutes', panicStatus(s, 2000 + PANIC_COOLDOWN_MS - 1).enabled === false);
+  ok('cooldown reports remaining time', panicStatus(s, 2000 + 60_000).cooldownRemainingMs > 0);
+  ok('cooldown expired → armed again', panicStatus(s, 2000 + PANIC_COOLDOWN_MS).enabled === true);
+  ok('gated consume returns null during cooldown', consumePanic(s, 2000 + 1000) === null);
+
+  s = createPanicState();
+  noteCrash(s); noteCrash(s); noteTaskComplete(s);
+  ok('completed task resets the crash count', s.crashCount === 0 && panicStatus(s).show === false);
+
+  // smash targeting — junk whitelist only, nearest first, max 5
+  const SCRAP = 7, RUST = 4, STATION = 9; // real block ids; 9 is not on the whitelist
+  const grid = {
+    '0,1,0': SCRAP, '0,1,1': RUST, '0,1,-1': SCRAP,
+    '1,1,0': RUST, '-1,1,0': SCRAP, '2,1,0': RUST, '3,1,0': SCRAP,
+    '0,2,0': STATION, '0,1,3': STATION,
+  };
+  const targets = smashTargets({ x: 0, z: 0 }, (x, y, z) => grid[`${x},${y},${z}`] ?? 0, [{ id: SCRAP }, { id: RUST }]);
+  ok('smashes at most 5 blocks', targets.length === 5);
+  ok('stations are never smashable', !targets.some(t => t.id === STATION));
+  ok('nearest blocks go first', Math.abs(targets[0].x) + Math.abs(targets[0].z) <= 1);
+
+  const loot = rollLootCache(() => 0.99);
+  ok('loot cache is salvage (iron), never empty', loot.length >= 1 && loot[0].id === 'iron_scrap');
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

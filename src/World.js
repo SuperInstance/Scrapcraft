@@ -1,4 +1,5 @@
 import { B, BLOCK_DEF, isSolid } from './data/blocks.js';
+import { PLAQUES } from './data/plaques.js';
 
 function lcg(seed) {
   let s = seed >>> 0;
@@ -527,6 +528,15 @@ export class World {
       this.setBlock(gx, 1, gz+1, B.RUST_METAL);
     }
     this.landmarks.robot_graveyard = { x: 79, y: 1, z: z0 + 7 };
+
+    // ── Landmark plaques — the NEW WRECKS (worldbible/plaques.md) ──────────
+    // Brass signage at fixed yard positions: a post + a board block, and a
+    // readable entry (E) for the plaque system. Fail loudly, learn publicly.
+    for (const plq of PLAQUES) {
+      this.setBlock(plq.x, 1, plq.z, B.RUST_METAL);   // the post
+      this.setBlock(plq.x, 2, plq.z, B.CLEAN_METAL);  // the board
+    }
+    this.landmarks.plaques = PLAQUES.map(p => ({ ...p }));
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────

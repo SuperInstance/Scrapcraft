@@ -3,12 +3,43 @@ import { B, BLOCK_DEF } from './data/blocks.js';
 import { buildTextures } from './TextureGen.js';
 
 export class Renderer {
-  constructor(canvas) {
+  /**
+   * @param {HTMLCanvasElement} canvas
+   * @param {{lite?: boolean}} opts lite mode: pixel ratio forced to 1,
+   *        shadows off, fog pulled in — for weak hardware (?lite=1 or the
+   *        deviceMemory heuristic). Normal mode caps the ratio at 1.5.
+   */
+  constructor(canvas, opts = {}) {
     this.canvas = canvas;
+    this.lite = !!opts.lite;
     this._init();
+    this._applyRenderMode();   // applies the ?lite cap (or the normal 1.5 cap)
     this._textures = buildTextures();
     this._buildBlockMaterials();
     this._instanceMeshes = new Map();
+  }
+
+  /** Apply lite (or full) render mode after construction. Idempotent. */
+  setLite(lite) {
+    this.lite = !!lite;
+    this._applyRenderMode();
+  }
+
+  _applyRenderMode() {
+    const dpr = window.devicePixelRatio ?? 1;
+    // Full mode still caps at 1.5 — a 3x panel buys nothing here and costs 4× pixels.
+    const ratio = this.lite ? 1 : Math.max(1, Math.min(dpr, 1.5));
+    this.renderer.setPixelRatio(ratio);
+    if (this.scene?.fog) {
+      // Lite pulls the fog in: fewer far chunks drawn, weaker GPUs breathe.
+      this.scene.fog.near = this.lite ? 14 : 20;
+      this.scene.fog.far  = this.lite ? 60 : 90;
+    }
+    if (this.renderer.shadowMap) {
+      this.renderer.shadowMap.enabled = !this.lite;
+      this.sunLight && (this.sunLight.castShadow = !this.lite);
+    }
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
   _init() {
@@ -26,7 +57,6 @@ export class Renderer {
     this.renderer.setSize(w, h);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
     // Ambient — controlled by DayNight
     this.ambientLight = new THREE.AmbientLight(0xffeedd, 0.6);
     this.scene.add(this.ambientLight);

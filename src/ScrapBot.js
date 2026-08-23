@@ -304,7 +304,8 @@ export class ScrapBot {
 
       const speedCoil  = this._game?.player?.hasTool('speed_coil') ? 1.4 : 1;
       const upgradeSpd = this._brainMode ? (this._game?.botUpgrades?.getMultiplier('speed') ?? 1) : 1;
-      const speedMult  = speedCoil * upgradeSpd;
+      const panicSpd   = (this._panicBoostUntil && performance.now() < this._panicBoostUntil) ? 3 : 1;   // ROCKET OVERDRIVE
+      const speedMult  = speedCoil * upgradeSpd * panicSpd;
       moveDir.normalize().multiplyScalar(BOT_SPEED * speedMult * Math.min(1, (dist - FOLLOW_DIST + 1)));
       this._velocity.lerp(moveDir, 5 * dt);
     } else {
@@ -375,7 +376,9 @@ export class ScrapBot {
       );
     }
 
-    const tickSpeed = this._game?.botUpgrades?.getMultiplier('tick_speed') ?? 1;
+    const tickSpeed = (this._game?.botUpgrades?.getMultiplier('tick_speed') ?? 1)
+      // ROCKET OVERDRIVE — 4s of triple-speed frenzy after the PANIC button
+      * ((this._panicBoostUntil && performance.now() < this._panicBoostUntil) ? 3 : 1);
     const prePose = this._runtime ? { x: this._runtime.robot.x, z: this._runtime.robot.z } : null;
     this._runtime.tick(dt, tickSpeed);
 
@@ -387,6 +390,8 @@ export class ScrapBot {
         this.speak(`[DENT LOG] that wall came out of nowhere. That's ${this.ledger.dents.length} total.`);
         // Rivet saw the whole thing — crashes survived together count
         this._game?.rivet?.observe('crash_survived', { note: `speed ${dent.speed}` });
+        // Panic button ledger — 3+ crashes without a completed task shows the big red button
+        this._game?.noteBotCrash?.(this._slotKey ?? 'bot1');
       }
     }
 
@@ -440,6 +445,7 @@ export class ScrapBot {
         this._waypointReachedFired = true;
         this._game?.achievements?.track('waypoint_reach', {});
         this._game?.ui?.notify('🚩 Bot reached the waypoint!');
+        this._game?.noteBotTaskComplete?.(this._slotKey ?? 'bot1');   // panic reset: job done
       }
     }
     // Reset flag when waypoint moves

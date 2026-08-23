@@ -27,6 +27,9 @@ import { RaceBoard, NPC_GHOSTS, BEAT_QUIPS } from './RaceBoard.js';
 import { Codex } from './Codex.js';
 import { ClassRoom } from './ClassRoom.js';
 import { ChallengeSystem } from './ChallengeSystem.js';
+import { resolveRenderMode } from './renderMode.js';
+import { createPanicState, consumePanic, panicStatus, noteCrash, noteTaskComplete, smashTargets, rollLootCache, SMASHABLE_BLOCKS } from './PanicButton.js';
+import { PLAQUES } from './data/plaques.js';
 import { voiceOut, voiceIn, announceRaceStart, announceLap, announcePersonalBest, announceVictory, preloadAnnouncements } from './voice/index.js';
 import { Rivet } from './companion/Rivet.js';
 import { RivetAvatar } from './companion/avatar.js';
@@ -72,7 +75,14 @@ export class Game {
     this.world    = new World(128, 128, 10);
     this.world.generate(1337);
 
-    this.renderer = new Renderer(this.canvas);
+    // Workshop OOM hardening — ?lite=1 flag / deviceMemory<4 heuristic decides
+    // the render budget before anything heavy is built.
+    this.renderMode = resolveRenderMode({
+      search: typeof location !== 'undefined' ? location.search : '',
+      deviceMemory: typeof navigator !== 'undefined' ? navigator.deviceMemory : undefined,
+      devicePixelRatio: typeof window !== 'undefined' ? window.devicePixelRatio : 1,
+    });
+    this.renderer = new Renderer(this.canvas, { lite: this.renderMode.lite });
     this.renderer.rebuildMeshes(this.world);
 
     // Translucent ghost block shown when hovering a placement target
@@ -114,6 +124,13 @@ export class Game {
     this.scrapBot._slotKey = 'bot1';
     this.scrapBot.setUI(this.ui);
     this.scrapBot.setGame(this);
+
+    // ── Dumpster-Fire Panic Button (fun-review #5) — crash counter per bot ──
+    this._panicStates = { bot1: createPanicState(), bot2: createPanicState() };
+    // Landmark plaques read (persisted — reading all ten is a tradition)
+    try {
+      this._plaquesRead = new Set(JSON.parse(localStorage.getItem('scrapcraft_plaques_read') ?? '[]'));
+    } catch { this._plaquesRead = new Set(); }
 
     // Second bot — spawned at Level 5 (Engineer) via Shift+B
     this.scrapBot2 = null;
@@ -284,6 +301,11 @@ export class Game {
     setTimeout(() => this.classRoom.showJoinPromptIfNeeded(), 2000);
 
     this.ui.updateHotbar(this.player);
+
+    // Auto-suggest lite mode when the device heuristic tripped it (no ?lite flag given)
+    if (this.renderMode.auto && this.renderMode.lite) {
+      this.ui.notify('🪫 Weak hardware detected — <b>LITE MODE</b> on: low-res render, shadows off. Reload with <b>?lite=0</b> for full detail.');
+    }
   }
 
   // ── Mission Card tutorial (Phase A cold-open) ───────────────────────
@@ -446,6 +468,14 @@ export class Game {
           }
         }
         const p = this.player.pos;
+        // Landmark plaques — readable signage (worldbible: "Fail loudly. Learn publicly.")
+        {
+          const existing = document.getElementById('plaque-panel');
+          if (existing) { existing.remove(); document.getElementById('game-canvas')?.requestPointerLock(); return; }
+          const plq = this._nearbyPlaque(p.x, p.z, 2.5);
+          if (plq) { this.ui.showPlaquePanel(plq, () => this._onPlaqueRead(plq)); return; }
+        }
+
         const nearby = this.world.getNearbyInteractives(p.x, p.y, p.z, 3);
         this.ui.openInventory(nearby[0]?.station ?? 'any');
       }
@@ -468,7 +498,8 @@ export class Game {
         else { this.tileEditor.open(this._getBrainTier()); }
         return;
       }
-      if (e.code === 'F5') { e.preventDefault(); this.saveSystem.save(); }
+      if (e.code === 'F5') { e.preventDefault(); this.saveSystem.save();
+      }
       if (e.code === 'F9') { e.preventDefault(); this.saveSystem.load(); }
       if (e.code === 'KeyF') {
         const msg = prompt('Talk to Big Earl:') ?? '';
@@ -494,8 +525,7 @@ export class Game {
       if (e.code === 'KeyH' && !this.ui.isOpen && !this.tileEditor.isOpen) this._toggleHelp();
       // Hold V to talk to Rivet — STT in, character answer out, in Rivet's voice
       if (e.code === 'KeyV' && !e.repeat && !this.ui.isOpen && !this.tileEditor.isOpen) {
-        this._startRivetTalk();
-      }
+        this._startRivetTalk();      }
       if (e.code === 'KeyR' && document.pointerLockElement) {
         this.player.pos.set(8, 2, 5);
         this.player.vel?.set(0, 0, 0);
@@ -1339,6 +1369,7 @@ export class Game {
   }
 
   start() {
+    if (this._running) return;   // CLOCK IN twice must not spawn duplicate render loops (OOM path)
     this._running = true;
     this._lastTime = performance.now();
     this._loop();
@@ -1352,6 +1383,90 @@ export class Game {
     this._lastTime = now;
     this._update(dt);
     this._render(dt);
+  }
+
+  // ── Dumpster-Fire Panic Button (fun-review #5) ───────────────────────────
+
+  _panicStateFor(bot) {
+    const key = bot === this.scrapBot2 ? 'bot2' : 'bot1';
+    return this._panicStates?.[key] ?? createPanicState();
+  }
+
+  /** A bot bonked a wall — feeds the PANIC counter (3+ crashes → button shows). */
+  noteBotCrash(slotKey) {
+    const s = this._panicStates?.[slotKey];
+    if (s) noteCrash(s);
+  }
+
+  /** Bot finished a job (lap / waypoint / challenge) — despair reset. */
+  noteBotTaskComplete(botOrSlot) {
+    const key = typeof botOrSlot === 'string' ? botOrSlot : (botOrSlot === this.scrapBot2 ? 'bot2' : 'bot1');
+    const s = this._panicStates?.[key];
+    if (s) noteTaskComplete(s);
+  }
+
+  /** Bot Card asks: should the big red button show / be live? */
+  panicStatusFor(bot) {
+    return panicStatus(this._panicStateFor(bot));
+  }
+
+  /** ROCKET OVERDRIVE — smoke burst, speed frenzy, smash 5 junk blocks, loot cache. */
+  triggerPanic(bot) {
+    const state = this._panicStateFor(bot);
+    const fired = consumePanic(state);
+    if (!fired) return false;
+
+    const pos = bot?._pos ?? this.player.pos;
+    const name = bot?.ledger?.name ?? bot?.personality?.name ?? 'The bot';
+
+    // 1) smoke burst — comic, not catastrophic
+    this.particles.burst(pos.x, (pos.y ?? 1) + 0.6, pos.z, 'smoke', 26);
+    this.particles.burst(pos.x, (pos.y ?? 1) + 0.9, pos.z, 'ember', 10);
+
+    // 2) speed frenzy — 4s of triple-speed chaos (ScrapBot.tick reads this)
+    if (bot) bot._panicBoostUntil = performance.now() + 4000;
+
+    // 3) smash the 5 nearest junk blocks (kid-safe: junk whitelist only)
+    const smashableIds = SMASHABLE_BLOCKS.map(n => B[n]).filter(id => id != null);
+    const targets = smashTargets(pos, (x, y, z) => this.world.getBlock(x, y, z), smashableIds);
+    for (const t of targets) {
+      this.world.mine(t.x, t.y, t.z);
+      this.particles.burst(t.x + 0.5, t.y + 0.5, t.z + 0.5, 'mine', 8);
+    }
+
+    // 4) the salvageable loot cache — despair becomes a toy
+    const loot = rollLootCache();
+    for (const l of loot) this.player.addItem(l.id, l.qty);
+    const lootStr = loot.map(l => `${getItem(l.id)?.icon ?? ''} ${getItem(l.id)?.name ?? l.id} ×${l.qty}`).join(', ');
+
+    this.ui.notify(`🔥 <b>ROCKET OVERDRIVE!</b> ${name} went full dumpster-fire — smashed ${targets.length} junk block${targets.length === 1 ? '' : 's'} and coughed up: ${lootStr}. (Cooldown: 5 min.)`);
+    this.foreman?.say?.('panic_button');
+    this.xpSystem?.gain(5);
+    return true;
+  }
+
+  // ── Landmark plaques ────────────────────────────────────────────────────
+
+  _nearbyPlaque(px, pz, radius = 2.5) {
+    const list = this.world?.landmarks?.plaques;
+    if (!list) return null;
+    for (const plq of list) {
+      if ((px - plq.x) ** 2 + (pz - plq.z) ** 2 <= radius * radius) return plq;
+    }
+    return null;
+  }
+
+  _onPlaqueRead(plq) {
+    if (!plq || this._plaquesRead.has(plq.id)) return;
+    this._plaquesRead.add(plq.id);
+    try {
+      localStorage.setItem('scrapcraft_plaques_read', JSON.stringify([...this._plaquesRead]));
+    } catch { /* private mode — session-only is fine */ }
+    if (this._plaquesRead.size >= PLAQUES.length) {
+      this.ui.notify('🪧 <b>ALL PLAQUES READ.</b> Fail loudly, learn publicly — you now have shoulders to stand on. (+50 XP)');
+      this.foreman?.say?.('all_plaques');
+      this.xpSystem?.gain(50);
+    }
   }
 
   // ── Rivet per-frame: presence, idle watch, battery, nudges ──────────────
@@ -2120,6 +2235,7 @@ export class Game {
         this.particles.burst(38, 1.5, 14, 'confetti', improved ? 30 : 14);
         this.achievements.track('lap_complete', {});
         this.challenge.onLapComplete();
+        this.noteBotTaskComplete(bot);   // panic reset: a lap is a completed task
         this.xpSystem.gain(20);
         this.rivet?.observe('lap_complete', { secs, note: `${secs}s${improved ? ' PB' : ''}` });
         // The heart: this lap is remembered
@@ -2237,6 +2353,7 @@ export class Game {
         this.particles.burst(49, 1.5, 84, 'confetti', improved ? 30 : 14);
         this.achievements.track('lap_complete', {});
         this.challenge.onLapComplete();
+        this.noteBotTaskComplete(bot);   // panic reset: a lap is a completed task
         this.xpSystem.gain(improved ? 30 : 20);
         bot.speak(bot.personality.quip(improved ? 'lap_record' : 'lap_complete'));
         // Voice announcements for race
