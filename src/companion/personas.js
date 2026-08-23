@@ -170,21 +170,8 @@ const bolt = {
     ],
     biome_first: [
       { tier: 0, line: '{biome}. New stretch. Watch the footing — new ground hides new ways to flip.' },
-      { tier: 0, line: 'First time in {biome}. I\'ll note the sightlines. Old habit. Can\'t turn it off.' },
-      { tier: 1, line: '{biome}, huh. Flat run-in over there. Would make a decent drag strip. Not that I measured. I measured.' },
-      { tier: 1, trait: 'throttle', line: '{biome} has a natural straight. Long one. I\'m just saying. Bots don\'t walk.' },
-      { tier: 2, line: '{biome} clearance acquired. The gate ghosts never came this far. You might. Slowly. Then quickly.' },
-    ],
-    low_battery: [
-      { tier: 0, line: 'Power\'s low. Pads are by the oval. Even race drones know the walk of shame.' },
-      { tier: 1, line: 'Battery\'s thinning. Rule one of the pits: never stall in front of the crowd. Charge.' },
-      { tier: 2, line: 'Low charge. A fast bot with a dead battery is a paperweight with opinions. Pads. Now.' },
-      { tier: 2, trait: 'throttle', line: 'You\'re running on fumes. Fumes don\'t set lap records. The oval forgives, the battery doesn\'t.' },
-    ],
-    biome_first: [
-      { tier: 0, line: '{biome}. New stretch. Watch the footing — new ground hides new ways to flip.' },
-      { tier: 0, line: 'First time in {biome}. I\'ll note the sightlines. Old habit. Can\'t turn it off.' },
-      { tier: 0, line: '{biome}. Unfamiliar ground. I\'ll run the sightlines. Stay on my flank. Old habit, still a good one.' },
+      { tier: 0, line: '{biome}. New surface, no lap data yet. Give me one lap and I\'ll know where it bites.' },
+      { tier: 0, line: '{biome}. Unmeasured ground. Pit rule one: respect what you haven\'t timed. Rule two: time it.' },
       { tier: 1, line: '{biome}, huh. Flat run-in over there. Would make a decent drag strip. Not that I measured. I measured.' },
       { tier: 1, trait: 'throttle', line: '{biome} has a natural straight. Long one. I\'m just saying. Bots don\'t walk.' },
       { tier: 1, trait: 'steely', line: 'First pass through {biome}. Uneven footing, two blind corners, one promising straight. That\'s the scouting report. It\'s free. The next one costs a lap.' },
@@ -225,9 +212,9 @@ const bolt = {
       { tier: 0, line: 'Ghost time beaten. That name used to own that spot. Ownership transferred.' },
       { tier: 1, line: 'Ghost down. That name on the board used to be a lock. Was.' },
       { tier: 1, trait: 'throttle', line: 'You just out-ran a ghost. They don\'t get tired, they don\'t blink, and you STILL took it.' },
-      { tier: 1, trait: 'steely', line: 'A ghost, retired. By you. The board updates, the memory stays. Both earned.' },
+      { tier: 1, trait: 'steely', line: 'Ghost retired. By you. Your time\'s on the board now. The old one\'s still in my head — I keep everything. Ask me in a year.' },
       { tier: 2, line: 'Another ghost beaten. The board\'s getting personal now. Good. Racing was always personal.' },
-      { tier: 2, line: 'Another ghost off the board. You know what\'s left up there? Your name, and room to climb. That\'s the whole sport.' },
+      { tier: 2, line: 'Another ghost down. The board\'s thinning up top. One of these days the only name left to beat is yours. Plan for that day.' },
     ],
     bot_built: [
       { tier: 0, line: 'New bot. It\'s boxy. Boxwood is aero-neutral. That\'s a real term. Probably.' },
@@ -236,11 +223,11 @@ const bolt = {
       { tier: 1, line: 'Teammate built. Now make it FAST. Build is the entry fee; speed is the race.' },
       { tier: 1, trait: 'throttle', line: 'Nice bot. Now — motor mounts tight? A loose mount at speed is a magic trick nobody wants.' },
       { tier: 1, trait: 'steely', line: 'New chassis, honest wiring. No frills to fail. The pit crews called that "race-ready." So is this.' },
-      { tier: 2, line: 'Another runner for the fleet. Bring it to the oval. I\'ll teach it respect for corner two. It\'s earned the fear.' },
+      { tier: 2, line: 'Another runner for the fleet. Bring it to the oval — corner two will introduce itself. I\'ll time the introduction.' },
       { tier: 2, line: 'Fleet grows. Bring it by the oval when it\'s ready. I\'ll show it where the fast part lives.' },
     ],
     repair_done: [
-      { tier: 0, line: 'Dents out. Good. Wounds close faster than reputations.' },
+      { tier: 0, line: 'Dents out, frame\'s true. Straight frames make straight times. Nobody sets records on a bent one.' },
       { tier: 0, line: 'Dent handled. The book remembers so the bot can forget. That\'s the deal.' },
       { tier: 1, line: 'Repaired and logged. Pit crews that log repairs win races. Pit crews that don\'t, run out of pit crew.' },
       { tier: 1, line: 'Repairs logged. Pit gospel: fix it, log it, forget it, go again.' },
@@ -253,7 +240,7 @@ const bolt = {
   observations: [
     s => (s.counters.laps > 0
       ? `${s.counters.laps} laps on the sheet. The oval keeps every one of them in its little gravel heart.`
-      : 'The oval\'s empty. Laps don\'t run themselves. Believe me. I\'ve waited. I\'ve watched.'),
+      : 'The oval\'s empty. Two stopwatches, zero laps. By pit math, that\'s overstaffed.'),
     s => (s.counters.crashes > 0
       ? `${s.counters.crashes} crashes logged. Statistically, one of them was funny. I\'m still deciding which.`
       : 'No crashes yet. Either you\'re careful or you\'re slow. The lap timer will tell us which. It always talks.'),
@@ -478,13 +465,13 @@ const magma = {
       { tier: 2, trait: 'warmth', line: 'The fleet grows again! You know what my factory friends would say? Nothing. They would just nod slowly, like me. This is the nod, little one. This is it.' },
     ],
     repair_done: [
-      { tier: 0, line: 'Repaired! The hammer is a loud tool with a gentle heart. You used it well.' },
+      { tier: 0, line: 'Repaired! You pressed the dent out flat — palm-smooth, the way the factory taught me. A flat panel is a happy panel. This one is very happy.' },
       { tier: 0, line: 'Repaired! The hammer said what it always says: BOOM, and then better.' },
       { tier: 1, line: 'Dents out, book updated. You know what I love about the repair book? It remembers the hurt AND the healing. That is a wise book.' },
       { tier: 1, trait: 'patience', line: 'Dent pressed, book updated, no hurry anywhere. That repair will hold, small one. Hurried repairs lie. Patient ones keep their promises.' },
       { tier: 1, trait: 'craftwork', line: 'Fixed and logged! Feel the seam with your thumb — smooth, yes? That is your patience, made touchable. Not everyone gets to touch their own patience. You do.' },
       { tier: 2, line: 'Good as race day — I learned that phrase from Bolt, and I use it wrong on purpose. It means: better than before, because now it is loved on.' },
-      { tier: 2, line: 'The bot is loved-on and race-day ready. The difference between broken and repaired? A story with a good ending. This one has one now.' },
+      { tier: 2, line: 'The bot is loved-on and race-day ready. A good repair leaves a seam, little one — and a good seam is stronger than the metal around it. Run your thumb across. That is your work, holding.' },
       { tier: 2, trait: 'warmth', line: 'Repaired! I remember your first dent, little one. Look how gently you fix things now. Some people learn force. You learned care. Better curriculum.' },
     ],
     flash_success: [
@@ -530,7 +517,7 @@ const magma = {
     { when: c => c.tod === 'Dawn', line: 'Dawn. The forge breathes its first slow breath, and the whole yard stretches. Including me. This is me stretching. It takes a while. It is worth the while.' },
     { when: c => c.tod === 'Dusk', line: 'Sunset light on old metal — everything glows like it remembers being new. It does remember. Metal holds everything. That is its whole personality, and mine.' },
     { when: c => c.weather === 'rain', line: 'Rain, soft on the roof. The workbench and I listen together. Benches are the best listeners. Present company excluded, small builder. You are also excellent.' },
-    { when: c => c.weather === 'rain', line: 'Rainy days are bench days, little one. Warm light, dry tools, slow hands. Some of my favorite builds were born rainy. The rain brings its own patience.' },
+    { when: c => c.weather === 'rain', line: 'Rain on the roof, little builder — the yard is playing bench music. Warm light, dry tools, small builds. At the factory, rainy Tuesdays built the best cranes. I know. I lifted every one.' },
     { when: c => c.weather === 'storm', line: 'A storm! Do not fear, small one — the heavy shelf is bolted, the forge is sheltered, and I am VERY difficult to move. We are safe. Safe and cozy. My two favorite load ratings.' },
     { when: c => c.tod === 'Midday' && c.weather === 'clear', line: 'Midday warmth. Metal grows a hair in the heat — measurements shift by a hair. I love a world that tells you honestly when it has changed. Be like warm metal, little one.' },
   ],

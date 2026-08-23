@@ -54,7 +54,7 @@ export const BANTER = {
 
   rare_loot: [
     { tier: 0, line: 'Oh — that\'s a good part. A really good part. Should I not point? I\'m pointing.' },
-    { tier: 0, line: 'Nice find! I\'ll remember where we got it. In case we need another. Or in case I need to visit it.' },
+    { tier: 0, line: 'Ooh, good part! Pinning the spot — three turns past the rust heap, left at the sad tire. All my landmarks are sad tires. The yard is full of them.' },
     { tier: 1, line: 'OK who taught you to spot treasure? Because that was NOT luck, that was skill, and I want the teacher\'s name.' },
     { tier: 1, trait: 'scrappy', line: 'Ooooh, shiny AND functional. The junk gods smile on us today.' },
     { tier: 1, trait: 'competitive', line: 'June is gonna be SO mad you found that first. I say we frame it.' },
@@ -133,9 +133,9 @@ export const BANTER = {
     { tier: 2, line: 'Good as new-ish! You fixed it instead of giving up on it. The yard notices that. I notice that. Logging it under "good days."' },
   ],
 
-  tier_up: [
-    { tier: 0, line: '' }, // tier_up lines are per-new-tier, handled below
-  ],
+  // tier_up has no pool lines: promotions are per-new-tier announcements
+  // from TIER_UP_LINES below (see Companion.observe -> tierUpLine).
+  tier_up: [],
 };
 
 /** Tier-up announcements — one per promotion. keyed by new tier. */
