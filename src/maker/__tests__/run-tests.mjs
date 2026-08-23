@@ -1470,6 +1470,13 @@ console.log('\nCompanion roundness — the second layer of every voice');
   await runRoundnessTests(ok);
 }
 
+// ── Companion variety suite (anti-repetition, gating, cadence) ─────────────
+console.log('\nCompanion variety — no line twice, cadence that respects the kid');
+{
+  const { runVarietyTests } = await import('../../companion/__tests__/variety-tests.mjs');
+  await runVarietyTests(ok);
+}
+
 // ── Render mode (?lite=1 / deviceMemory heuristic) ──────────────────────────
 console.log('\nRender mode — workshop OOM hardening');
 {

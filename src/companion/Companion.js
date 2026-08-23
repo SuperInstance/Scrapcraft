@@ -16,8 +16,9 @@
  */
 
 import { CompanionState } from './state.js';
-import { pickBanter, pickObservation, renderLine, tierUpLine } from './banter.js';
+import { renderLine, tierUpLine } from './banter.js';
 import { pickRoundnessIdle, wantFlawBeat } from './roundness.js';
+import { LineMemory, ChatterGuard, pickBanterFresh, pickObservationFresh } from './variety.js';
 import { Nudger } from './nudge.js';
 import { getPersona } from './personas.js';
 
@@ -36,6 +37,7 @@ export class Companion {
    * @param {Storage} [opts.storage]                                injectable persistence
    * @param {() => number} [opts.rng]
    * @param {boolean} [opts.managed]                                roster owns the nudge tick
+   * @param {ChatterGuard} [opts.chatter]                           injectable cadence guard
    */
   constructor(opts = {}) {
     this.persona = typeof opts.persona === 'string' ? getPersona(opts.persona) : (opts.persona ?? getPersona('rivet'));
@@ -51,6 +53,12 @@ export class Companion {
     this._rng = opts.rng ?? Math.random;
     this._speakFn = opts.speak ?? (() => {});
     this._managed = Boolean(opts.managed);
+
+    // variety: ring memory (save-persisted, fail-soft) + cadence guard.
+    // The guard rides this companion's own clock so tests stay deterministic.
+    this._memory = LineMemory.from(this.state?.data?.banterRecent);
+    this._chatter = opts.chatter ?? new ChatterGuard({ now: () => this._moodClock });
+    this._ambientCtx = null;        // { tod, weather } — set by update() from the game
 
     // timing
     this._sinceReactive = Infinity;
@@ -82,7 +90,16 @@ export class Companion {
   say(text, meta = {}) {
     if (!text) return;
     this._speakFn(text, { voice: this.persona.voice.name, companion: this.persona.id, ...meta });
+    this._chatter.noteSpeech();     // any speech extends the quiet gap
     if (meta.mood) this._setMood(meta.mood);
+  }
+
+  /** Persist the variety rings into the companion save (fail-soft). */
+  _syncMemory() {
+    try {
+      this.state.data.banterRecent = this._memory.toData();
+      this.state.save();
+    } catch { /* full or blocked — variety degrades to in-session memory */ }
   }
 
   _setMood(mood, holdS = 3) {
@@ -146,17 +163,27 @@ export class Companion {
       if (rec.first.biome === 'The Deep Yard') this.state.markNudgeDone('explore_deep_yard');
     }
 
-    // reactive banter — debounced so nobody machine-guns
+    // reactive banter — debounced so nobody machine-guns. Variety-picked:
+    // ring memory keeps recent lines out, `when` gates keep the lines that
+    // belong to THIS moment (tod/weather/telemetry) and silence the rest.
     {
       const banterKey = event === 'crash_survived' ? 'crash' : event;
-      const line = pickBanter(banterKey, this.state, this._rng, this.persona.banter);
-      if (line && this._reactiveCooldownOk()) {
-        this.say(renderLine(line, detail), {
-          mood: event === 'crash_survived' ? 'dismay'
-            : (event === 'rare_loot' || event === 'flash_success' || event === 'bot_built' || event === 'ghost_beaten') ? 'happy' : 'idle',
-          event,
+      if (this._reactiveCooldownOk()) {
+        const line = pickBanterFresh(banterKey, this.state, this._rng, this.persona.banter, this._memory, {
+          prefix: this.persona.id,
+          detail,
+          context: this._ambientCtx,
+          data: this.state.data,
         });
-        this._sinceReactive = 0;
+        if (line) {
+          this.say(renderLine(line, detail), {
+            mood: event === 'crash_survived' ? 'dismay'
+              : (event === 'rare_loot' || event === 'flash_success' || event === 'bot_built' || event === 'ghost_beaten') ? 'happy' : 'idle',
+            event,
+          });
+          this._sinceReactive = 0;
+          this._syncMemory();
+        }
       }
     }
     return rec;
@@ -177,38 +204,55 @@ export class Companion {
     }
 
     // idle → the companion notices things (only when the player is actually
-    // there, standing still, not in a menu)
+    // there, standing still, not in a menu). Gated by the cadence guard:
+    // observations are unsolicited, and unsolicited lines respect the
+    // minimum gap + the rolling chatter budget.
     if (ctx.locked && !ctx.moving && !ctx.midFlow) {
       this._idleS += dt;
-      if (this._idleS >= IDLE_AFTER_S && this._sinceObservation >= OBSERVATION_COOLDOWN_S) {
+      if (this._idleS >= IDLE_AFTER_S && this._sinceObservation >= OBSERVATION_COOLDOWN_S && this._chatter.canSpeakUnsolicited()) {
         this._idleS = 0;
         this._sinceObservation = 0;
         // roundness banks rotate into the idle slot (fail-soft: null → classic
         // observations). Want/flaw beats are NOT here — those are tier-up only.
         const line = pickRoundnessIdle(this.persona, this.state, this._rng)
-          ?? pickObservation(this.state, this._rng, this.persona.observations);
-        if (line) this.say(line, { mood: 'idle', event: 'observation' });
+          ?? pickObservationFresh(this.state, this._rng, this.persona.observations, this._memory, this.persona.ambient, this._ambientCtx, `${this.persona.id}:obs`);
+        if (line) {
+          this.say(line, { mood: 'idle', event: 'observation' });
+          this._chatter.commitUnsolicited();
+          this._syncMemory();
+        }
       }
     } else {
       this._idleS = 0;
     }
 
-    // battery — one warning per low-charge episode
+    // battery — one warning per low-charge episode (warnings bypass the
+    // chatter gate: actionable info beats cadence; say() still extends the gap)
     if (typeof ctx.battery === 'number') {
       if (ctx.battery <= 15 && !this._batteryWarned) {
         this._batteryWarned = true;
-        const line = pickBanter('low_battery', this.state, this._rng, this.persona.banter);
-        if (line) this.say(line, { mood: 'dismay', event: 'low_battery' });
+        const line = pickBanterFresh('low_battery', this.state, this._rng, this.persona.banter, this._memory, {
+          prefix: this.persona.id, context: this._ambientCtx, data: this.state.data,
+        });
+        if (line) { this.say(line, { mood: 'dismay', event: 'low_battery' }); this._syncMemory(); }
       } else if (ctx.battery > 30) {
         this._batteryWarned = false;
       }
     }
 
-    // the progress engine (never mid-flow — Nudger enforces the rest)
+    // ambient context (tod/weather) from the game — fail-soft: absent context
+    // simply disables ambient-gated lines
+    if (ctx.tod !== undefined || ctx.weather !== undefined) {
+      this._ambientCtx = { ...this._ambientCtx, ...(ctx.tod !== undefined ? { tod: ctx.tod } : {}), ...(ctx.weather !== undefined ? { weather: ctx.weather } : {}) };
+    }
+
+    // the progress engine (never mid-flow — Nudger enforces the rest).
+    // Nudges are unsolicited: the cadence guard gets a say too.
     if (!this._managed) {
       const nudge = this.nudger.tick(dt, { midFlow: Boolean(ctx.midFlow) || this._talking });
-      if (nudge) {
+      if (nudge && this._chatter.canSpeakUnsolicited()) {
         this.say(nudge.line, { mood: 'happy', event: 'nudge', topic: nudge.topic });
+        this._chatter.commitUnsolicited();
       }
     }
   }

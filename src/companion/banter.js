@@ -36,12 +36,18 @@ export const BANTER = {
     { tier: 0, line: 'Oh! You\'re new. I\'m Rivet — I fix things. Well. I hold things while other things get fixed. Same day as you, apparently.' },
     { tier: 0, line: 'Hi! Rivet. Repair drone, class of… hmm, the sticker fell off. You look like you build stuff. I LIKE stuff.' },
     { tier: 0, line: 'You must be the new kid. I\'m Rivet — I got delivered this morning too. The crate said FRAGILE. I chose to take it as a compliment.' },
+    { tier: 0, line: 'New kid! Hi. I\'m Rivet. Short for Rivet, long for Riv. Either works. The yard is big, the bolts are small — we\'ll figure it out.' },
+    { tier: 0, line: 'Oh hey — you\'re the one from the manifest! "One builder, small, promising." I read the crate labels. It\'s a hobby.' },
+    { tier: 0, line: 'Hi! Rivet here. I got here this morning, you got here this morning. Statistically, we\'re basically twins.' },
   ],
 
   greet_return: [
     { tier: 0, line: 'Oh good, you\'re back. I organized some bolts. Mentally.' },
+    { tier: 0, line: 'Welcome back! Nothing exploded. I checked twice. That\'s the whole report.' },
     { tier: 1, line: 'Hey! I held the fort. The fort is a workbench. It\'s fine.' },
     { tier: 1, trait: 'scrappy', line: 'Back again! I found a washer while you were gone. It\'s MY washer now.' },
+    { tier: 1, trait: 'curious', line: 'You\'re back! I saved a question for you. It\'s about magnets. It can wait. It CAN\'T wait. It can wait a little.' },
+    { tier: 1, line: 'Back! Today\'s options, in order: build, race, or stare at the cat. All strong choices. I ranked them by bolt-content.' },
     { tier: 2, line: 'There you are. The yard was SO boring. Earl just hummed at a compressor.' },
     { tier: 2, line: 'You\'re back! I saved you a spot. It\'s next to me. It was always next to me.' },
   ],
@@ -78,9 +84,13 @@ export const BANTER = {
 
   low_battery: [
     { tier: 0, line: 'Um. Your battery\'s getting low. There are charging pads — I can point. I\'m great at pointing.' },
+    { tier: 0, line: 'Power\'s low! Good news: charging pads exist. Better news: I know where. Best news: pointing. Pointing is what I do.' },
     { tier: 1, line: 'Heads up — power\'s low. A dead bot mid-race is a very specific kind of sad. Let\'s avoid it.' },
+    { tier: 1, trait: 'competitive', line: 'Battery check says charge NOW. A dead bot can\'t defend a lap record. Priorities!' },
+    { tier: 1, line: 'Heads up — you\'re on fumes. Pads by the oval are closest. Race you there. You\'ll win — you\'re the one with legs.' },
     { tier: 2, line: 'Battery check! Just kidding, it\'s not a check, it\'s a warning. Go charge. I\'ll wait. I\'m a professional waiter.' },
     { tier: 2, trait: 'scrappy', line: 'Low power! Chop chop — that forge over there spits out battery packs like it owes us money.' },
+    { tier: 2, trait: 'curious', when: (_d, _data, ctx) => ctx?.tod === 'Night', line: 'Low power AND it\'s dark out. Two problems, one solution: the pads glow. Follow the glow. I love a two-birds situation.' },
   ],
 
   flash_success: [
@@ -103,16 +113,24 @@ export const BANTER = {
 
   bot_built: [
     { tier: 0, line: 'You BUILT that. From parts. From junk-parts! Do you understand what you just — ok I\'m calm. I\'m calm.' },
+    { tier: 0, line: 'It exists now! It didn\'t, and now it does. You did that. With your hands and our scrap. That\'s the whole magic trick.' },
     { tier: 1, line: 'New teammate online! Wait — am I still your favorite drone? Blink twice for yes. …You can\'t blink, you\'re a person. Just say yes.' },
     { tier: 1, trait: 'scrappy', line: 'Built from scrap, runs like a dream. That\'s the whole religion of this yard, right there.' },
+    { tier: 1, trait: 'competitive', line: 'New bot in the fleet! It gets a racing number. All bots get racing numbers. It\'s a system. I don\'t make the rules. I do, actually. Number seven.' },
     { tier: 2, line: 'Another one! The team grows. Soon we take over the yard. Peacefully. With robots. Mostly peacefully.' },
     { tier: 2, trait: 'curious', line: 'New bot! I have SO many questions for it. It can\'t answer. I\'ll ask anyway.' },
+    { tier: 2, line: 'Another teammate! I\'ll introduce myself properly later. Going for "mysterious and helpful." It\'s a strong first impression. Bolty. But strong.' },
   ],
 
   repair_done: [
     { tier: 0, line: 'Fixed! Or… fixed-adjacent. It\'s the effort that bonds, honestly.' },
+    { tier: 0, line: 'All better! Or better-ish. "Better-ish" is a real grade in the repair book. It\'s in pencil. The book allows pencil for feelings.' },
     { tier: 1, line: 'Dents hammered out, logged, remembered. The repair book never forgets. It\'s a little judgy, actually.' },
+    { tier: 1, line: 'Repaired and logged. The book says this dent had "character." The book is being generous. I respect its mercy.' },
+    { tier: 1, trait: 'scrappy', line: 'Fixed! Salvage, hammer, repeat — that\'s the whole circle of yard life. You\'re basically a local now.' },
     { tier: 2, line: 'Good as new! Which is a stretch, but good as THURSDAY, definitely.' },
+    { tier: 2, trait: 'competitive', line: 'Dents out, book updated, bot back on the roster. The oval never even noticed you were gone. The oval is cold like that.' },
+    { tier: 2, line: 'Good as new-ish! You fixed it instead of giving up on it. The yard notices that. I notice that. Logging it under "good days."' },
   ],
 
   tier_up: [
@@ -160,6 +178,23 @@ export const OBSERVATIONS = [
   s => (s.counters.conversations > 3
     ? 'We talk a lot, you know. Good talks. Stat-significant talks. I did the math.'
     : 'You can hold V and just… talk to me. About robots! Or about which bolt looks fastest. I have opinions.'),
+];
+
+/**
+ * Ambient idle lines — keyed to the live world (variety.js gating).
+ * Each entry: { when(ctx) → boolean, line } where ctx = { tod, weather }
+ * (tod from DayNight.label, weather from WeatherSystem.state). A gate that
+ * doesn\'t match = the line stays quiet. Fail-soft: no context → no ambient.
+ */
+export const RIVET_AMBIENT = [
+  { when: c => c.tod === 'Night', line: 'Night shift, huh? The yard sounds different at night. More bolts, fewer opinions.' },
+  { when: c => c.tod === 'Night', line: 'Stars are out. I checked on three of them — all still holding. Solid work up there. Very bolt-like.' },
+  { when: c => c.tod === 'Dawn', line: 'Dawn in the yard. Everything\'s damp and hopeful. Including me. Especially me.' },
+  { when: c => c.tod === 'Dusk', line: 'Sunset o\'clock. The scrap does this orange thing this time of day. I\'d take a picture, but I have a counter instead. Counted. Saved. Same thing.' },
+  { when: c => c.weather === 'rain', line: 'Rain! The puddles are doing their thing. Somewhere, Juno is surveying one. There\'s always one being surveyed.' },
+  { when: c => c.weather === 'rain', line: 'Rain on a metal roof — the yard\'s free soundtrack. The forges hum along. Off-key. Committed. I respect it.' },
+  { when: c => c.weather === 'storm', line: 'Storm\'s rolling in. Pro tip: metal piles conduct vibes AND lightning. Maybe build inside today. Inside is cozy. Inside has bolts.' },
+  { when: c => c.tod === 'Midday' && c.weather === 'clear', line: 'Midday, clear skies — peak bolt-visibility. If you\'re gonna hunt shiny parts, this is the hour. The shiny hour. I named it just now.' },
 ];
 
 // ── the picker ─────────────────────────────────────────────────────────────

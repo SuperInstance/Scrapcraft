@@ -1985,6 +1985,9 @@ export class Game {
       midFlow: this.ui.isOpen || this.tileEditor.isOpen || this.rivet.talking
         || (this._lapState?.lapStart ?? 0) > 0 || Boolean(this._companionGate),
       battery: bot ? (bot.battery ?? 100) : null,
+      // ambient context — gates tod/weather-keyed companion lines (fail-soft)
+      tod: this.dayNight?.label,
+      weather: this.weather?.state,
     });
     // the voxel face: follows the player, looks where they look, mirrors mood
     this.companionAvatar?.update(dt, this.player.pos, this.player.yaw, this.rivet.mood);
