@@ -943,6 +943,7 @@ export class Game {
         if (msg) this.foreman.playerTalks(msg);
         else this.foreman.say('idle');
       }
+      if (e.code === 'F2') { e.preventDefault(); this._toggleFullscreen?.(); }
       if (e.code === 'Escape') {
         if (this.ui.isOpen) this.ui.closeInventory();
         else this._toggleHelp(false);
@@ -1048,10 +1049,27 @@ export class Game {
       }
     });
 
-    // Click-to-resume on pause overlay
+    // Click-to-resume on pause overlay.
+    // Chrome enforces a pointer-lock COOLDOWN after ESC exits the lock: an
+    // immediate requestPointerLock() is silently rejected — the kid clicks and
+    // nothing happens. Retry with backoff until the browser accepts it.
     document.getElementById('pause-overlay')?.addEventListener('click', () => {
-      if (!document.pointerLockElement) this.canvas.requestPointerLock();
+      if (!document.pointerLockElement) this._requestLockWithRetry();
     });
+
+    // ── Fullscreen toggle — F2 anywhere (not just pause), plus the pause ──
+    //    menu button. F11 stays the browser's own.
+    const toggleFullscreen = () => {
+      try {
+        if (document.fullscreenElement) document.exitFullscreen?.();
+        else document.documentElement.requestFullscreen?.();
+      } catch { /* denied — fine */ }
+    };
+    document.getElementById('fullscreen-btn')?.addEventListener('click', e => {
+      e.stopPropagation();
+      toggleFullscreen();
+    });
+    this._toggleFullscreen = toggleFullscreen;
 
     // ── Veteran Ride — pause-menu surface (explicit entry; stopPropagation
     //    so the overlay's click-to-resume doesn't fight the buttons) ──
@@ -1070,6 +1088,20 @@ export class Game {
       e.stopPropagation();
       this._restoreVeteranBackup();
     });
+  }
+
+  /** Pointer lock with ESC-cooldown retry. Chrome silently rejects re-lock
+   *  requests for ~1s+ after ESC exits; retry with backoff until accepted. */
+  _requestLockWithRetry(attempt = 0) {
+    if (document.pointerLockElement) return;
+    try {
+      const p = this.canvas.requestPointerLock?.();
+      if (p?.catch) p.catch(() => this._retryLockSoon(attempt));
+    } catch { this._retryLockSoon(attempt); }
+  }
+  _retryLockSoon(attempt) {
+    if (attempt >= 6 || document.pointerLockElement) return;   // ~3.15s max
+    setTimeout(() => this._requestLockWithRetry(attempt + 1), 250 * (attempt + 1));
   }
 
   // ── Mining ───────────────────────────────────────────────────────────
