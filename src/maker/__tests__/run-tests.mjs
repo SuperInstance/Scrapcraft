@@ -27,6 +27,9 @@ import { runGeographyTests } from '../../world/__tests__/geography-tests.mjs';
 import { runWakesTests } from '../../story/__tests__/wakes-tests.mjs';
 import { runAmbientTests, runCompanionAmbientTests, runA11yPanelTests } from '../../world/__tests__/ambient-tests.mjs';
 import { runOpeningTests } from '../../world/__tests__/opening-tests.mjs';
+import { runCinemaTests } from '../../cinema/__tests__/cinema-tests.mjs';
+import { runTutorialTests } from '../../onboarding/tutorial/__tests__/tutorial-tests.mjs';
+import { runVeteranTests } from '../../veteran/__tests__/veteran-tests.mjs';
 import { runLedgerTests } from '../../quests/__tests__/ledger-tests.mjs';
 import { runInstanceLedgerTests } from '../../render/__tests__/ledger-tests.mjs';
 import { runTouchTests } from '../../touch/__tests__/touch-tests.mjs';
@@ -1857,6 +1860,16 @@ runA11yPanelTests(ok);
 // ── Opening cinematic: world-before-menu + clean control handoff ────────
 console.log('\nOpening Cinematic (world-before-menu)');
 runOpeningTests(ok);
+
+// ── Cinema: cutscene timeline + director, tutorial missions, veteran ride ──
+console.log('\nCinema — cutscene director & timeline');
+runCinemaTests(ok);
+
+console.log('\nTutorial Missions — the gamified first five minutes');
+runTutorialTests(ok);
+
+console.log('\nVeteran Ride — the mature-start save seed');
+runVeteranTests(ok);
 
 // ── Mo's Ledger: the career surface the yard keeps on the kid ────────────
 console.log("\nMo's Ledger");

@@ -1400,6 +1400,8 @@ export class TileEditor {
     if (res.ok) {
       this._game.achievements?.track('hardware_flash', {});
       this._game.foreman?.say('hardware_flash');
+      // Tutorial: real firmware on a real board completes the BUILD step
+      this._game._tutorialEvent?.('build');
       // Rivet was holding the metaphorical flashlight
       this._game.rivet?.observe('flash_success');
     }
@@ -1718,6 +1720,7 @@ export class TileEditor {
       await this._bridge.flash(code);
       this._appendSerial('─── Flashed ───');
       this._game.achievements?.track('hardware_flash', {});
+      this._game._tutorialEvent?.('build');   // tutorial: the BUILD IT moment
       this._game.xpSystem?.gain(30);
       this._game.ui?.notify('⚡ Flashed to device! Check your serial monitor.');
       this._game.foreman?.say('hardware_flash');

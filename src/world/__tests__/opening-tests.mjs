@@ -117,11 +117,11 @@ export function runOpeningTests(ok) {
     ok('gate onChosen ends the opening',
       /this\.saveSystem\?\.markDirty\(\);[\s\S]{0,200}this\._endOpening\(\)/.test(game));
     ok('wizard-complete without a pending gate also ends the opening',
-      /if \(!this\.companions\?\.needsEntryChoice\) this\._endOpening\(\)/.test(game));
-    ok('pause overlay never flashes while the opening runs',
-      /if \(this\._running && !this\.openingPending\) this\.ui\.setPaused\(!locked\)/.test(game));
+      /if \(!this\.companions\?\.needsEntryChoice( && !\w+)?\) this\._endOpening\(\)/.test(game));
+    ok('pause overlay never flashes while the opening (or a cutscene) runs',
+      /if \(this\._running && !this\.openingPending && !this\.cutsceneActive\) \{\s*this\.ui\.setPaused\(!locked\);\s*\}/.test(game));
     ok('free-cursor click on the yard takes the lock (never-locked path)',
-      /!document\.pointerLockElement && !this\.openingPending && !this\.ui\?\.isOpen/.test(game));
+      /!document\.pointerLockElement && !this\.openingPending && !this\.cutsceneActive && !this\.ui\?\.isOpen/.test(game));
     ok('Player exports EYE_HEIGHT for the handoff', /export const EYE_HEIGHT/.test(src('../../Player.js')));
 
     const wizard = src('../../onboarding/OnboardingWizard.js');

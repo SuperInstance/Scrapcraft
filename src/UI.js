@@ -351,6 +351,10 @@ export class UI {
 
   // ── Pause overlay ─────────────────────────────────────────────────────
 
+  /** True while the pause overlay is up (public read for pause-safe ticks,
+   *  e.g. the cutscene director's dt feed in Game._update). */
+  get paused() { return this._paused; }
+
   setPaused(paused) {
     this._paused = paused;
     if (this._pauseOverlay) {
