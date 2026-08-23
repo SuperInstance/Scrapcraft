@@ -8,6 +8,8 @@ import { SENSORS, ACTUATORS, BRAINS, withDefaults } from './maker/primitives.js'
 import { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG, compile, TileVM, VirtualRobot } from './maker/index.js';
 import { Avr109Flasher } from './maker/Avr109Flasher.js';
 import { UNO_WIRING } from './maker/PinModel.js';
+import { QuiltSheet } from './maker/QuiltSheet.js';
+import { QuiltView } from './maker/QuiltView.js';
 import { WebSerialBridge } from './maker/WebSerialBridge.js';
 import { Spark } from './Spark.js';
 import { BrainGallery } from './BrainGallery.js';
@@ -344,6 +346,14 @@ export class TileEditor {
     this._pinPanel = null;
     this._pinTimer = null;
     this._pinBtn?.addEventListener('click', () => this._togglePinView());
+
+    // Quilt view — the FLIP: bot as a live spreadsheet
+    this._quiltBtn = this._panel.querySelector('#te-quilt-btn');
+    this._quiltOpen = false;
+    this._quiltSheet = new QuiltSheet();
+    this._quiltView = null;
+    this._quiltTimer = null;
+    this._quiltBtn?.addEventListener('click', () => this._toggleQuilt());
 
     this._botSel    = this._panel.querySelector('#te-bot-sel');
     this._presetSel = this._panel.querySelector('#te-preset-sel');
@@ -1285,8 +1295,7 @@ export class TileEditor {
   _renderPinView() {
     const bot = this._activeBot();
     const pm = bot?.pinModel;
-    if (!pm || !this._pinPanel) return;
-    const snap = pm.snapshot();
+    if (!pm || !this._pinPanel) return;    const snap = pm.snapshot();
 
     const dEl = this._pinPanel.querySelector('#tp-digital');
     dEl.innerHTML = snap.digital.map(p => {
@@ -1321,6 +1330,98 @@ export class TileEditor {
     warnEl.innerHTML = ws.length
       ? ws.map(w => `<div>💡 ${_esc(w)}</div>`).join('')
       : '<div style="opacity:.5">Pin notes appear here — the Uno is honest about its own limits.</div>';
+  }
+
+  // ── Quilt view: the FLIP ─────────────────────────────────────────────
+
+  _toggleQuilt() {
+    this._quiltOpen = !this._quiltOpen;
+    if (!this._quiltOpen) {
+      clearInterval(this._quiltTimer);
+      this._quiltTimer = null;
+      this._quiltView?.destroy();
+      this._quiltView = null;
+      this._quiltBtn && (this._quiltBtn.style.borderColor = '');
+      return;
+    }
+    this._quiltView = new QuiltView(this._canvas.parentElement, this._quiltSheet);
+    this._quiltBtn && (this._quiltBtn.style.borderColor = '#7dd3fc');
+    const tick = () => this._updateQuilt();
+    tick();
+    this._quiltTimer = setInterval(tick, 200);
+  }
+
+  _updateQuilt() {
+    const bot = this._activeBot();
+    const rt = bot?._runtime;
+    const robot = rt?.robot;
+    const world = rt?.world;
+    if (!this._quiltView) return;
+
+    const sensors = world && robot ? {
+      distance_ahead: world.distanceAhead?.(robot.x, robot.z, robot.heading) ?? 0,
+      light:          world.lightAt?.(robot.x, robot.z) ?? 0,
+      temperature:    world.temperatureAt?.(robot.x, robot.z) ?? 0,
+      line_under:     !!world.lineUnder?.(robot.x, robot.z),
+      motion_nearby:  (world.playerDistance?.(robot.x, robot.z) ?? 999) < 4,
+    } : undefined;
+
+    this._quiltSheet.update({
+      robot:   robot ?? undefined,
+      sensors,
+      program: rt ? {
+        tileLabel:    this._activeTileLabel(rt),
+        stepsPerSec:  rt.stepsPerSec ?? 0,
+        budgetPct:    rt.budgetPct ?? 0,
+        beeps:        this._quiltBeeps(rt),
+      } : undefined,
+      pins:    bot?.pinModel?.snapshot(),
+      heart: {
+        name:  bot?.personality?.name,
+        bond:  Math.floor((bot?.personality?.bond ?? 0) / 25),
+        dents: bot?.ledger?.dents?.length ?? 0,
+        laps:  bot?.ledger?.countMilestones?.('lap_complete') ?? 0,
+      },
+    });
+    this._quiltView.render();
+  }
+
+  _activeTileLabel(rt) {
+    if (!rt?.vm || !rt.sourceMap) return '—';
+    let activeId = null;
+    for (const e of rt.sourceMap) {
+      if (e.pc <= rt.vm.pc) activeId = e.nodeId;
+      else break;
+    }
+    if (!activeId) return '—';
+    const node = this._findNode(this._program?.nodes ?? [], activeId);
+    if (!node) return '—';
+    const bits = [node.type];
+    if (node.prim) bits.push(node.prim);
+    if (node.cond?.sensor) bits.push(`if ${node.cond.sensor}`);
+    if (node.seconds !== undefined) bits.push(`${node.seconds}s`);
+    if (node.type === 'forever') return 'forever ∞';
+    return bits.join(' ');
+  }
+
+  _findNode(nodes, id) {
+    for (const n of nodes) {
+      if (n.id === id) return n;
+      const inBody = n.body ? this._findNode(n.body, id) : null;
+      if (inBody) return inBody;
+      const inElse = n.elseBody ? this._findNode(n.elseBody, id) : null;
+      if (inElse) return inElse;
+    }
+    return null;
+  }
+
+  _quiltBeeps(rt) {
+    // best-effort: count beep events since view opened
+    if (!rt) return 0;
+    this._qBeepTotal ??= 0;
+    const evs = rt.drainEvents ? [] : [];   // events drained by Game; approximate via robot.events length
+    this._qBeepTotal += (rt.robot?.events ?? []).filter(e => e.kind === 'beep').length;
+    return this._qBeepTotal;
   }
 
   async _connectAndFlash() {
