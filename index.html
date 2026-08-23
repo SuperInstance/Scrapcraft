@@ -576,6 +576,53 @@
       transition:background 0.15s, border-color 0.15s;
     }
     .mc-cta:hover { background:#142c14; border-color:#66cc66; }
+    /* Mission card content (renderMissionCard): step hint + brief + medals */
+    .mc-step-hint { font-size:11.5px; color:#a8d8a8; }
+    .mc-mission-brief { margin-top:6px; font-size:10.5px; color:#5a7a5a; font-style:italic; }
+    .mc-medals { margin-top:6px; font-size:11px; color:#f0b429; letter-spacing:1px; }
+
+    /* ── Cinema (cutscene director creates these; CSS stages them) ── */
+    #cs-bar-top, #cs-bar-bot {
+      position:fixed; left:0; right:0; height:11%;
+      background:#000; pointer-events:none;
+      transform:translateY(-100%);        /* parked off-screen */
+      transition:transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+      z-index:88;                          /* just under the pause overlay (90) */
+    }
+    #cs-bar-top { top:0; }
+    #cs-bar-bot { bottom:0; transform:translateY(100%); }
+
+    /* Cinema subtitle — bottom band, above the lower bar */
+    #cs-subtitle {
+      position:fixed; bottom:14vh; left:50%; transform:translateX(-50%);
+      width:max-content; max-width:720px; text-align:center;
+      font-size:15px; color:#e8e8e8; line-height:1.5;
+      text-shadow:0 2px 6px rgba(0,0,0,0.95), 0 0 14px rgba(0,0,0,0.6);
+      pointer-events:none; opacity:0; transition:opacity 0.3s ease;
+      z-index:89;
+    }
+    #cs-subtitle strong {                 /* the speaker name */
+      letter-spacing:2px; color:#f0b429; margin-right:6px;
+    }
+
+    /* Skip hint — dim, top-right, non-interactive */
+    #cs-skip-hint {
+      position:fixed; top:16px; right:18px;
+      font-size:10px; color:#666; letter-spacing:2px;
+      pointer-events:none; opacity:0; transition:opacity 0.4s ease;
+      z-index:89;
+    }
+
+    /* Veteran Ride buttons (pause menu + card) — house button look */
+    .veteran-ride-btn {
+      background:rgba(0,0,0,0.7); border:1px solid #444; color:#888;
+      padding:5px 12px; border-radius:4px; font-family:inherit; font-size:10px;
+      cursor:pointer; letter-spacing:1px; transition:all 0.15s;
+    }
+    .veteran-ride-btn:hover { border-color:#f0b429; color:#f0b429; }
+    #pause-inner .pause-veteran {
+      margin-top:18px; display:flex; gap:10px; justify-content:center;
+    }
 
     /* ── Flash Receipt modal ── */
     #flash-receipt {
@@ -1746,6 +1793,10 @@
       <p>CLICK ANYWHERE TO CONTINUE</p>
       <button id="coach-mode-btn">📻 COACH MODE</button>
       <div class="pause-hint">[ M ] MUTE &nbsp;·&nbsp; [ E ] WORKSHOP OPENS ON RESUME</div>
+      <div class="pause-veteran">
+        <button id="veteran-ride-btn" class="veteran-ride-btn">🚚 VETERAN RIDE (NEW SLOT)</button>
+        <button id="veteran-restore-btn" class="veteran-ride-btn" style="display:none">⬅ RESTORE MY SAVE</button>
+      </div>
     </div>
   </div>
 

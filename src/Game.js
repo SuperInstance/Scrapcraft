@@ -33,6 +33,9 @@ import { ColdStartGate, sparkFirstGreeting } from './onboarding/coldstart.js';
 import { DelightGate, delightLine, FIRST_DENT_RECOVERY, BATTERY_RECOVERY } from './onboarding/delights.js';
 import { AmbientLife, ambientLine, AMBIENT_NOTABLE } from './world/AmbientLife.js';
 import { OpeningCinematic } from './world/OpeningCinematic.js';
+import { CutsceneDirector } from './cinema/CutsceneDirector.js';
+import { TutorialEngine, renderMissionCard } from './onboarding/tutorial/index.js';
+import { generateVeteranSave, applyVeteranProfile, veteranRideSummary, VETERAN_SAVE_KEY, LIVE_SAVE_KEY } from './veteran/veteranRide.js';
 import { sparkGateway } from './spark/index.js';
 import { RaceBoard, NPC_GHOSTS, BEAT_QUIPS } from './RaceBoard.js';
 import { Codex } from './Codex.js';
@@ -75,7 +78,7 @@ export class Game {
 
     // Tutorial state machine (shown on first load)
     this._tutorialActive  = false;
-    this._tutorialStep    = -1; // -1 = not started, 0..3 = steps, 4 = done
+    this._tutorialStep    = -1; // legacy — step state now lives in TutorialEngine
     this._tutorialNagged  = false;
     this._tutorialWarned  = false;
     this._tutorialHintEl  = document.getElementById('tutorial-hint');
@@ -100,6 +103,15 @@ export class Game {
 
     // Opening cinematic — world-before-menu orbit (set up in start())
     this._openingCinematic = null;
+
+    // Cinema director (cutscenes wired in start())
+    this.cinema = null;
+
+    // Tutorial engine (wired in _startTutorial)
+    this._tutorialEngine = null;
+
+    // Veteran ride — the once-per-session offer guard (the fork at the gate)
+    this._veteranRideOffered = false;
 
     // Touch layer — null until init() proves the device wants it. Desktop
     // (touchSupported === false) never builds one, so its paths stay identical.
@@ -149,8 +161,7 @@ export class Game {
     const _origAdd = this.player.addItem.bind(this.player);
     this.player.addItem = (id, qty) => {
       this.codex?.discover(id) && this.achievements?.track('codex_discover', { count: this.codex.count });
-      // Tutorial step 1: first item pickup advances mission
-      if (this._tutorialActive && this._tutorialStep === 1) this._advanceTutorial();
+      // (Tutorial's mine step fires at the block-break site — _completeMine.)
       // Spark's first appearance — campaign Ch 1's heart, pulled to minute 2
       if (!this._coldstart.sparkGreeted) {
         this._coldstart.markSparkGreeted();
@@ -565,11 +576,37 @@ export class Game {
     if (!this.foreman?.hasGreetedPlayer) {
       setTimeout(() => this.foreman?.greetPlayer(), 600);
     }
-    if (this._freshGame) this._startTutorial();
+    let rideOffered = false;
+    if (this._freshGame) {
+      // Fresh boot: the intro cutscene plays once-ever (cinema.seen guard —
+      // replay may come from a future menu, never on every boot), THEN the
+      // tutorial starts in onDone. Skippable with any key.
+      const startFresh = () => {
+        if (!this.cinema?.seen('intro-dawn-arrival')) {
+          this.playCutscene('intro-dawn-arrival', {
+            onDone: () => this._startTutorial(),
+          });
+        } else {
+          this._startTutorial();
+        }
+      };
+      // The veteran ride fork — one honest offer, only on a truly fresh boot
+      // (no save on disk). "Keep fresh" (or Escape) continues into the intro.
+      // While the offer card is up the opening holds (no pointer lock to
+      // fight the buttons); the card's own handlers end the opening.
+      if (!this.saveSystem?.hasSave?.() && !this._veteranRideOffered) {
+        rideOffered = this.offerVeteranRide('fresh-boot', () => {
+          this._endOpening();
+          startFresh();
+        });
+      }
+      if (!rideOffered) startFresh();
+    }
     // Wizard closed and no yard-gate pending → the opening is over; the
     // cinematic ends and the controls hand over. (Gate pending → the gate's
-    // own onChosen ends it, so the orbit carries the questions too.)
-    if (!this.companions?.needsEntryChoice) this._endOpening();
+    // own onChosen ends it, so the orbit carries the questions too. Ride
+    // offer pending → the card's buttons end it, so the cursor stays free.)
+    if (!this.companions?.needsEntryChoice && !rideOffered) this._endOpening();
   }
 
   /** Spark's first hello — fires on the first item pickup (usually iron),
@@ -622,6 +659,8 @@ export class Game {
       if (bp) this.particles?.burst(bp.x, bp.y + 0.8, bp.z, 'circuit', 18);
     } catch { /* particles optional */ }
     this._delightCeremony('first_program_run');
+    // Tutorial: the RUN step rides the same delight path (every setBrain site)
+    this._tutorialEvent('program_run');
   }
 
   /** A teach-back moment is waiting (a companion has a question only the
@@ -684,95 +723,89 @@ export class Game {
   }
 
   _startTutorial() {
-    this._tutorialActive = true;
-    this._tutorialStep   = 0;
-    this._mcEl = document.getElementById('mission-card');
-    this._mcTitle = document.getElementById('mc-title');
-    this._mcDesc  = document.getElementById('mc-desc');
-    this._mcDots  = document.getElementById('mc-dots');
-    document.getElementById('mc-dismiss')?.addEventListener('click', () => {
-      this._dismissMission();
-    });
-    this._showMissionStep();
+    try {
+      this._tutorialEngine = new TutorialEngine({
+        storage: typeof localStorage !== 'undefined' ? localStorage : null,
+      });
+      this._tutorialEngine.begin();
+      this._tutorialActive = true;
+      // Cache the mission-card DOM elements for rendering
+      this._mcEl = document.getElementById('mission-card');
+      this._mcTitle = document.getElementById('mc-title');
+      this._mcDesc = document.getElementById('mc-desc');
+      this._mcDots = document.getElementById('mc-dots');
+      const dismissBtn = document.getElementById('mc-dismiss');
+      if (dismissBtn) dismissBtn.addEventListener('click', () => this._dismissMission());
+      this._tutorialShow();
+    } catch (err) {
+      console.warn('Tutorial init failed:', err);
+      this._tutorialActive = false;
+    }
   }
 
-  _MC_STEPS() {
-    return [
-      {
-        title: 'Welcome to the Scrapyard!',
-        desc: `Earl says: <i>"This place runs on junk and ideas."</i><br><br>Press <b>W A S D</b> to walk around the yard.`,
-      },
-      {
-        title: 'Mine Some Scrap',
-        desc: `You'll need raw materials to build anything.<br><br>Hold <b>left-click</b> on a <b>Rust Heap</b> or <b>Scrap Pile</b> to mine it.`,
-      },
-      {
-        title: 'Open the Workshop',
-        desc: `Take your scrap to the workbench.<br><br>Press <b>E</b> to open the Workshop and see what you can craft.`,
-      },
-      {
-        title: 'Open the Maker Lab',
-        desc: `This is where robots get their brains.<br><br>Press <b>T</b> to open the Maker Lab. Earl's pre-loaded a starter program for you.`,
-      },
-      {
-        title: 'Run Your Robot',
-        desc: `The tiles you see are a real program. Your bot will read its sensors and decide what to do.<br><br>Press <b>▶ RUN</b> to test it in the yard.`,
-      },
-      {
-        title: 'Build It for Real!',
-        desc: `Your robot just ran on your own program.<br><br>Click <b>⚡ BUILD IT</b> in the Maker Lab toolbar to get the real firmware — and flash it to a physical robot.`,
-        cta: true,
-      },
-    ];
-  }
-
-  _showMissionStep() {
-    const steps = this._MC_STEPS();
-    if (!this._mcEl) return;
-    if (this._tutorialStep >= steps.length) {
-      this._dismissMission();
-      this.ui?.notify('✅ Mission complete! Press H for controls. Keep exploring!');
-      return;
-    }
-    const s = steps[this._tutorialStep];
-    if (this._mcTitle) this._mcTitle.innerHTML = s.title;
-    if (this._mcDesc)  this._mcDesc.innerHTML  = s.desc;
-
-    // Rebuild step dots
-    if (this._mcDots) {
-      this._mcDots.innerHTML = steps.map((_, i) => {
-        const cls = i < this._tutorialStep ? 'mc-dot done'
-                  : i === this._tutorialStep ? 'mc-dot active' : 'mc-dot';
-        return `<div class="${cls}"></div>`;
-      }).join('');
-    }
+  _tutorialShow() {
+    if (!this._tutorialEngine || !this._mcEl) return;
+    const els = {
+      title: this._mcTitle,
+      desc: this._mcDesc,
+      dots: this._mcDots,
+    };
+    renderMissionCard(this._tutorialEngine, els);
     this._mcEl.classList.add('show');
+    // after render — drives the style medal's hint-timing logic
+    this._tutorialEngine.onHintShown?.();
   }
 
-  _advanceTutorial() {
-    if (!this._tutorialActive || this._tutorialStep < 0) return;
-    this._tutorialStep++;
-    this._showMissionStep();
-    // Rivet IS the tutorial voice — the first five minutes are a conversation,
-    // not a wall of text. The card anchors; Rivet talks.
-    const rivetLines = [
-      null, // step 0 — the greet() line covers it
-      'Walking works! You passed the test. Next: see that rust heap? It wants to be mined. Hold left-click on it — trust me, it likes it.',
-      'Look at all that scrap you OWN now. Press E — the workshop turns piles into parts. Alchemy, but with hammers.',
-      'Ok, big moment: press T. The Maker Lab is where bots get brains. Earl pre-loaded yours. He acts casual, but he prepared.',
-      null, // run step — the Maker Lab has the floor
-      'You just ran your OWN program! Want the real thing? Hit BUILD IT — real firmware, real board, real wheels. I get chatty when I\'m excited. This is me being chill.',
-    ];
-    const line = rivetLines[this._tutorialStep];
-    if (line) this.rivet?.say(line, { mood: 'happy', event: 'tutorial' });
+  _tutorialEvent(name, payload) {
+    // Active-only: after dismissal the engine stays quiet (a stray later
+    // event must not resurrect the card or re-announce the daily contract).
+    if (!this._tutorialEngine || !this._tutorialActive) return;
+    const r = this._tutorialEngine.notify?.(name, payload);
+    if (!r) return;
+    // Render the mission card with new state
+    this._tutorialShow();
+    // Speak the rivet line if present
+    if (r.rivetLine) {
+      this.rivet?.say(r.rivetLine, { mood: 'happy', event: 'tutorial' });
+    }
+    // Celebrate mission complete: confetti + achievement sting + the ✅
+    // notify line (medals land in the same line), then the card comes down.
+    if (r.missionComplete) {
+      try {
+        this.particles?.burst(
+          this.player?.pos.x ?? 0,
+          (this.player?.pos.y ?? 0) + 1,
+          this.player?.pos.z ?? 0,
+          'confetti', 26
+        );
+        this.audio?.achievement?.();
+        this.ui?.notify?.(r.medal
+          ? `✅ Mission complete! 🏅 ${r.medal} — press H for controls. Keep exploring!`
+          : '✅ Mission complete! Press H for controls. Keep exploring!');
+      } catch { /* celebration optional */ }
+      this._dismissMission();
+    }
+    // All done (a later event after completion): dismiss and clean up
+    if (r.allDone) {
+      this._dismissMission();
+    }
   }
 
   _dismissMission() {
     this._tutorialActive = false;
+    this._tutorialEngine?.skipAll?.();
     if (this._mcEl) this._mcEl.classList.remove('show');
     if (this._tutorialHintEl) this._tutorialHintEl.classList.remove('show');
     this._maybeAnnounceDaily();
   }
+
+  // Deprecated shim (kept for any straggler caller): step advancement now
+  // flows through _tutorialEvent → TutorialEngine.notify.
+  _advanceTutorial() { /* no-op — see _tutorialEvent */ }
+
+  // Deprecated shim (kept for any straggler caller): the mission card is
+  // rendered by renderMissionCard via _tutorialShow.
+  _showTutorialHint() { this._tutorialShow(); }
 
   /** Fresh players hear about the daily contract only once the tutorial
    *  stops competing for their attention — never during the first 5 minutes. */
@@ -780,9 +813,6 @@ export class Game {
     if (this._returningSession) return;   // announced with the Welcome Back card
     this.dailyContract?.announce();
   }
-
-  // kept for backward compat with code that calls _showTutorialHint
-  _showTutorialHint() { this._showMissionStep(); }
 
   _bindInput() {
     document.addEventListener('keydown', e => {
@@ -793,9 +823,15 @@ export class Game {
       // Any keypress resets the auto-help timer
       this._helpAutoTimer = -1;
 
-      // ── Tutorial: detect WASD to advance step 0 ──
-      if (this._tutorialActive && this._tutorialStep === 0 && /^(Key[WASD])$/.test(e.code)) {
-        this._advanceTutorial();
+      // Cutscene: any key skips; no menu opens mid-cutscene
+      if (this.cutsceneActive) {
+        this.cinema?.skip?.();
+        return;
+      }
+
+      // ── Tutorial: any WASD key completes the walk step ──
+      if (this._tutorialActive && /^(Key[WASD])$/.test(e.code)) {
+        this._tutorialEvent('move');
       }
 
       if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && document.pointerLockElement) {
@@ -815,9 +851,9 @@ export class Game {
           && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName ?? '')) {
         this._openMosLedger();
       }
-      // ── Tutorial: detect E to advance step 2 ──
+      // ── Tutorial: E completes the workshop step ──
       if (e.code === 'KeyE') {
-        if (this._tutorialActive && this._tutorialStep === 2) this._advanceTutorial();
+        if (this._tutorialActive) this._tutorialEvent('open_bench');
         if (this.ui.isOpen) { this.ui.closeInventory(); return; }
         // Toggle tower panel closed if it's already open
         if (this.ui._towerPanelOpen) {
@@ -875,10 +911,10 @@ export class Game {
         const nearby = this.world.getNearbyInteractives(p.x, p.y, p.z, 3);
         this.ui.openInventory(nearby[0]?.station ?? 'any');
       }
-      // ── Tutorial: detect T to advance step 3 ──
+      // ── Tutorial: T completes the Maker Lab step (starter program autoloads) ──
       if (e.code === 'KeyT') {
-        if (this._tutorialActive && this._tutorialStep === 3) {
-          this._advanceTutorial();
+        if (this._tutorialActive) {
+          this._tutorialEvent('open_maker');
           // Auto-load the wall-avoider starter program if the canvas is empty
           if (!this.tileEditor.isOpen) {
             this.tileEditor.open(this._getBrainTier());
@@ -886,8 +922,7 @@ export class Game {
           if (this.tileEditor._program?.nodes?.length === 0) {
             this.tileEditor.loadProgram(EXAMPLE_WALL_AVOIDER);
           }
-          // Wire the one-shot "first run" callback to advance step 4
-          this.tileEditor.onFirstRun = () => this._advanceTutorial();
+          // (the RUN step now rides _noteProgramRunDelight's event tap)
           return;
         }
         if (this.tileEditor.isOpen) { this.tileEditor.close(); }
@@ -987,7 +1022,7 @@ export class Game {
     this.canvas.addEventListener('mousedown', e => {
       // Free cursor + click on the yard → take the controls (covers the
       // never-locked path, e.g. a refused boot-time lock request).
-      if (!document.pointerLockElement && !this.openingPending && !this.ui?.isOpen) {
+      if (!document.pointerLockElement && !this.openingPending && !this.cutsceneActive && !this.ui?.isOpen) {
         this.canvas?.requestPointerLock?.();
       }
       if (e.button === 0) this._mineDown = true;
@@ -1002,16 +1037,38 @@ export class Game {
     });
 
     // Pointer lock: show/hide pause overlay — but never while the opening
-    // cinematic runs (lock is deliberately absent behind the first menus;
-    // a PAUSED flash under the gate would break the world-before-menu spell).
+    // cinematic or a cutscene runs (lock is deliberately absent; PAUSED flash
+    // would break the narrative flow). The cinema is pause-gated in _update
+    // (fed dt only while unpaused) — NOT here: a lock lost mid-cutscene must
+    // not freeze the film with no way back but the skip key.
     document.addEventListener('pointerlockchange', () => {
       const locked = !!document.pointerLockElement;
-      if (this._running && !this.openingPending) this.ui.setPaused(!locked);
+      if (this._running && !this.openingPending && !this.cutsceneActive) {
+        this.ui.setPaused(!locked);
+      }
     });
 
     // Click-to-resume on pause overlay
     document.getElementById('pause-overlay')?.addEventListener('click', () => {
       if (!document.pointerLockElement) this.canvas.requestPointerLock();
+    });
+
+    // ── Veteran Ride — pause-menu surface (explicit entry; stopPropagation
+    //    so the overlay's click-to-resume doesn't fight the buttons) ──
+    document.getElementById('veteran-ride-btn')?.addEventListener('click', e => {
+      e.stopPropagation();
+      this.offerVeteranRide('pause-menu');
+    });
+    const restoreBtn = document.getElementById('veteran-restore-btn');
+    try {
+      if (restoreBtn && typeof localStorage !== 'undefined'
+          && localStorage.getItem('scrapcraft.veteran.backup')) {
+        restoreBtn.style.display = '';   // hidden by default; flag-gated
+      }
+    } catch { /* storage optional */ }
+    restoreBtn?.addEventListener('click', e => {
+      e.stopPropagation();
+      this._restoreVeteranBackup();
     });
   }
 
@@ -1144,8 +1201,8 @@ export class Game {
     // Buried signal cache — special loot when the BURIED_CACHE block is mined
     if (id === B.BURIED_CACHE) this._lootBuriedCache(x, z);
 
-    // Tutorial: first mine advances step 1
-    if (this._tutorialActive && this._tutorialStep === 1) this._advanceTutorial();
+    // Tutorial: the first block broken completes the mine step
+    if (this._tutorialActive) this._tutorialEvent('mine', { block: id });
 
     this.achievements.track('mine', { isNight });
     this.challenge.onMine(id);
@@ -2009,6 +2066,17 @@ export class Game {
       } catch { /* the cinematic is a garnish — a failed orbit must not fail a boot */ }
     }
 
+    // Cinema director for cutscenes. The camera object itself (stable for the
+    // session) — the director's API reads .position/.lookAt, not a factory.
+    // Fail-soft: no renderer → null camera, subtitles/letterbox still work.
+    try {
+      this.cinema = new CutsceneDirector({
+        camera: this.renderer?.camera ?? null,
+        world: this.world,
+        game: this,
+      });
+    } catch { /* cinema is optional */ }
+
     this._lastTime = performance.now();
     this._loop();
     if (this._returningSession) this._showWelcomeBack();
@@ -2016,6 +2084,9 @@ export class Game {
 
   /** True while the opening cinematic owns the camera (menus up, no lock). */
   get openingPending() { return this._openingCinematic?.active === true; }
+
+  /** True while a cutscene is active (player can't control). */
+  get cutsceneActive() { return this.cinema?.active === true; }
 
   /** The last opening overlay closed: park the camera at the kid's eye and
    *  take the controls. Idempotent; fail-soft on every step. */
@@ -2034,6 +2105,157 @@ export class Game {
     } catch { /* camera parked best-effort; pointer lock drives the rest */ }
     if (!document.pointerLockElement) this.canvas?.requestPointerLock?.();
     this.ui?.setPaused?.(false);
+  }
+
+  /** Play a cutscene by id. Fail-soft: no cinema → onDone fires immediately
+   *  (a cutscene must never strand its callback or gate a quest). Player
+   *  input is paused by the cutsceneActive gate on player.tick in _update;
+   *  when the film ends the camera re-parks at the kid's eye exactly like
+   *  _endOpening does (EYE_HEIGHT + Euler YXZ), then onDone runs. */
+  playCutscene(id, { onDone } = {}) {
+    if (!this.cinema) {
+      // No cinema available: fire callback immediately
+      onDone?.();
+      return;
+    }
+    this.ui?.setPaused?.(false);   // the film owns the screen — mirror _endOpening
+    // Chain onDone: re-park the camera first, then the caller's callback.
+    const wrappedOnDone = () => {
+      try {
+        const cam = this.renderer?.camera, p = this.player;
+        if (cam && p) {
+          cam.position.set(p.pos.x, p.pos.y + EYE_HEIGHT, p.pos.z);
+          cam.quaternion.setFromEuler(new THREE.Euler(p.pitch, p.yaw, 0, 'YXZ'));
+        }
+      } catch { /* camera re-park best-effort */ }
+      onDone?.();
+    };
+    this.cinema.play(id, { onDone: wrappedOnDone });
+  }
+
+  // ── Veteran Ride — the honest fork for kids who already know the yard ────
+
+  /** Show the one-time veteran-ride offer card (ceremony-card pattern):
+   *  the summary line + two buttons — "jump in at Chapter 7" or keep the
+   *  fresh walk. Only EVER shown at the fresh-boot onboarding moment or by
+   *  an explicit pause-menu click. `onKeepFresh` (fresh-boot flow) ends the
+   *  opening and rolls the intro cutscene. Returns true when the card is up.
+   *  Fail-soft: no DOM/storage → false, the fresh path just continues. */
+  offerVeteranRide(reason = 'manual', onKeepFresh = null) {
+    if (this._veteranRideOffered && reason !== 'pause-menu') return false;
+    try {
+      if (typeof document === 'undefined') return false;
+      this._veteranRideOffered = true;
+      document.getElementById('veteran-ride-card')?.remove();
+      document.exitPointerLock?.();
+
+      const profile = generateVeteranSave();
+      const summary = veteranRideSummary(profile);
+      const card = document.createElement('div');
+      card.id = 'veteran-ride-card';
+      card.style.cssText = `
+        position: fixed; inset: 0; z-index: 180; display: flex;
+        align-items: center; justify-content: center;
+        background: rgba(8, 6, 3, 0.55); font-family: 'Courier New', monospace;`;
+      card.innerHTML = `
+        <div style="
+            width: min(520px, 90vw); text-align: center;
+            background: #17120a; border: 2px solid #6b5a33; border-radius: 10px;
+            color: #e8dcc0; padding: 26px 30px; font-size: 14px; line-height: 1.6;">
+          <div style="letter-spacing:4px;font-size:11px;color:#9fd0ff;opacity:.85">🚚 THE VETERAN RIDE</div>
+          <div style="margin:14px auto 0;max-width:44ch;font-style:italic;color:#e8dcc0">${summary.note}</div>
+          <div style="margin:10px auto 0;font-size:11px;opacity:.65">
+            Starts mid-spine with your tools, your bots, and Rivet at your shoulder.
+            Achievements stay live-only — every medal is still yours to earn.
+          </div>
+          <div style="display:flex;gap:10px;margin-top:20px;justify-content:center;flex-wrap:wrap">
+            <button id="vr-go" style="
+              padding:11px 16px;background:#3a2a0a;border:2px solid #f0b429;border-radius:6px;
+              color:#ffd97a;font-family:inherit;font-size:12px;font-weight:bold;cursor:pointer;letter-spacing:1px;">
+              🚚 VETERAN RIDE — jump in at Chapter 7</button>
+            <button id="vr-stay" style="
+              padding:11px 16px;background:#2a2a2a;border:2px solid #555;border-radius:6px;
+              color:#ccc;font-family:inherit;font-size:12px;cursor:pointer;letter-spacing:1px;">
+              Keep fresh</button>
+          </div>
+          <div style="margin-top:14px;font-size:10px;opacity:.45">${
+            reason === 'fresh-boot' ? 'one offer, one yard — your call' : 'your live save is backed up first'
+          }</div>
+        </div>`;
+
+      const dismiss = () => {
+        card.remove();
+        document.removeEventListener('keydown', onKey, true);
+      };
+      const keepFresh = () => {
+        dismiss();
+        onKeepFresh?.();
+      };
+      // Escape is "keep fresh" — a keyboard kid is never trapped at the fork
+      const onKey = e => { if (e.key === 'Escape') keepFresh(); };
+      document.addEventListener('keydown', onKey, true);
+
+      card.querySelector('#vr-go')?.addEventListener('click', e => {
+        e.stopPropagation();
+        dismiss();
+        this.activateVeteranRide();
+      });
+      card.querySelector('#vr-stay')?.addEventListener('click', e => {
+        e.stopPropagation();
+        keepFresh();
+      });
+      document.body.appendChild(card);
+      return true;
+    } catch { /* the fork is a garnish — the fresh walk always works */ }
+    return false;
+  }
+
+  /** Switch the live slot to the veteran profile: back up any live save
+   *  first (nothing is ever lost), seed the side-storage (spine/wakes/
+   *  companion/tracker — done by applyVeteranProfile), write the profile's
+   *  save to BOTH the veteran slot (provenance) and the LIVE key (this IS
+   *  the profile switch), stamp scrapcraft.profile, reload. On a truly
+   *  fresh boot there is no live save — nothing to lose by construction. */
+  activateVeteranRide() {
+    try {
+      if (typeof localStorage === 'undefined') return false;
+      // Back up a live save first — restore lives in the pause menu.
+      try {
+        if (this.saveSystem?.hasSave?.()) {
+          const liveRaw = localStorage.getItem(LIVE_SAVE_KEY);
+          if (liveRaw) {
+            const backupKey = `scrapcraft_save_v6_backup_${Date.now()}`;
+            localStorage.setItem(backupKey, liveRaw);
+            localStorage.setItem('scrapcraft.veteran.backup', backupKey);
+          }
+        }
+      } catch { /* backup best-effort; fresh boots lose nothing anyway */ }
+      const profile = generateVeteranSave();
+      applyVeteranProfile(profile, localStorage);
+      const raw = JSON.stringify(profile.save);
+      localStorage.setItem(VETERAN_SAVE_KEY, raw);   // provenance slot
+      localStorage.setItem(LIVE_SAVE_KEY, raw);      // THE profile switch
+      localStorage.setItem('scrapcraft.profile', 'veteran');
+      location.reload();
+      return true;
+    } catch { /* a failed ride must never brick the boot */ }
+    return false;
+  }
+
+  /** Pause-menu "Restore my save": copy the newest pre-ride backup over the
+   *  live key, clear the flag, reload. Shown only while the flag exists. */
+  _restoreVeteranBackup() {
+    try {
+      if (typeof localStorage === 'undefined') return false;
+      const backupKey = localStorage.getItem('scrapcraft.veteran.backup');
+      const raw = backupKey ? localStorage.getItem(backupKey) : null;
+      if (!raw) { localStorage.removeItem('scrapcraft.veteran.backup'); return false; }
+      localStorage.setItem(LIVE_SAVE_KEY, raw);
+      localStorage.removeItem('scrapcraft.veteran.backup');
+      location.reload();
+      return true;
+    } catch { /* restore is a garnish — never a crash */ }
+    return false;
   }
 
   // ── Welcome Back — the minute-0-of-day-2 moment ────────────────────────
@@ -2249,12 +2471,19 @@ export class Game {
       this.player.fuelBoosted = false;
     }
 
-    this.player.tick(dt, this.world);
+    // Don't tick player input during cutscenes (camera is owned)
+    if (!this.cutsceneActive) this.player.tick(dt, this.world);
 
     // Opening cinematic — the yard drifts behind the first menus. Player.tick
     // no-ops without pointer lock, so while menus are up the orbit owns the
     // camera; when it ends, _endOpening parks the camera at the kid's eye.
     if (this._openingCinematic?.active) this._openingCinematic.update(dt);
+
+    // Cutscene playback — the SAME pause gate the rest of the screen honors:
+    // dt is fed only while the pause overlay is DOWN (the overlay never shows
+    // mid-cutscene, so this is the outer pause belt; the director also no-ops
+    // internally when setPaused). Pause-safe by construction.
+    if (this.cinema?.active && !this.ui?.paused) this.cinema.update(dt);
 
     this._tickRivet(dt);
 

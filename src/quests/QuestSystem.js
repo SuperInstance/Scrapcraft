@@ -153,6 +153,18 @@ export class QuestSystem {
     try {
       this.wakes ??= new Wakes({ storage: this.game?.storage ?? null });
       const newly = this.wakes.sync(this.spine);
+      // CUTSCENE (fail-soft): the FIRST wake ever gets the film treatment —
+      // wakes.count()===newly.length means everything awake woke just now.
+      // ch9's ghost-track reveal ('wake-oldbot-turn', the Long Route Home)
+      // plays the same id — that cutscene IS the ghost-track waking. Fired
+      // BEFORE the tease notify; a cutscene must never gate a quest.
+      try {
+        if (newly.length && this.wakes.count() === newly.length) {
+          this.game?.playCutscene?.('wake-first-light');
+        } else if (newly.includes('wake-oldbot-turn')) {
+          this.game?.playCutscene?.('wake-first-light');
+        }
+      } catch { /* cinema is a garnish */ }
       for (const id of newly) this._wakeTease(id);
     } catch { /* the spine never leans on the wakes */ }
     for (const c of this.spine.dueCeremonies()) {
@@ -163,6 +175,21 @@ export class QuestSystem {
     for (const c of this.spine.dueCompletedCeremonies()) {
       this.spine.markCompleted(c.id);
       const withN = { ...c, n: this.spine.indexOf(c.id) };
+      // CUTSCENE (fail-soft): ch12's close IS the finale moment — the film
+      // plays first and the completion card lands in its onDone. Sequencing
+      // choice: onDone-deferred (not fire-and-continue) so the card never
+      // talks over the film; playCutscene fires onDone IMMEDIATELY (fail-soft)
+      // when the cinema is absent, so the card can never be stranded either.
+      if (c.id === 'ch12') {
+        try {
+          this.game?.playCutscene?.('finale-candlelight', {
+            onDone: () => {
+              try { renderChapterCompleteCeremony(this.game, withN); } catch { /* DOM-optional */ }
+            },
+          });
+          continue;   // ceremony handled by the cutscene's onDone
+        } catch { /* fall through to the direct ceremony below */ }
+      }
       try { renderChapterCompleteCeremony(this.game, withN); } catch { /* DOM-optional */ }
     }
     const idx = this.spine.currentChapterIndex();
