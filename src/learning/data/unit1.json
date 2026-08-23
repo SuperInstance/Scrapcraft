@@ -1,0 +1,779 @@
+{
+  "_doc": "UNIT 1 PROGRESSION DATA — machine-readable lesson→concept→game-hook mapping for the teacher console. Concept IDs are the fixed contract from src/learning/concepts.js (17 concepts, 4 tiers). Quest IDs are live CAMPAIGN ids resolvable through QUEST_CONCEPTS. teachBack.liveQuestionId references shipped questions in src/learning/data/teachback.json (null = companion-prompt style, teacher-facilitated). brokenBot scenario ids match src/learning/data/brokenbots.json. Nothing here is consumed by the game engine yet — additive-only data for the teacher console to render (docs/classroom/UNIT-1.md is the human source of truth). NOTE: lessons[].concepts lists the concepts each lesson TARGETS (teach-back/checks); quests may incidentally advance other ledger rungs via QUEST_CONCEPTS — that is the ledger working as designed (rungs rise quietly), not a mapping error.",
+  "v": 1,
+  "unit": {
+    "id": "unit-1-teach-your-robot",
+    "title": "Teach Your Robot",
+    "version": "1.0.0",
+    "audience": {
+      "grades": [
+        6,
+        7,
+        8
+      ],
+      "ages": [
+        11,
+        12,
+        13,
+        14
+      ]
+    },
+    "lessonMinutes": 45,
+    "lessonCount": 8,
+    "simulationFirst": true,
+    "hardware": "progressive-enhancement",
+    "printAssets": {
+      "unitDoc": "docs/classroom/UNIT-1.md",
+      "teacherPack": "docs/classroom/TEACHER-PACK-1.md",
+      "printablePage": "docs/classroom/pack.html"
+    }
+  },
+  "frameworks": {
+    "ai4k12": {
+      "source": "https://ai4k12.org/",
+      "gradeBandCharts": "https://ai4k12.org/gradeband-progression-charts/",
+      "band": "6-8",
+      "bigIdeas": {
+        "1": "Perception — computers perceive via sensors; extracting meaning from sensory signals",
+        "2": "Representation & Reasoning",
+        "3": "Learning",
+        "4": "Natural Interaction",
+        "5": "Societal Impact (first-class topic in grades 6-8)"
+      },
+      "note": "AAAI + CSTA initiative; NSF-supported (Grant DRL-1846073, per ai4k12.org); five big ideas across K-2/3-5/6-8/9-12 bands."
+    },
+    "experienceAI": {
+      "source": "https://experience-ai.org/en/",
+      "by": "Raspberry Pi Foundation + Google DeepMind",
+      "ages": "11-14",
+      "themesUsed": [
+        "what-is-AI",
+        "how-AI-decides",
+        "data-and-perception",
+        "algorithms",
+        "how-machines-learn",
+        "problem-solving",
+        "risks-and-impacts",
+        "creating-with-AI"
+      ],
+      "note": "Free lessons (plans, slides, worksheets) for exactly this age band, by Raspberry Pi Foundation + Google DeepMind. themesUsed are OUR PARAPHRASES for pairing, not official lesson titles — browse the library at experience-ai.org for the official set."
+    },
+    "assessment": {
+      "method": "teach-back / protege effect",
+      "cites": [
+        "https://aaalab.stanford.edu/teachable-agents/research",
+        "https://www.ahrq.gov/teamstepps-program/curriculum/communication/tools/teachback.html"
+      ],
+      "note": "Classroom evidence weight sits with the protege-effect line (Stanford AAA Lab); AHRQ TeamSTEPPS is the health-communication origin of the teach-back method, cited as lineage."
+    }
+  },
+  "lessons": [
+    {
+      "n": 1,
+      "id": "l1-pile-of-parts",
+      "title": "A Pile of Parts Is Not a Robot",
+      "tier": "ACT",
+      "minutes": 45,
+      "objective": "Name the three systems every robot needs (power, structure/actuation, senses-to-come) and build a first bot to the boot beep.",
+      "bigIdeas": [
+        1,
+        5
+      ],
+      "bigIdeaRoles": {
+        "1": "seed",
+        "5": "seed"
+      },
+      "experienceAITheme": "what-is-AI",
+      "concepts": [
+        "actuation",
+        "power-systems"
+      ],
+      "chapters": [
+        1,
+        2,
+        3
+      ],
+      "quests": [
+        "earl-1",
+        "earl-2",
+        "earl-3",
+        "earl-4",
+        "earl-5"
+      ],
+      "unplugged": {
+        "name": "Human Bot",
+        "minutes": 7,
+        "how": "Pairs; one is the eyes-closed bot; partner gives only exact IF/THEN commands. Debrief: what did the bot have to do to follow the rule?"
+      },
+      "gameplay": {
+        "minutes": 25,
+        "segments": [
+          "Ch1 salvage",
+          "Ch2 tools",
+          "Ch3 first build (earl-1..earl-5)"
+        ],
+        "honestPacing": "First contact is slow (loading, controls, reading). Target = crafting pipeline + first build underway; boot beep opens L2 for slow classes. earl-6 'Build a Brain' is deliberately L2's opener."
+      },
+      "teachBack": {
+        "conceptId": "actuation",
+        "asker": "magma",
+        "prompt": "If motors make it move, why does it need all this other junk?",
+        "liveQuestionId": null
+      },
+      "scriptCues": [
+        {
+          "who": "earl",
+          "line": "Kid, I got a crate of motors that never once talked to a sensor. Wanna guess what they're good for? Paperweights.",
+          "discussion": "What is a robot without sensing?"
+        },
+        {
+          "who": "earl",
+          "line": "Nothing here is junk. It's just parts waiting for a better job.",
+          "discussion": "Why does the game start with scrap instead of new parts?"
+        }
+      ],
+      "misconceptions": [
+        "battery is the brain (power is not logic)",
+        "alive when it moves (movement is not sensing)"
+      ],
+      "materials": [
+        "browser",
+        "paper+pencil"
+      ],
+      "sparkRequired": false,
+      "timing": {
+        "unplugged": 7,
+        "frame": 3,
+        "gameplay": 25,
+        "teachBack": 8,
+        "close": 2,
+        "total": 45
+      },
+      "techFailFallback": "Warm-up double-length with roles swapped, then paper bot design: POWER / STRUCTURE / MOVEMENT boxes + one sentence on what it still can't do."
+    },
+    {
+      "n": 2,
+      "id": "l2-sense-think-act",
+      "title": "Sense, Think, Act",
+      "tier": "THINK",
+      "minutes": 45,
+      "objective": "Write a first tile program (if inside forever) and describe the sense-decide-act loop.",
+      "bigIdeas": [
+        2,
+        1
+      ],
+      "bigIdeaRoles": {
+        "2": "primary",
+        "1": "supporting"
+      },
+      "experienceAITheme": "how-AI-decides",
+      "concepts": [
+        "conditionals",
+        "loops-forever",
+        "feedback-loop"
+      ],
+      "chapters": [
+        4
+      ],
+      "quests": [
+        "earl-6",
+        "earl-7"
+      ],
+      "unplugged": {
+        "name": "Walk the flowchart",
+        "minutes": 6,
+        "how": "Taped path with IF/THEN index cards; flip one card absurd. The walker never breaks the rule — the rule was wrong."
+      },
+      "gameplay": {
+        "minutes": 25,
+        "segments": [
+          "Ch4 One Knob at a Time",
+          "first program",
+          "one change per run (Mellon Loop)"
+        ]
+      },
+      "teachBack": {
+        "conceptId": "conditionals",
+        "asker": "rivet",
+        "prompt": "The if tile has two mouths. Which one eats the answer when the sensor says TRUE?",
+        "liveQuestionId": "tb-conditionals-1"
+      },
+      "scriptCues": [
+        {
+          "who": "earl",
+          "line": "So if the bot never checks anything, it just keeps doing the first thing forever? That sound like a plan to you?",
+          "discussion": "What does forever mean to a machine?"
+        },
+        {
+          "who": "rivet",
+          "line": "If I see a wall, I turn left — does that mean 'if' is like definitely turning?",
+          "discussion": "Let a student correct Rivet, not the teacher."
+        }
+      ],
+      "misconceptions": [
+        "if means maybe",
+        "forever loops drain the battery faster",
+        "both branches run every loop"
+      ],
+      "materials": [
+        "browser",
+        "tape",
+        "index-cards"
+      ],
+      "sparkRequired": false,
+      "timing": {
+        "unplugged": 6,
+        "frame": 4,
+        "gameplay": 25,
+        "teachBack": 8,
+        "close": 2,
+        "total": 45
+      }
+    },
+    {
+      "n": 3,
+      "id": "l3-drawing-the-line",
+      "title": "Drawing the Line",
+      "tier": "SENSE",
+      "minutes": 45,
+      "objective": "Explain a threshold as a justified choice, tune one live, recalibrate when conditions change.",
+      "bigIdeas": [
+        1
+      ],
+      "bigIdeaRoles": {
+        "1": "primary"
+      },
+      "experienceAITheme": "data-and-perception",
+      "concepts": [
+        "thresholds",
+        "calibration",
+        "sensors-overview"
+      ],
+      "chapters": [
+        5,
+        6,
+        9
+      ],
+      "quests": [
+        "earl-9",
+        "bolt-3",
+        "ch9-1"
+      ],
+      "unplugged": {
+        "name": "Where does black become white?",
+        "minutes": 6,
+        "how": "Grey paint chips; every student privately writes the crossover point; compare. No wrong answer — a choice you must justify. Park the bias question for L8."
+      },
+      "gameplay": {
+        "minutes": 25,
+        "segments": [
+          "oval line-follower (The Ghost)",
+          "library calibration",
+          "ch9-1 stretch for fast finishers"
+        ]
+      },
+      "teachBack": {
+        "conceptId": "thresholds",
+        "asker": "juno",
+        "prompt": "My line-follower was PERFECT on the oval and now it's drunk in the dusty stacks. Same bot, same code. What changed?",
+        "liveQuestionId": null
+      },
+      "scriptCues": [
+        {
+          "who": "earl",
+          "line": "Rivet keeps insisting gray is basically white. You gonna let him get away with that?",
+          "discussion": "What happens when the world's definition of normal changes?"
+        },
+        {
+          "who": "earl",
+          "line": "A threshold is a promise you made yesterday. Today wants to renegotiate.",
+          "discussion": "Calibration as re-making the promise."
+        }
+      ],
+      "misconceptions": [
+        "the sensor is wrong (the threshold decides)",
+        "one threshold works everywhere (bias seed)",
+        "calibration means something was broken (it is maintenance)"
+      ],
+      "materials": [
+        "browser",
+        "paint-chips-or-gradient"
+      ],
+      "sparkRequired": false,
+      "timing": {
+        "unplugged": 6,
+        "frame": 4,
+        "gameplay": 25,
+        "teachBack": 8,
+        "close": 2,
+        "total": 45
+      }
+    },
+    {
+      "n": 4,
+      "id": "l4-same-job-less-code",
+      "title": "Same Job, Less Code",
+      "tier": "THINK",
+      "minutes": 45,
+      "objective": "Compress a working program with counted loops, until-loops, variables, and subroutines; defend the compression.",
+      "bigIdeas": [
+        2
+      ],
+      "bigIdeaRoles": {
+        "2": "primary"
+      },
+      "experienceAITheme": "algorithms",
+      "concepts": [
+        "loops-counted",
+        "loops-until",
+        "subroutines",
+        "variables",
+        "optimization"
+      ],
+      "chapters": [
+        5
+      ],
+      "quests": [
+        "bolt-write-shorter",
+        "earl-19"
+      ],
+      "unplugged": {
+        "name": "Shoelace pseudocode",
+        "minutes": 7,
+        "how": "Write 15+ steps for tying a shoe; rewrite with repeat 2x and one named sub-step; count the savings aloud. Plus the 2-minute scoreboard beat: 'where does the robot write the lap count?' — a variable is the scoreboard (introduced today, not quiz-stressed)."
+      },
+      "gameplay": {
+        "minutes": 25,
+        "segments": [
+          "side quest Same Lap Fewer Tiles (three measured runs)",
+          "hypothesis sentence required",
+          "earl-19 stretch"
+        ]
+      },
+      "teachBack": {
+        "conceptId": "loops-until",
+        "asker": "juno",
+        "prompt": "Loop forever, loop until, loop four times — they all repeat. When would you pick each one?",
+        "liveQuestionId": null,
+        "bonusLiveQuestionId": "tb-loops-until-1"
+      },
+      "scriptCues": [
+        {
+          "who": "earl",
+          "line": "You wrote the same three tiles eight times in a row. You building a program or a wall?",
+          "discussion": "What does duplication cost a robot?"
+        },
+        {
+          "who": "bolt",
+          "line": "Every tile is weight. The lap doesn't care how much you typed.",
+          "discussion": "Optimization as respect for budgets."
+        }
+      ],
+      "misconceptions": [
+        "shorter code is always better (readability is a budget)",
+        "variables stay locked",
+        "subroutines just save typing (they name an idea)"
+      ],
+      "materials": [
+        "browser"
+      ],
+      "sparkRequired": false,
+      "timing": {
+        "unplugged": 7,
+        "frame": 3,
+        "gameplay": 25,
+        "teachBack": 8,
+        "close": 2,
+        "total": 45
+      }
+    },
+    {
+      "n": 5,
+      "id": "l5-which-friend-learns",
+      "title": "Which Friend Actually Learns?",
+      "tier": "AI-LITERACY",
+      "minutes": 45,
+      "objective": "Distinguish scripted rules (companions) from a learned model (Spark) from student-written rules; explain learning-from-data in kid words.",
+      "bigIdeas": [
+        3,
+        4,
+        5
+      ],
+      "bigIdeaRoles": {
+        "3": "primary",
+        "4": "primary",
+        "5": "seed"
+      },
+      "experienceAITheme": "how-machines-learn",
+      "concepts": [
+        "calibration"
+      ],
+      "conceptsRole": "recap-only",
+      "chapters": [],
+      "quests": [],
+      "unplugged": {
+        "name": "Rule-follower or learner?",
+        "minutes": 6,
+        "how": "Sort five descriptions: thermostat, autocomplete, choose-your-own-adventure book, dog that learned fetch, spam filter. The book is the trick item — interactive but fully scripted, exactly like Earl."
+      },
+      "gameplay": {
+        "minutes": 25,
+        "segments": [
+          "talk to a scripted companion twice (fixed pool)",
+          "talk to Spark (novel replies, LLM via scrap-spark, SHA-256-cached)"
+        ],
+        "sparklessFallback": "Teacher projects one scripted-pool excerpt + one Spark transcript; comparison works on paper. Lesson runs fully offline."
+      },
+      "teachBack": {
+        "conceptId": "calibration",
+        "asker": "spark",
+        "prompt": "Earl remembered your name this morning. Spark made up a poem about your bot. Which one of them LEARNED something — and what's the difference?",
+        "liveQuestionId": null
+      },
+      "scriptCues": [
+        {
+          "who": "earl",
+          "line": "Folks keep asking if I 'know' 'em from last time. Nah — I ask dumb questions and let you do the remembering. That's kinda the point, ain't it?",
+          "discussion": "Is a scripted companion lying to you? (No — but know which friend is which.)"
+        },
+        {
+          "who": "spark",
+          "line": "(discussion prompts)",
+          "discussion": "Where did each one's words come from? Can Spark be confidently wrong? What do you do when it is?"
+        }
+      ],
+      "misconceptions": [
+        "everything that talks is AI",
+        "Spark understands me (it predicts likely language)",
+        "learning = memorizing (models generalize — hence new kinds of wrong)"
+      ],
+      "materials": [
+        "browser",
+        "headphones-optional"
+      ],
+      "sparkRequired": false,
+      "sparkOptional": true,
+      "privacyNote": "Spark sends the typed question + minimal context for a cached reply; no account, no profile; whole unit runs Spark-less.",
+      "timing": {
+        "unplugged": 6,
+        "frame": 4,
+        "gameplay": 25,
+        "teachBack": 8,
+        "close": 2,
+        "total": 45
+      }
+    },
+    {
+      "n": 6,
+      "id": "l6-detectives-clinic",
+      "title": "The Detective's Clinic",
+      "tier": "ENGINEER",
+      "minutes": 45,
+      "objective": "Diagnose hypothesis-first (symptom, hypothesis, ONE change, re-run) through all three clinic scenarios.",
+      "bigIdeas": [
+        2,
+        1
+      ],
+      "bigIdeaRoles": {
+        "2": "primary",
+        "1": "supporting"
+      },
+      "experienceAITheme": "problem-solving",
+      "concepts": [
+        "debugging",
+        "conditionals",
+        "loops-until",
+        "sensors-overview"
+      ],
+      "chapters": [],
+      "quests": [
+        "rivet-2",
+        "bolt-side-3"
+      ],
+      "brokenBotScenarios": [
+        "left-forever",
+        "never-stops",
+        "wrong-sensor"
+      ],
+      "unplugged": {
+        "name": "Bug triage card sort",
+        "minutes": 7,
+        "how": "Symptom-only cards (never stops / responds to touch not light / dies at 3pm daily); sort sensor/logic/power; defend one sort. Templates in TEACHER-PACK-1.md."
+      },
+      "gameplay": {
+        "minutes": 25,
+        "segments": [
+          "Broken-Bot Clinic x3",
+          "hypothesis sentence BEFORE touching code",
+          "rivet-2 or bolt-side-3 stretch"
+        ]
+      },
+      "teachBack": {
+        "conceptId": "debugging",
+        "asker": "rivet",
+        "prompt": "The bot wasn't broken — the decision was backwards. How did you know the comparison was flipped before you fixed it?",
+        "liveQuestionId": null
+      },
+      "scriptCues": [
+        {
+          "who": "earl",
+          "line": "I've seen this one before. The bot sees nothing and decides nothing. Start by asking: what IS the ultrasonic sensor reading right now?",
+          "discussion": "Why does Earl start with a question, not the answer?"
+        },
+        {
+          "who": "earl",
+          "line": "The thing works PERFECTLY at being wrong until you un-wrong it.",
+          "discussion": "Was the bot ever broken? It did exactly what its code said."
+        }
+      ],
+      "misconceptions": [
+        "trial-and-error guessing (enforce the hypothesis sentence)",
+        "'the sensor is broken' reflex (two of three bugs are logic)",
+        "debugging is fixing (debugging is explaining, then fixing)"
+      ],
+      "materials": [
+        "browser",
+        "printed-triage-cards"
+      ],
+      "sparkRequired": false,
+      "timing": {
+        "unplugged": 7,
+        "frame": 3,
+        "gameplay": 25,
+        "teachBack": 8,
+        "close": 2,
+        "total": 45
+      }
+    },
+    {
+      "n": 7,
+      "id": "l7-fail-loudly",
+      "title": "Fail Loudly, Learn Publicly",
+      "tier": "ENGINEER",
+      "minutes": 45,
+      "objective": "Read failure as data (plaque wall) and write an honest failure plaque naming a cause, not just a crash.",
+      "bigIdeas": [
+        5,
+        2
+      ],
+      "bigIdeaRoles": {
+        "5": "primary (6-8 first-class topic)",
+        "2": "supporting"
+      },
+      "experienceAITheme": "risks-and-impacts",
+      "concepts": [
+        "failure-analysis"
+      ],
+      "chapters": [
+        8
+      ],
+      "quests": [
+        "ch8-1",
+        "ch8-2",
+        "ch8-3"
+      ],
+      "unplugged": {
+        "name": "Who's at fault?",
+        "minutes": 6,
+        "how": "Delivery robot drives into a pond (camera can't see water). Pick ONE — sensor, coder, calibration, company — and defend. No consensus expected; the defense is the learning."
+      },
+      "gameplay": {
+        "minutes": 25,
+        "segments": [
+          "Ch8 Fourteen Letters",
+          "Ask Spark Why Someday (post-mortems + missing data)",
+          "Wrecks Worth Fixing",
+          "each student writes one plaque from any L1-6 crash"
+        ],
+        "note": "ch8-2 'Ask Spark Why Someday' is titled narratively; its content is offline post-mortem reading — the quest makes no Spark call."
+      },
+      "teachBack": {
+        "conceptId": "failure-analysis",
+        "asker": "rivet",
+        "prompt": "Nobody makes a plaque for the bot that worked. Why is yours worth one?",
+        "liveQuestionId": null
+      },
+      "scriptCues": [
+        {
+          "who": "earl",
+          "line": "Every wreck wrote a letter. Reading it is the cheapest education you'll ever get.",
+          "discussion": "Why does the yard display failures? What could your school plaque?"
+        },
+        {
+          "who": "earl",
+          "line": "A robot that fails quietly is worse than one that fails loud. Loud fails teach. Quiet fails compound.",
+          "discussion": "What fails quietly in the real world? (The Big Idea 5 hinge.)"
+        }
+      ],
+      "misconceptions": [
+        "failure is bad (failure is data)",
+        "blame-the-human reflex (systems fail as systems)",
+        "plaques are for dramatic crashes (quiet drift deserves one most)"
+      ],
+      "materials": [
+        "browser",
+        "paper+pencil"
+      ],
+      "sparkRequired": false,
+      "timing": {
+        "unplugged": 6,
+        "frame": 4,
+        "gameplay": 25,
+        "teachBack": 8,
+        "close": 2,
+        "total": 45
+      }
+    },
+    {
+      "n": 8,
+      "id": "l8-export-day",
+      "title": "Export Day: The Same Robot, Real",
+      "tier": "ENGINEER",
+      "minutes": 45,
+      "objective": "Export tiles as real C++/MicroPython with the student's name in the header; map lines to tiles; teach one concept to the class in 60 seconds.",
+      "bigIdeas": [
+        2,
+        5
+      ],
+      "bigIdeaRoles": {
+        "2": "primary (translation between representations)",
+        "5": "capstone debate"
+      },
+      "experienceAITheme": "creating-with-AI",
+      "concepts": [
+        "firmware-export",
+        "integration"
+      ],
+      "chapters": [
+        7
+      ],
+      "quests": [
+        "ch7-1",
+        "ch7-2",
+        "ch7-3",
+        "earl-8",
+        "earl-18",
+        "earl-20",
+        "magma-3",
+        "magma-4",
+        "magma-5"
+      ],
+      "unplugged": {
+        "name": "Be the compiler",
+        "minutes": 6,
+        "how": "Teacher reads plain-English instruction; students write strict symbol form; compare three versions. Same meaning, different text — that ambiguity is what compilers remove."
+      },
+      "gameplay": {
+        "minutes": 22,
+        "segments": [
+          "Ch7 export chain",
+          "every student holds exported code with their name in the header",
+          "optional live flash ONLY if WebSerial + IT allow"
+        ],
+        "simulationFirst": "The unit is complete without hardware; the printed firmware IS the artifact."
+      },
+      "teachBack": {
+        "conceptId": "firmware-export",
+        "asker": "earl",
+        "prompt": "Pretend I never touched a bot in my life. Convince me yours won't embarrass either of us out there. (60-second expo, rubric-scored)",
+        "liveQuestionId": null,
+        "format": "partner-pair expo: 60 s each way; teacher circulates with 3-item checklist (names the idea / shows it in their bot / answers one question); 2-3 volunteers close for the class"
+      },
+      "scriptCues": [
+        {
+          "who": "earl",
+          "line": "Tiles are for thinkin'. Chips don't think — they do exactly what you told 'em, in a language you couldn't read last month.",
+          "discussion": "What changed in the last month? (You did.)"
+        },
+        {
+          "who": "capstone-debate",
+          "line": "Your line-follower's threshold works great on THIS floor. The school buys darker floors for half the building. Who should have thought about that?",
+          "discussion": "Big Idea 5, return of L3's parked question — name who bears the cost of the unasked question."
+        }
+      ],
+      "misconceptions": [
+        "export is a magic box (read the header, map three lines)",
+        "hardware is real, simulation is fake (simulation enforced real constraints all unit)",
+        "integration is assembly (integration is making systems agree)"
+      ],
+      "materials": [
+        "browser",
+        "printer-or-shared-doc"
+      ],
+      "sparkRequired": false,
+      "timing": {
+        "unplugged": 6,
+        "frame": 3,
+        "gameplay": 22,
+        "teachBack": 12,
+        "close": 2,
+        "total": 45
+      }
+    }
+  ],
+  "rubric": {
+    "method": "The game's ConceptLedger records unseen->seen->practiced->taught; teaching IS the test; rungs only rise; wrong answers route back to practice (two more program_ran events). This rubric is the human reading of those rungs.",
+    "tiers": [
+      {
+        "tier": "SENSE",
+        "mastery": "Readings are numbers the world gave us; thresholds are choices we made; recalibrates unprompted when conditions change",
+        "evidence": "L3 teach-back; calibration move in-game",
+        "concepts": [
+          "sensors-overview",
+          "thresholds",
+          "calibration"
+        ]
+      },
+      {
+        "tier": "THINK",
+        "mastery": "Predicts program behavior before running; picks forever/until/counted by asking 'do I know when it ends?'; compresses with loops/subs and defends it",
+        "evidence": "L2/L4 teach-backs; bolt-write-shorter tile counts; hypothesis sentences",
+        "concepts": [
+          "conditionals",
+          "loops-forever",
+          "loops-counted",
+          "loops-until",
+          "variables",
+          "subroutines"
+        ]
+      },
+      {
+        "tier": "ACT",
+        "mastery": "Names power/structure/actuation as separate systems; describes the sense-think-act loop unprompted; treats budgets as real constraints",
+        "evidence": "L1 teach-back; L2 loop description (feedback-loop planted in L2, scored as ACT); same-lap-fewer-tiles runs",
+        "concepts": [
+          "actuation",
+          "feedback-loop",
+          "optimization"
+        ]
+      },
+      {
+        "tier": "ENGINEER",
+        "mastery": "Diagnoses hypothesis-first with one change at a time; reads failures as data and writes an honest plaque; maps tiles to exported C++ and explains compilation",
+        "evidence": "Clinic evidence chains; L7 plaque; L8 line-mapping + expo",
+        "concepts": [
+          "debugging",
+          "failure-analysis",
+          "firmware-export",
+          "integration",
+          "power-systems"
+        ]
+      }
+    ],
+    "aiLiteracyCrossCutting": "Distinguishes scripted rules from learned models; can say 'Spark can be wrong in new ways' and mean it.",
+    "honestFloor": "Fixes by trial-and-error without a hypothesis; calls the sensor broken when the threshold is wrong; reads exported code as magic. Locations on the ladder, not failures."
+  },
+  "privacy": {
+    "accounts": "none — play is anonymous; classroom join is rosterless room code + typed display name",
+    "saves": "local (browser localStorage on that machine); concept ledger rides the save payload",
+    "telemetry": "USCP/CNS telemetry stays OFF in classroom default — no behavioral telemetry client ships in the classroom build; nothing to opt out of because it is not on",
+    "spark": "optional, L5 only: typed question + minimal context sent to scrap-spark (project-operated Cloudflare Worker relaying to the configured model provider) for a cached reply; no account, no profile. Disclosures: (1) free-text questions from under-13s can contain personal info — guidance 'no real names in questions', offline fallback avoids the channel; (2) cache is keyed by question content (SHA-256) and therefore shared — same question replays the same reply to any asker. Pilot recommendation: Spark OFF (unit is complete without it) or per-class cache key before district-wide rollout. L1-4 and L6-8 never call Spark.",
+    "voice": "no voice features ship in the classroom build (text-first, voice-free; COPPA regulates long-lived under-13 voice profiles)",
+    "districtOnePager": "no accounts, local saves, rosterless room codes, telemetry off by default, one optional AI-companion feature that can be disabled; aligns with AI4K12 6-8 band and Experience AI (11-14)",
+    "cites": [
+      "https://www.ftc.gov/business-guidance/resources/childrens-online-privacy-protection-rule-six-step-compliance-plan-your-business"
+    ],
+    "modes": "solo (default): fully local + anonymous; classroom-join (optional): room code + student-typed display name in the project save backend so the teacher console shows class concept coverage",
+    "displayName": "display names are student-typed and can contain personal info by choice — pack guidance: first names or initials only; district can skip classroom mode and run fully local"
+  }
+}
