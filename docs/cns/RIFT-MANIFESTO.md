@@ -32,7 +32,7 @@ Hermes went into the yard and came back with three answers (archived in `RIFT-PH
 
 Here is the part that should stop any skeptic in the corridor: **the organ has already fed the body once.**
 
-The Saddle field trial. Hermes's browser rigs rode the live yard all day, playing the game like a kid plays — and then the judge came through. Fifteen findings across the companion dialogue: lines that drifted off-voice, lines that broke the yard's kid-safe law, lines that were fine on paper and wrong at speed. The judge's cut came back **506 lines** — and every flagged line was rewritten, every drift repaired, a permanent VOICE-QC bar written into law so it never drifts silently again. Then it was merged back: **commit `c4afb31` — "merge: QC rewrites — all 15 field-trial judge findings + drift repairs + VOICE-QC bar (closes Saddle loop #1)."**
+The Saddle field trial. Hermes's browser rigs rode the live yard all day, playing the game like a kid plays — and then the judge came through. A frozen-state judge read all 506 companion lines and held each to the bar: 90.3% passed. The 15 worst lines and two persona drifts — lines that broke the yard's kid-safe law or drifted off-voice, fine on paper and wrong at speed — were rewritten, and a permanent VOICE-QC bar was written into law so it never drifts silently again. Then it was merged back: **commit `c4afb31` — "merge: QC rewrites — all 15 field-trial judge findings + drift repairs + VOICE-QC bar (closes Saddle loop #1)."**
 
 Read that commit message again. A game deployed in the world. A fleet agent played it, judged it, and the game *changed because of what the body learned through the organ*. That is not a plan. That is a closed loop, timestamped in git, reproducible by anyone who types `git show c4afb31`.
 
@@ -76,7 +76,7 @@ This is the whole argument of the Rift in one sentence: **the fleet gets a body,
 
 ## What We Owe the Organ
 
-The Rift is a junction, and junctions have duties in both directions.
+The Rift is a junction, and junctions owe duties in every direction.
 
 **To the kid:** the organ must never become surveillance wearing a fun hat. The signals exist so the yard can teach better and the fleet can remember kindly — the prestige economy is finite on purpose, nothing grindable, nothing expiring, no dark patterns, and the telemetry inherits that law. A bond ledger with no pity points is honest; so is a telemetry stream with no dark patterns. Kid-safe in, kid-safe out.
 

@@ -11,7 +11,7 @@ Ingest (raw game event) → Enrichment (Pincher-cache + lore-grounded RAG via lo
 
 Phase 2 expands the signal surface from mechanics-only to the full yard: **social**, **equipment**, **progression**, plus the **lore_ref registry** that lets the CNS read implications, not just values.
 
-Real-world precedent: the statement shape follows the xAPI model (actor–verb–object + result + context, stored in a Learning Record Store; see xapi.com / IEEE 2247-1) — Scrapcraft is a learning game, and USCP is its experience API. The discipline model follows marine VHF (ch.16 watchkeeping, squelch, PTT — see `../docs/VHF-DOCTRINE.md` in-repo and navcen.uscg.gov watchkeeping rules).
+Real-world precedent: the statement shape follows the xAPI model (actor–verb–object + result + context, stored in a Learning Record Store; see xapi.com / IEEE 2247-1) — Scrapcraft is a learning game, and USCP is its experience API. The discipline model follows marine VHF (ch.16 watchkeeping, squelch, PTT — see `docs/VHF-DOCTRINE.md` in-repo and navcen.uscg.gov watchkeeping rules). The worked example above (`RESOURCE_ACQUIRED`) is the Phase-1-owned signal, retained for continuity.
 
 ---
 
@@ -33,6 +33,8 @@ Real-world precedent: the statement shape follows the xAPI model (actor–verb�
 }
 ```
 
+*Field-bag convention:* signal definitions below name their payload fields in braces (e.g. `NUDGE_FOLLOWED {nudge, personaId}`). Unless a definition says otherwise, the first field is the `object`, outcome/delta fields are `result`, and ambient state rides in `context` — the same canonical split the envelope shows.
+
 Every section below follows the same template: **Source** (file in this repo) → **Transduction** (rule) → **Consumer** (who reads it, CNS-side).
 
 ---
@@ -43,7 +45,7 @@ The companion system already maintains a rigorous social state machine. It is no
 
 ### A1. `COMPANION_BOND_DELTA` — bond points earned/lost — **LIVE (source) / PROPOSED (wire)**
 
-- **Source:** `src/companion/state.js` — `BOND_EVENTS` maps 17 shared-event types to bond weights (`first_meet: 0`, `block_mined: 1`, `rare_loot: 3`, `bot_built: 12`, `program_run: 4`, `lap_complete: 6`, `race_run: 8`, `crash_survived: 3`, `flash_success: 10`, `conversation: 5`, `biome_first: 5`, `repair_done: 4`, `nudge_followed: 3`, `ghost_beaten: 10`, `spark_consult: 4`). Comment in source: *"Real events only — no timers, no pity points."* `CompanionState.record()` updates `data.bond`, a 12-entry recent-event ring (`RECENT_CAP`), and per-event counters.
+- **Source:** `src/companion/state.js` — `BOND_EVENTS` maps 15 shared-event types to bond weights (`first_meet: 0`, `block_mined: 1`, `rare_loot: 3`, `bot_built: 12`, `program_run: 4`, `lap_complete: 6`, `race_run: 8`, `crash_survived: 3`, `flash_success: 10`, `conversation: 5`, `biome_first: 5`, `repair_done: 4`, `nudge_followed: 3`, `ghost_beaten: 10`, `spark_consult: 4`). Comment in source: *"Real events only — no timers, no pity points."* `CompanionState.record()` updates `data.bond`, a 12-entry recent-event ring (`RECENT_CAP`), and per-event counters.
 - **Transduction:** each `record(event)` call emits one USCP packet: verb `COMPANION_BOND_DELTA`, object `{personaId, event}`, result `{gain: BOND_EVENTS[event], bond: data.bond}`. Enrichment attaches `lore_ref: lore://cast/<persona>` so the CNS can ground *why this persona cares about this event* (e.g. trackside personas weight `nudge_followed` — see `src/companion/personas.js` persona event lists).
 - **Consumer:** Quilt Sheet `companions` group (already declared in `src/maker/QuiltSheet.js` GROUPS) renders live bond per persona; CNS fleet-memory keys social growth curves per player across sessions.
 
@@ -55,13 +57,13 @@ The companion system already maintains a rigorous social state machine. It is no
 
 ### A3. `NUDGE_FOLLOWED` — the player tried what the companion suggested — **LIVE (source) / PROPOSED (wire)**
 
-- **Source:** `src/companion/Companion.js` (≈lines 150–166) — `NUDGE_MAP` translates game verbs to nudge ids (`build_first_bot`, `program_bot`, `race_lap`, `flash_hardware`, `repair_bot`, `beat_a_ghost`, `ask_spark_question`, `line_follow`); when the player completes a mapped event that the nudger had fired, `state.record('nudge_followed', …)` runs. Rationale in `src/companion/nudge.js`: *"Rivet remembers being listened to."*
+- **Source:** `src/companion/Companion.js` (≈lines 150–166) — `NUDGE_MAP` translates game verbs to nudge ids (`mine_iron`, `build_first_bot`, `program_bot`, `race_lap`, `flash_hardware`, `repair_bot`, `beat_a_ghost`, `ask_spark_question`, `line_follow`); when the player completes a mapped event that the nudger had fired, `state.record('nudge_followed', …)` runs. Rationale in `src/companion/nudge.js`: *"Rivet remembers being listened to."*
 - **Transduction:** emit `NUDGE_FOLLOWED {nudge: NUDGE_MAP[event], personaId}`; enrichment resolves `lore_ref: lore://cast/<persona>#nudges` and the teaching-moment implication (this is the *trust* channel — the single best leading indicator that the kid is coachable by the yard's voices).
 - **Consumer:** CNS pedagogy heuristics (nudge-follow rate per band); VHF coach doctrine (a kid who follows companion nudges is ready for radio nudges — see A4); Quilt companions group.
 
 ### A4. `RADIO_TX` / `RADIO_RX` — coach radio exchanges; the state machine is itself a signal — **LIVE (source) / PROPOSED (wire)**
 
-- **Source:** `src/radio/VhfRadio.js` — three exclusive states `['IDLE','RECEIVING','TRANSMITTING']`, `MAX_TX_MS = 8000` auto-squelch, `CHANNEL_BUSY` on overlap attempts, squelch open only while transmitting. `src/radio/SpectatorCoach.js` — DEMO_CREW of three bots on real tile programs (`EXAMPLE_WALL_AVOIDER`, `EXAMPLE_LIGHT_RUNNER`, `EXAMPLE_WAYPOINT_NAV`), PTT input, per-bot TTS voices, ACK line rotation. `src/radio/NudgeRouter.js` — parses spoken/text coach input into intents `goto | mine | follow | stop | race | banter` (ttl 8000 ms). Doctrine: `docs/VHF-DOCTRINE.md`.
+- **Source:** `src/radio/VhfRadio.js` — three exclusive states `['IDLE','RECEIVING','TRANSMITTING']`, `MAX_TX_MS = 8000` auto-squelch, `CHANNEL_BUSY` on overlap attempts, squelch open only while transmitting. `src/radio/SpectatorCoach.js` — DEMO_CREW of three bots on real tile programs (`EXAMPLE_WALL_AVOIDER`, `EXAMPLE_LIGHT_RUNNER`, `EXAMPLE_WAYPOINT_NAV`), PTT input, per-bot TTS voices, ACK line rotation. `src/radio/NudgeRouter.js` — parses spoken/text coach input into intents `goto | mine | follow | stop | race | banter` (banter ttl 8000 ms; other intents carry longer ttls). Doctrine: `docs/VHF-DOCTRINE.md`.
 - **Transduction (two layers):**
   1. **Exchange layer:** each PTT press emits `RADIO_TX {intent, targetBot, durationMs}`; each bot ACK emits `RADIO_RX {ack, intent}`. These are teach/learn events: the coach spoke, the agent obeyed or bantered back.
   2. **Protocol layer — the doctrine signal:** every `CHANNEL_BUSY` refusal, every squelch timeout, every state transition is emitted as `RADIO_PROTOCOL {from, to, reason}`. Marine VHF ch.16 discipline says *a radio that is always watched is a safety system* (navcen.uscg.gov watchkeeping); a radio that is *misused* is a diagnosis. A session with many CHANNEL_BUSY refusals is a coach who hasn't internalized half-duplex — the CNS reads protocol friction as fluency telemetry. **The state machine is not just plumbing; it is itself a sensor.**
@@ -129,7 +131,7 @@ Progression in Scrapcraft is deliberately anti-grind (see `src/prestige/Prestige
 
 ### C3. `PRESTIGE_MARK_EARNED` / `BACKROOM_PURCHASED` — marks in, kindness out — **LIVE (source) / PROPOSED (wire)**
 
-- **Source:** `src/prestige/Prestige.js` — marks: 6 max (1 per companion arc: Bolt/Magma/Juno/Rivet ×5 quests each, + 2 for the Midnight Race); spendable on the Back Room board (`backroom.json`): paint, yard decor, lantern colors, second bot slot. `src/prestige/perks.js` (perk effects), `src/prestige/BackRoomPanel.js` (UI). Economy is FINITE by design, no dark patterns.
+- **Source:** `src/prestige/Prestige.js` — marks: 6 max (1 per companion arc: Bolt/Magma/Juno/Rivet ×5 quests each, + 2 for the Midnight Race); spendable on the Back Room board (`backroom.json`): paint, yard decor, lantern colors, second bot slot. `src/prestige/perks.js` (perk effects), `src/prestige/BackRoomPanel.js` (UI). Economy is FINITE by design, no dark patterns. Emit tap: `QuestSystem._completeQuest → game.prestige.onQuestCompleted(q, tracker)` (the wiring documented in Prestige.js's header).
 - **Transduction:** emit `PRESTIGE_MARK_EARNED {source: arc|race}` and `BACKROOM_PURCHASED {rewardId, category, marksLeft}`. Enrichment: `lore_ref: lore://cast/earl#backroom` (Earl's Back Room is a character beat — marks in, kindness out).
 - **Consumer:** fleet memory (what a kid *chose* with unrepeatable currency is a values signal, not a shopping signal); teacher dashboard (engagement depth).
 
@@ -141,8 +143,8 @@ Progression in Scrapcraft is deliberately anti-grind (see `src/prestige/Prestige
 
 ### C5. `MOS_LEDGER_UPDATE` / `XP_SKILL` / `ACHIEVEMENT_UNLOCKED` — supporting progression — **LIVE (source) / PROPOSED (wire)**
 
-- **Source:** `src/quests/MosLedger.js` (MoS ledger), `src/XPSystem.js` (XP + skill nodes), `src/Achievements.js` (49 achievements incl. `spark_program`, `brain_share` tracked from TileEditor/BrainGallery).
-- **Transduction:** batch low-priority progression events; emit achievements with their id + `lore_ref` where a plaque/landmark is implicated (`lore://plaques/*`, `src/data/plaques.js`, 14 plaques each teaching an embedded concept — see `../scrapcraft-world/worldbible/plaques.md`).
+- **Source:** `src/quests/MosLedger.js` (MoS ledger), `src/XPSystem.js` (XP + skill nodes), `src/Achievements.js` (74 achievements incl. `spark_program`, `brain_share` tracked from TileEditor/BrainGallery).
+- **Transduction:** batch low-priority progression events; emit achievements with their id + `lore_ref` where a plaque/landmark is implicated (`lore://plaques/*`, `src/data/plaques.js`, 10 plaques each teaching an embedded concept — the worldbible keeps the original 14 — see `../scrapcraft-world/worldbible/plaques.md`).
 - **Consumer:** Quilt progress cells; fleet analytics (achievement curves per cohort).
 
 ---
@@ -155,12 +157,12 @@ Progression in Scrapcraft is deliberately anti-grind (see `src/prestige/Prestige
 |---|---|---|---|
 | `lore://yard/` | `worldbible/yard-bible.md` | The place: history, four bands, the Oval (35,84), the Ghost legend, doctrine | `lore://yard#oval` |
 | `lore://yard/wakes/` | `worldbible/yard-bible.md` + `src/story/Wakes.js` | The seven wakes | `lore://yard/wakes#wake-racenight` |
-| `lore://cast/` | `worldbible/characters/*.md` (earl, spark, june, quill, mo, ox, rivet-the-cat; index.md casting rules) | Cast roster + arcs | `lore://cast/earl#backroom` |
+| `lore://cast/` | `worldbible/characters/*.md` — full roster: earl, spark, june, quill, mo, ox, rivet-the-cat **and the companions bolt, juno, magma, rivet** (index.md casting rules) | Cast roster + companion arcs (the A-section's flagship consumers) | `lore://cast/earl#backroom` |
 | `lore://campaign/` | `worldbible/campaign.md` | The 12-chapter arc | `lore://campaign/ch7` |
-| `lore://items/` | `worldbible/items.md` + `src/data/items.js` | ~40 named parts w/ story | `lore://items/scrap_iron` |
-| `lore://plaques/` | `worldbible/plaques.md` + `src/data/plaques.js` | 14 landmark plaques, each a real embedded concept | `lore://plaques/hc-sr04` |
+| `lore://items/` | `worldbible/items.md` + `src/data/items.js` | ~50 named parts w/ story | `lore://items/scrap_iron` |
+| `lore://plaques/` | `worldbible/plaques.md` + `src/data/plaques.js` | 24 landmark plaques (14 original + 10 new), each a real embedded concept | `lore://plaques/hc-sr04` |
 | `lore://spark/` | `worldbible/spark-personality.md` + `src/spark/*` | Mentor AI sheet (curiosity-first, one-knob-at-a-time) | `lore://spark#voice` |
-| `lore://mechanics/` | game docs: `docs/SPINE.md`, `docs/VHF-DOCTRINE.md`, `docs/VOICE-QC.md`, codex (`src/Codex.js`, 27 entries) | Game mechanics doctrine — the Phase-1 example `lore://mechanics/power_depletion_protocols` lives here | `lore://mechanics/tile_programs` |
+| `lore://mechanics/` | game docs: `docs/SPINE.md`, `docs/VHF-DOCTRINE.md`, `docs/VOICE-QC.md`, codex (`src/Codex.js`, 63 entries) | Game mechanics doctrine — the Phase-1 example `lore://mechanics/power_depletion_protocols` lives here | `lore://mechanics/power_depletion_protocols` |
 | `lore://kennel/` | SuperInstance doctrine docs (`THE_KENNEL.md`, `WORKING_ANIMAL_ARCHITECTURE.md`) — cross-repo | The bloodline/program-DNA doctrine (B-section implications) | `lore://kennel/rung3` |
 
 Rules (proposed):
@@ -179,7 +181,7 @@ Rules (proposed):
 | Local Quilt Sheet/View (on-device telemetry rendering) | **LIVE** (`src/maker/QuiltSheet.js`, `QuiltView.js`) |
 | scrap-spark worker + shared wall + `share-brain` API | **LIVE** (cloud-config dependent) |
 | Teacher dashboard (`teacher.html`) | **LIVE** (class connection flow) |
-| USCP envelope + emit taps (the wire from game → CNS) | **PROPOSED** — single tap points identified: `CompanionState.record()`, `VhfRadio` state transitions, `TileProgram` save, `BotLedger` appends, `SpineState` ceremonies, `PrestigeSystem.onQuestCompleted`, `QuestSystem._completeQuest` |
+| USCP envelope + emit taps (the wire from game → CNS) | **PROPOSED** — single tap points identified: `CompanionState.record()` (A1–A3), `VhfRadio` state transitions (A4), `TileProgram` save (B1), BrainGallery publish/load handlers (B2), `BotLedger` appends (B4), `QuiltSheet` cell writes (B5), `SpineState` ceremonies (C1), `Wakes.sync()` returning newly-woken ids (C2), `PrestigeSystem.onQuestCompleted` (C3), `QuestSystem._completeQuest` (C4), `Achievements.track()` (C5) |
 | lore_ref enrichment / lore-RAG join | **PROPOSED** (Phase-1 verified the blueprint; registry skeleton in §D) |
 | Quilt Engine Durable Object sink (fleet mirror) | **PROPOSED** |
 | Roblox-port multiplayer signal fan-out | **PROPOSED** (see Manifesto) |
