@@ -450,10 +450,14 @@ export class Game {
     // provenance slot exists, honor it — the profile switch wrote both, and
     // a live-slot miss must never strand the veteran kid at Lv.0.
     const loaded = this.saveSystem.load();
+    let belt2 = false;
     if (!loaded) {
       try {
         const vRaw = typeof localStorage !== 'undefined' && localStorage.getItem(VETERAN_SAVE_KEY);
-        if (vRaw && JSON.parse(vRaw).version === 6) this.saveSystem._apply?.(JSON.parse(vRaw));
+        if (vRaw && JSON.parse(vRaw).version === 6) {
+          this.saveSystem._apply?.(JSON.parse(vRaw));
+          belt2 = true;
+        }
       } catch { /* belt only — fresh boots stay fresh */ }
     }
 
@@ -475,8 +479,12 @@ export class Game {
     // Fresh save + wizard already done → greet now. Fresh save + wizard
     // pending → the wizard's finish() hands off via _onOnboardingComplete().
     // Returning players: never re-greeted (the gate persists in localStorage).
-    this._freshGame = !loaded;
-    if (loaded) {
+    // BELT-2 CONSISTENCY: a belt-2 boot IS a returning veteran — memory
+    // holds the profile even though the live slot is empty. Treating it as
+    // fresh fired the tutorial + quest-migration-from-zero, which is where
+    // the contradictory quest rows during restore churn came from.
+    this._freshGame = !loaded && !belt2;
+    if (loaded || belt2) {
       this._returningSession = true;
     } else if (this.onboarding.isComplete()) {
       setTimeout(() => this.foreman.greetPlayer(), 1200);
@@ -513,6 +521,13 @@ export class Game {
     document.addEventListener?.('visibilitychange', () => {
       if (document.visibilityState === 'hidden' && !selfReload()) this.saveSystem.saveOnExit();
     });
+    // GUARD LIFECYCLE (zone-gate P1): the flag guards exactly ONE unload —
+    // the transition's own. sessionStorage survives every reload in the tab,
+    // so a boot that reaches this point must CONSUME it, or exit-saves stay
+    // suppressed for the whole tab session and the next ordinary reload
+    // (zone crossing, crash recovery, deploy churn) regresses the live slot
+    // to whatever the last 30s autosave happened to write.
+    try { sessionStorage.removeItem('scrapcraft.self_reload'); } catch { /* storage optional */ }
 
     // Paint today's contract chip right away (progress may be mid-contract)
     this.ui?.updateDaily(this.dailyContract, this.dailyContract.progress, this.dailyContract.claimed);
