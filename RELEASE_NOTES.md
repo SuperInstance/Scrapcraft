@@ -6,6 +6,8 @@
 
 ### Features
 
+- **World-before-menu opening** — CLOCK IN renders the yard immediately: a slow aerial orbit (lite-mode aware — closer ring when the fog pulls in) plays *behind* the welcome wizard and the Yard Gate questions, now translucent scrims instead of near-opaque panels. AmbientLife runs underneath (the crane creaks, the cat crosses), day/night and weather keep moving, and pointer lock is deliberately deferred until the last overlay closes — then the camera parks exactly at the kid's eye and the controls hand over seamlessly. Returning players skip straight to the yard, as always.
+- **Mo's Ledger [J]** — the named career surface: first ore, first bot, first race + personal bests, chapters walked, jobs done + arcs, rare finds, the bot's dents, and the day streak — all read live from existing achievement/quest/bot-ledger state (fail-soft by construction). Cross-linked from the Logbook, listed in the help overlay, with a copy-to-clipboard plain-text export for teachers. *June keeps hers in marker; Mo keeps yours.*
 - **128×128×10 voxel world** with 4 parallel bands (The Yard Gate, Industrial Corridor, Circuit City, The Deep Yard)
 - **Procedural generation** — buildings, refineries, warehouses, race track, acid hazards, buried caches
 - **Hold-to-mine** with particle effects and procedural audio
@@ -37,7 +39,7 @@
 - **Crosshair states** — spread when moving, gold on interactable blocks, mining arc during hold-to-mine
 - **Damage vignette** — red flash on hit
 - **Inventory sorting** (I key)
-- **36 Maker Lab unit tests** — zero dependencies, runs in <200ms
+- **36 Maker Lab unit tests** — zero dependencies, runs in <200ms (suite is now 1,196 tests across maker, quests, companions, world, ambient, opening, and ledger — still zero-framework, still <1s)
 
 ### Known Limitations
 

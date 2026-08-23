@@ -90,7 +90,11 @@ function boot() {
   }
 
   game.start();
-  canvas.requestPointerLock();
+  // First run: the opening cinematic owns the camera behind the wizard +
+  // gate overlays — pointer lock waits for the overlays to close (the
+  // overlays need the cursor; _endOpening takes the lock with the kid's
+  // final click). Returning players: straight to the controls, as before.
+  if (!game.openingPending) canvas.requestPointerLock();
   if (brainParam) game.ui?.notify('🔗 Shared brain loaded — open Maker Bench to run it!');
 }
 
