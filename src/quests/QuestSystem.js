@@ -296,6 +296,14 @@ export class QuestSystem {
     return act.sort((a, b) => score(a) - score(b)).slice(0, 4);
   }
 
+  /** The live "what do I do next" row — the single clearest action. Surface
+   *  for the HUD and for in-world hints (e.g. the first-mine heap beacon).
+   *  Headless-safe: pure derivation over the tracker + displayed quests. */
+  currentNextStep() {
+    const show = this.displayQuests();
+    return nextStep(this.tracker, show, { finale: this.finaleAvailable() });
+  }
+
   _renderHud() {
     if (typeof document === 'undefined') return;
     const show = this.displayQuests();

@@ -461,3 +461,25 @@ export function veteranRideSummary(profile) {
     'Achievements are live-only — earn them.';
   return { level, chaptersComplete, wakesFired, companionTier, bots, note };
 }
+
+/**
+ * Pure, headless test of whether a machine/profile has PLAYED before (finding
+ * #2 gate): true only when there's a durable "returning player" signal even
+ * though the live save slot is empty — onboarding finished on this machine, a
+ * prior veteran ride/backup exists, or a veteran provenance slot is present.
+ * A genuinely brand-new kid (no save, never walked the wizard, no veteran
+ * traces) is NOT returning → the fresh-boot ride offer must not appear.
+ * @param {{getItem:(k:string)=>string|null}|null} storage localStorage-like
+ * @returns {boolean}
+ */
+export function isReturningProfileSignal(storage) {
+  try {
+    const g = (k) => (storage && typeof storage.getItem === 'function') ? storage.getItem(k) : null;
+    // blank-profile restart after a wipe: the onboarding wizard was finished
+    if (g('scrapcraft_onboarding_done') === 'true') return true;
+    // a prior veteran ride / backup exists on this machine
+    if (g('scrapcraft.veteran.backup')) return true;
+    if (g(VETERAN_SAVE_KEY)) return true;
+    return false;
+  } catch { return false; }
+}
