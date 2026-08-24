@@ -11,8 +11,16 @@
  * When armed (?observe=1):
  *   • a scrollable session-log overlay (bottom-left, monospace, timestamps)
  *   • timestamped entries for: quest completes, level-ups, first-mine /
- *     first-build / first-race, companion lines, deaths/resets, pauses
+ *     first-build / first-race, companion lines, deaths/resets, pauses,
+ *     menu open/close (workshop, maker bench, codex, pause, logbook, ledger,
+ *     help, settings), input failures (pointer-lock denials), and an
+ *     idle_marker heartbeat — dead-air windows are VISIBLE in the export
+ *   • fresh-vs-returning marker at session start (sessionType in the export)
  *   • one-click JSON export + auto-stash on unload (localStorage, fail-soft)
+ *
+ * Schema: 'scrapcraft/observer-session/v1' — strictly ADDITIVE. v1 exports
+ * keep every legacy field; new fields (sessionType, idle_marker.duration)
+ * only ever appear alongside them. Nothing is renamed or removed.
  *
  * Doctrine — additive + fail-soft:
  *   • every game-side call site uses `this.observer?.` — a missing observer
@@ -42,6 +50,13 @@ function isoNow() {
 
 const MILESTONE_KINDS = new Set(['first_mine', 'first_build', 'first_race', 'reset']);
 
+// Idle heartbeat (dead-air visibility): after IDLE_AFTER_S seconds of no
+// logged event AND no activity() ping, log an idle_marker carrying the
+// quiet duration. Continuous quiet → one marker per IDLE_AFTER_S window,
+// so an 8-minute stall reads as 8× "idle 60s" instead of an empty tail.
+const IDLE_AFTER_S  = 60;      // quiet seconds before the first dead-air marker
+const IDLE_CHECK_MS = 15000;   // cadence of the quiet check (cheap, ~1/min)
+
 export class SessionObserver {
   /**
    * @param {object} [opts]
@@ -54,6 +69,7 @@ export class SessionObserver {
     this.enabled    = true;
     this.seed       = opts.seed ?? null;
     this.source     = opts.source ?? 'kid-session';
+    this.sessionType = opts.sessionType ?? 'unknown';   // fresh | returning | unknown
     this._now       = opts.now ?? (() => (typeof performance !== 'undefined' ? performance.now() : Date.now()));
     this._t0        = this._now();
     this.startedAt  = isoNow();
@@ -65,11 +81,23 @@ export class SessionObserver {
     this._listEl    = null;
     this._clockEl   = null;
     this._timer     = null;
+    this._idleTimer = null;
+    this._lastActivityAt = 0;  // seconds — last event OR activity() ping
     this._ended     = false;
     this._stashed   = false;
 
-    // Session start is always the first entry.
-    this._push('session_start', `observer armed (seed ${this.seed ?? '?'})`, null);
+    // Session start is always the first entry — fresh/returning is stamped
+    // here so a returning session never reads identical to a first run.
+    this._push('session_start', `observer armed (seed ${this.seed ?? '?'}, ${this.sessionType} session)`, null);
+
+    // Idle heartbeat — dead-air visibility. Runs independent of the DOM
+    // overlay (headless-safe), cleared on endSession. Fail-soft: a broken
+    // timer must never take the logger down.
+    try {
+      if (typeof setInterval === 'function') {
+        this._idleTimer = setInterval(() => { try { this._idleCheck(); } catch { /* fail-soft */ } }, IDLE_CHECK_MS);
+      }
+    } catch { /* fail-soft */ }
 
     // Overlay is a pure garnish — built lazily, guarded, headless-safe.
     try {
@@ -84,6 +112,7 @@ export class SessionObserver {
 
   _push(kind, detail, milestone = null) {
     const t = this._t();
+    this._lastActivityAt = t;   // any logged event counts as alive
     this.entries.push({
       t: +t.toFixed(1),
       iso: isoNow(),
@@ -100,6 +129,42 @@ export class SessionObserver {
     try {
       if (this._ended) return;
       this._push(kind, detail, null);
+    } catch { /* fail-soft */ }
+  }
+
+  /**
+   * Alive-ping from the game loop (motion / mining / placing). Keeps the
+   * idle heartbeat honest: a kid actively playing never gets dead-air
+   * markers, a kid stuck with broken input goes quiet → markers fire.
+   * Throttled internally (~1/s) so per-frame call sites stay free.
+   */
+  activity() {
+    try {
+      if (this._ended) return;
+      const t = this._t();
+      if (t - this._lastActivityAt < 1) return;   // throttle
+      this._lastActivityAt = t;
+    } catch { /* fail-soft */ }
+  }
+
+  /**
+   * Idle heartbeat — the dead-air detector. When nothing has been logged
+   * AND no activity() ping has landed for IDLE_AFTER_S seconds, emit an
+   * idle_marker carrying the quiet duration, then reset the window so
+   * continuous quiet produces one marker per window (queryable dead air).
+   */
+  _idleCheck() {
+    try {
+      if (this._ended) return;
+      const t = this._t();
+      const idle = Math.floor(t - this._lastActivityAt);
+      if (idle >= IDLE_AFTER_S) {
+        this._lastActivityAt = t;   // window resets — next marker after another quiet span
+        this._push('idle_marker', `idle ${idle}s — no activity`, null);
+        // Structured duration (additive): dead-air length in whole seconds.
+        const e = this.entries[this.entries.length - 1];
+        if (e && e.kind === 'idle_marker') e.duration = idle;
+      }
     } catch { /* fail-soft */ }
   }
 
@@ -127,9 +192,35 @@ export class SessionObserver {
   firstBuild(detail = '') { this.milestone('first_build', detail || 'first build'); }
   firstRace()         { this.milestone('first_race', 'first oval race start'); }
 
+  // ── observer-v2 capture paths (additive vocabulary) ────────────────────
+
+  /** Surface opened — workshop, maker_bench, codex, pause, logbook, ledger, help, settings. */
+  menuOpen(name, detail = '') { this.log('menu_open', detail ? `${name} — ${detail}` : name); }
+  /** Surface closed. */
+  menuClose(name)             { this.log('menu_close', name); }
+  /** Input/environment failure — e.g. a pointer-lock denial that leaves the controls dead. */
+  inputFailure(detail)        { this.log('input_failure', detail); }
+
+  /**
+   * Late-bound fresh-vs-returning determination (e.g. after the save slot
+   * settles). Additive: updates the export field and reflects in the
+   * session_start line. No-op after the session ends.
+   */
+  markSessionType(type) {
+    try {
+      if (this._ended || !type) return;
+      this.sessionType = type;
+      const e0 = this.entries[0];
+      if (e0 && e0.kind === 'session_start') {
+        e0.detail = `observer armed (seed ${this.seed ?? '?'}, ${type} session)`;
+      }
+    } catch { /* fail-soft */ }
+  }
+
   // ── export ─────────────────────────────────────────────────────────────
 
-  /** Full session as a plain JSON-safe object. */
+  /** Full session as a plain JSON-safe object. Additive-only: every legacy
+   *  field stays; sessionType is new (fresh|returning|unknown). */
   exportJSON() {
     return {
       schema: 'scrapcraft/observer-session/v1',
@@ -138,6 +229,7 @@ export class SessionObserver {
       startedAt: this.startedAt,
       durationSec: +this._t().toFixed(1),
       seed: this.seed,
+      sessionType: this.sessionType,
       milestones: this.milestones,
       entries: this.entries,
     };
@@ -151,6 +243,7 @@ export class SessionObserver {
     // swallow it; the session_end line must always land.
     this._push('session_end', `session ended at ${+this._t().toFixed(1)}s — ${this.entries.length + 1} entries`, null);
     if (this._timer) { try { clearInterval(this._timer); this._timer = null; } catch { /* fail-soft */ } }
+    if (this._idleTimer) { try { clearInterval(this._idleTimer); this._idleTimer = null; } catch { /* fail-soft */ } }
     this._stash();
     this._updateClock();
     return this.exportJSON();
@@ -282,6 +375,9 @@ export class SessionObserver {
         else if (e.kind === 'levelup') line.style.color = '#a8e6a8';
         else if (e.kind === 'death' || e.kind === 'reset') line.style.color = '#ff9d9d';
         else if (e.kind === 'companion') line.style.color = '#e0b0ff';
+        else if (e.kind === 'idle_marker') line.style.color = '#8a8a7a';
+        else if (e.kind === 'menu_open' || e.kind === 'menu_close') line.style.color = '#d8c9a3';
+        else if (e.kind === 'input_failure') line.style.color = '#ff9d6b';
         frag.appendChild(line);
       }
       this._listEl.innerHTML = '';

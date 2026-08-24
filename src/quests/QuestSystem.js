@@ -334,6 +334,9 @@ export class QuestSystem {
   // ── logbook access for the panel ─────────────────────────────────────────
 
   openLogbook() {
-    try { openLogbookPanel(this); } catch { /* panel is a garnish, never a crash */ }
+    try {
+      this.game?.observer?.menuOpen?.('logbook');   // OBSERVER: Logbook surface
+      openLogbookPanel(this);
+    } catch { /* panel is a garnish, never a crash */ }
   }
 }

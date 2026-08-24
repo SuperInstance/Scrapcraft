@@ -159,6 +159,7 @@ export function openMosLedgerPanel(game) {
   document.getElementById('mos-ledger-panel')?.remove();
   document.getElementById('logbook-panel')?.remove();   // cross-linked opens, not stacked
   document.exitPointerLock?.();
+  game?.observer?.menuOpen?.('ledger');   // OBSERVER: Mo's Ledger surface
 
   const report = buildMosLedger(game);
 
@@ -192,6 +193,13 @@ export function openMosLedgerPanel(game) {
     </div>`;
   document.body.appendChild(panel);
 
+  // OBSERVER: any close path (close btn, J/ESC key, cross-link removal)
+  // fires menu_close('ledger') — wrap remove once, guard double-close.
+  const _origRemove = panel.remove.bind(panel);
+  panel.remove = () => {
+    try { if (panel.isConnected) game?.observer?.menuClose?.('ledger'); } catch { /* observer is a garnish */ }
+    _origRemove();
+  };
   panel.querySelector('#ml-close')?.addEventListener('click', () => panel.remove());
   panel.querySelector('#ml-copy')?.addEventListener('click', ev => {
     try {
