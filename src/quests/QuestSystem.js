@@ -24,6 +24,7 @@ import { SPINE } from './data/index.js';
 import { FINALE_ARC_GATE } from './schema.js';
 import { Wakes, WAKE_EVENTS } from '../story/Wakes.js';
 import { nextStep } from './NextStep.js';
+import { FIRST_QUEST_ID } from '../ui/attention.js';
 
 export class QuestSystem {
   /**
@@ -229,6 +230,10 @@ export class QuestSystem {
   _completeQuest(q) {
     // Concept ladder — completion is the objective-evidence rung (fail-soft).
     try { this.game.concepts?.observe({ type: 'quest_done', questId: q.id }); } catch { /* garnish */ }
+    // ATTENTION DISCIPLINE (finding #1): the FIRST quest's completion is the
+    // unlock beat — the secondary chips (Salvage Run + Daily) unfold with a
+    // small fanfare. Fail-soft: no director → chips follow the old rules.
+    try { if (q.id === FIRST_QUEST_ID) this.game.attention?.onFirstQuestDone?.(); } catch { /* garnish */ }
     // OBSERVER (?observe=1): quest completes with timestamps (fail-soft).
     try { this.game.observer?.quest?.(q); } catch { /* observer is a garnish */ }
     const day = this.game.dailyContract?.daysPlayed ?? null;

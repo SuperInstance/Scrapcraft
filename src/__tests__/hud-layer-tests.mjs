@@ -133,6 +133,28 @@ export function runHudLayerTests(ok) {
        logbook.includes("getElementById('hud-stack-top-right')"));
   }
 
+  console.log('\nHUD layer · attention discipline chrome (finding #1)');
+
+  // ── (e) the "Earl's mission first" cue chrome — additive, empty-safe ──
+  {
+    ok('markup: Salvage Run + Daily headers carry the defer-note slot',
+       /id="challenge-hud"[\s\S]*?class="hud-defer-note"/.test(html)
+       && /id="daily-hud"[\s\S]*?class="hud-defer-note"/.test(html));
+    const note = rule(html, '.hud-defer-note');
+    ok('.hud-defer-note rule: full-width italic cue line',
+       note !== null && /flex-basis:\s*100%/.test(note) && /font-style:\s*italic/.test(note));
+    ok('empty cue note collapses away (no phantom second row)',
+       /hud-defer-note:empty\s*\{\s*display:\s*none/.test(html));
+    const deferred = rule(html, '.hud-panel.deferred');
+    ok('.hud-panel.deferred dims the chip (subtle "later" look)',
+       deferred !== null && /opacity:\s*0\.8/.test(deferred));
+    ok('deferred chips drop the manual collapse glyph',
+       /hud-panel\.deferred \.collapse-toggle\s*\{\s*display:\s*none/.test(html));
+    ok('.hud-panel.unfold carries the fanfare animation',
+       /hud-panel\.unfold\s*\{\s*animation:\s*hud-unfold/.test(html)
+       && html.includes('@keyframes hud-unfold'));
+  }
+
   console.log('\nHUD layer · HP/battery contrast floor');
 
   // ── (e) surgical contrast edits: #hud-health + .bsh-* only ──

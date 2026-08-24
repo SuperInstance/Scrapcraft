@@ -16,6 +16,8 @@
  * seeded pick are pure functions exported for tests.
  */
 
+import { FIRST_QUEST_ID } from './ui/attention.js';
+
 /** Local-calendar day key — days are when a kid plays, not UTC rollovers. */
 export function todayKey(now = new Date()) {
   const y = now.getFullYear();
@@ -328,6 +330,14 @@ export class DailyContract {
     if (this._state.announced) return false;
     const c = this.contract;
     if (!c) return false;
+    // Attention discipline (finding #1): while the FIRST quest is still open
+    // (or the gate/Earl is talking), the daily contract says "later" — the
+    // chip carries the cue and the first-quest fanfare does the reveal.
+    // Fail-soft: no tracker → announce as before.
+    const g = this._game;
+    const t = g?.quests?.tracker;
+    const firstPending = !!t && !t.isCompleted(FIRST_QUEST_ID);
+    if (firstPending || g?.attention?.hushed?.()) return false;
     this._state.announced = true;
     const flavor = c.warmup ? `📜 Chapter warm-up (${c.chapterTitle}): ${c.icon} ${c.label}`
                             : `📜 Daily Contract: ${c.icon} ${c.label}`;
