@@ -381,6 +381,14 @@ export function openLogbookPanel(system) {
   };
   render();
 
+  // OBSERVER: any close path (close btn, L/ESC key, cross-link removal)
+  // fires menu_close('logbook') — wrap remove once, guard double-close.
+  const _origRemove = panel.remove.bind(panel);
+  panel.remove = () => {
+    try { if (panel.isConnected) system.game?.observer?.menuClose?.('logbook'); } catch { /* observer is a garnish */ }
+    _origRemove();
+  };
+
   panel.querySelector('#lb-close').addEventListener('click', () => panel.remove());
   // Cross-link: Mo's Ledger — the career record over the same scrim. The
   // ledger panel removes this one (cross-linked opens, never stacked).

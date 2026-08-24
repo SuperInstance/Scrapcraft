@@ -137,6 +137,9 @@ export class Game {
       search: typeof location !== 'undefined' ? location.search : '',
       seed: this.seed,
       source: 'kid-session',
+      // Fresh-vs-returning marker: a returning kid has onboarding / veteran /
+      // save signals in storage — the same gate the CLOCK IN flow uses.
+      sessionType: this._isReturningProfile() ? 'returning' : 'fresh',
     });
 
     this.world    = new World(128, 128, 10);
@@ -1135,6 +1138,13 @@ export class Game {
       }
     });
 
+    // OBSERVER: input-failure capture — a denied pointer-lock request is the
+    // classic silent killer (controls dead, no error anywhere). One document
+    // listener catches every denied request (boot, click-to-resume, retries).
+    document.addEventListener('pointerlockerror', () => {
+      try { this.observer?.inputFailure?.('pointer-lock request denied by browser'); } catch { /* observer is a garnish */ }
+    });
+
     // Click-to-resume on pause overlay.
     // Chrome enforces a pointer-lock COOLDOWN after ESC exits the lock: an
     // immediate requestPointerLock() is silently rejected — the kid clicks and
@@ -1177,17 +1187,43 @@ export class Game {
   }
 
   /** Pointer lock with ESC-cooldown retry. Chrome silently rejects re-lock
-   *  requests for ~1s+ after ESC exits; retry with backoff until accepted. */
+   *  requests for ~1s+ after ESC exits; retry with backoff until accepted.
+   *  Every rejection is logged as input_failure — a stuck controls state
+   *  must be diagnosable from the observer export, not just felt in play. */
   _requestLockWithRetry(attempt = 0) {
     if (document.pointerLockElement) return;
     try {
       const p = this.canvas.requestPointerLock?.();
-      if (p?.catch) p.catch(() => this._retryLockSoon(attempt));
-    } catch { this._retryLockSoon(attempt); }
+      if (p?.catch) p.catch(() => {
+        try { this.observer?.inputFailure?.(`pointer-lock rejected — retry ${attempt + 1}/6`); } catch { /* observer is a garnish */ }
+        this._retryLockSoon(attempt);
+      });
+    } catch {
+      try { this.observer?.inputFailure?.(`pointer-lock request threw — retry ${attempt + 1}/6`); } catch { /* observer is a garnish */ }
+      this._retryLockSoon(attempt);
+    }
   }
   _retryLockSoon(attempt) {
-    if (attempt >= 6 || document.pointerLockElement) return;   // ~3.15s max
+    if (attempt >= 6 || document.pointerLockElement) {
+      if (attempt >= 6 && !document.pointerLockElement) {
+        try { this.observer?.inputFailure?.('pointer-lock refused after 6 attempts — controls dead'); } catch { /* observer is a garnish */ }
+      }
+      return;   // ~3.15s max
+    }
     setTimeout(() => this._requestLockWithRetry(attempt + 1), 250 * (attempt + 1));
+  }
+
+  /** OBSERVER: alive-ping — motion / mining counts as activity so the idle
+   *  heartbeat only marks genuine dead air. A kid whose controls are dead
+   *  (e.g. pointer-lock denied) goes quiet → idle_marker entries, which is
+   *  exactly the diagnosis the export needs. Throttled inside the observer. */
+  _observerAlivePing() {
+    try {
+      const v = this.player?.vel;
+      if (this._mineDown || (v && (Math.abs(v.x) > 0.05 || Math.abs(v.y) > 0.05 || Math.abs(v.z) > 0.05))) {
+        this.observer?.activity?.();
+      }
+    } catch { /* observer is a garnish */ }
   }
 
   // ── Mining ───────────────────────────────────────────────────────────
@@ -1385,12 +1421,15 @@ export class Game {
       this.xpSystem.gain(2);
       this.saveSystem.markDirty();
       this.ui.updateHotbar(this.player);
+      this.observer?.activity?.();   // OBSERVER: placing is alive, not dead air
     }
   }
 
   _toggleHelp(forceState) {
     const show = forceState !== undefined ? forceState : !this._helpOverlay?.classList.contains('show');
     this._helpOverlay?.classList.toggle('show', show);
+    if (show) { this.observer?.menuOpen?.('help'); }
+    else { this.observer?.menuClose?.('help'); }
     if (show && document.pointerLockElement) document.exitPointerLock();
   }
 
@@ -2588,6 +2627,7 @@ export class Game {
   /** Mo's Ledger — the career record the yard keeps on the kid (J key,
    *  cross-linked from the Logbook). A garnish: never a crash. */
   _openMosLedger() {
+    this.observer?.menuOpen?.('ledger');   // OBSERVER: Mo's Ledger opened
     try { openMosLedgerPanel(this); } catch { /* the ledger is a garnish, never a crash */ }
   }
 
@@ -2679,7 +2719,7 @@ export class Game {
     }
 
     // Don't tick player input during cutscenes (camera is owned)
-    if (!this.cutsceneActive) this.player.tick(dt, this.world);
+    if (!this.cutsceneActive) { this.player.tick(dt, this.world); this._observerAlivePing(); }
 
     // Opening cinematic — the yard drifts behind the first menus. Player.tick
     // no-ops without pointer lock, so while menus are up the orbit owns the

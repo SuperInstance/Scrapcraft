@@ -25,6 +25,7 @@ export class SettingsPanel {
   open() {
     if (this.el) { this.close(); return; }   // toggle, not stack
 
+    this.game?.observer?.menuOpen?.('settings');   // OBSERVER: settings surface
     this._injectCss();
     const cfg = loadConfig();
 
@@ -113,6 +114,7 @@ export class SettingsPanel {
 
   close() {
     if (!this.el) return;
+    this.game?.observer?.menuClose?.('settings');   // OBSERVER: settings surface
     this.el.classList.remove('set-visible');
     const el = this.el;
     setTimeout(() => el.remove(), 250);

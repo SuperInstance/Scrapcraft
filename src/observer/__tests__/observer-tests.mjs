@@ -12,6 +12,17 @@
  *   4. Headless-safe: no `document`, no `performance`, no `window` — the
  *      observer still records and exports (DOM is a garnish).
  *   5. createObserver() throws nothing, ever — even with hostile opts.
+ *
+ * Observer-v2 capture paths (additive, schema v1 preserved):
+ *   6. sessionType — fresh | returning | unknown in the export, stamped into
+ *      the session_start line (late-markable via markSessionType).
+ *   7. idle_marker — dead-air heartbeat: after 60s with no event and no
+ *      activity() ping, entries carry an idle_marker with a duration;
+ *      continuous quiet → one marker per 60s window; activity()/events reset.
+ *   8. menu_open / menu_close — surface vocabulary (workshop, maker_bench,
+ *      codex, pause, logbook, ledger, help, settings).
+ *   9. input_failure — pointer-lock denials/refusals (would have diagnosed
+ *      the dry-run's dead-controls session instantly).
  */
 
 import { observerFromURL, createObserver, SessionObserver } from '../ObserverMode.js';
@@ -114,4 +125,85 @@ export function runObserverTests(ok) {
   const noPerf = new SessionObserver({ search: '?observe=1', now: () => Date.now() });
   ok('custom clock respected',  typeof noPerf._t() === 'number');
   noPerf.endSession();
+
+  console.log('\nObserver mode · fresh vs returning (sessionType)');
+
+  const freshObs = new SessionObserver({ search: '?observe=1', seed: 7, sessionType: 'fresh' });
+  ok('sessionType from opts',          freshObs.sessionType === 'fresh');
+  ok('export has sessionType',         freshObs.exportJSON().sessionType === 'fresh');
+  ok('session_start names type',       freshObs.entries[0]?.detail.includes('fresh session'));
+  freshObs.endSession();
+
+  const unkObs = new SessionObserver({ search: '?observe=1' });
+  ok('default sessionType unknown',    unkObs.sessionType === 'unknown');
+  ok('export defaults unknown',        unkObs.exportJSON().sessionType === 'unknown');
+  unkObs.markSessionType('returning');
+  ok('markSessionType late set',       unkObs.sessionType === 'returning');
+  ok('session_start reflects late set', unkObs.entries[0]?.detail.includes('returning session'));
+  ok('export reflects late set',       unkObs.exportJSON().sessionType === 'returning');
+  unkObs.endSession();
+
+  console.log('\nObserver mode · idle heartbeat (dead-air markers)');
+
+  let idleNow = 0;
+  const idleObs = new SessionObserver({ search: '?observe=1', now: () => idleNow });
+  ok('no idle marker at t=0',          idleObs.entries.every(e => e.kind !== 'idle_marker'));
+  idleNow += 30_000; idleObs._idleCheck();
+  ok('no idle marker at 30s',          idleObs.entries.every(e => e.kind !== 'idle_marker'));
+  idleNow += 31_000; idleObs._idleCheck();   // t=61 → 61s quiet
+  const m1 = idleObs.entries.find(e => e.kind === 'idle_marker');
+  ok('idle marker after 60s quiet',    !!m1);
+  ok('idle marker has duration',       m1 && typeof m1.duration === 'number' && m1.duration >= 60);
+  ok('idle marker detail names idle',  m1 && m1.detail.includes('idle 61'));
+  idleNow += 60_000; idleObs._idleCheck();   // t=121 → another full quiet window
+  ok('second marker after 60s more',   idleObs.entries.filter(e => e.kind === 'idle_marker').length === 2);
+  // activity() pings reset the window — quiet restarts from the ping
+  idleObs.activity();                        // t=121
+  idleNow += 59_000; idleObs._idleCheck();   // t=180 → 59s quiet → suppressed
+  ok('activity suppresses idle marker', idleObs.entries.filter(e => e.kind === 'idle_marker').length === 2);
+  idleNow += 2_000; idleObs._idleCheck();    // t=182 → 61s quiet again → fires
+  ok('quiet after activity → marker',  idleObs.entries.filter(e => e.kind === 'idle_marker').length === 3);
+  // a logged event also counts as alive
+  idleObs.log('quest', 'alive');             // t=182
+  idleNow += 59_000; idleObs._idleCheck();   // t=241 → 59s since event → suppressed
+  ok('logged event suppresses idle',   idleObs.entries.filter(e => e.kind === 'idle_marker').length === 3);
+  idleObs.endSession();
+  idleNow += 60_000; idleObs._idleCheck();
+  ok('no idle marker after end',       idleObs.entries.filter(e => e.kind === 'idle_marker').length === 3);
+
+  console.log('\nObserver mode · menu surfaces + input failures');
+
+  const menuObs = new SessionObserver({ search: '?observe=1' });
+  menuObs.menuOpen('workshop', 'workbench');
+  menuObs.menuClose('workshop');
+  menuObs.menuOpen('maker_bench');
+  menuObs.menuClose('maker_bench');
+  menuObs.menuOpen('codex');
+  menuObs.inputFailure('pointer-lock request denied by browser');
+  ok('menu_open with detail',          menuObs.entries.some(e => e.kind === 'menu_open' && e.detail === 'workshop — workbench'));
+  ok('menu_close logged',              menuObs.entries.some(e => e.kind === 'menu_close' && e.detail === 'workshop'));
+  ok('maker_bench open/close pair',    menuObs.entries.some(e => e.kind === 'menu_open' && e.detail === 'maker_bench')
+    && menuObs.entries.some(e => e.kind === 'menu_close' && e.detail === 'maker_bench'));
+  ok('codex open logged',              menuObs.entries.some(e => e.kind === 'menu_open' && e.detail === 'codex'));
+  ok('menu events carry timestamps',   menuObs.entries.filter(e => e.kind.startsWith('menu_')).every(e => typeof e.t === 'number'));
+  ok('input_failure logged',           menuObs.entries.some(e => e.kind === 'input_failure' && e.detail.includes('pointer-lock')));
+  menuObs.endSession();
+
+  console.log('\nObserver mode · schema backward-compat (additive-only)');
+
+  const bc = new SessionObserver({ search: '?observe=1', seed: 42, source: 'kid-session' });
+  bc.menuOpen('help');
+  bc.menuClose('help');
+  bc.inputFailure('pointer-lock refused after 6 attempts — controls dead');
+  bc.log('quest', 'q1');
+  bc.milestone('first_mine', 'first block mined');
+  const bce = bc.exportJSON();
+  ok('schema still v1',                bce.schema === 'scrapcraft/observer-session/v1');
+  ok('legacy fields intact',           typeof bce.startedAt === 'string' && typeof bce.durationSec === 'number'
+    && bce.seed === 42 && bce.source === 'kid-session' && bce.milestones && typeof bce.milestones === 'object');
+  ok('sessionType additive',           'sessionType' in bce);
+  ok('entries still well-formed',      bce.entries.every(e =>
+    typeof e.t === 'number' && typeof e.kind === 'string' && typeof e.detail === 'string'));
+  ok('JSON-serializable with new kinds', (() => { try { JSON.stringify(bce); return true; } catch { return false; } })());
+  bc.endSession();
 }

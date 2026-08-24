@@ -2177,6 +2177,7 @@ export class TileEditor {
   open(brainTier = 'tin') {
     if (!this._panel) return;
     this._brainTier = brainTier;
+    this._game?.observer?.menuOpen?.('maker_bench');   // OBSERVER: Maker Lab surface
     // Limit brain selector to tiers the player has earned
     if (this._brainSel) {
       const maxIdx = BRAIN_ORDER.indexOf(brainTier);
@@ -2193,6 +2194,7 @@ export class TileEditor {
     if (!this._panel) return;
     this._panel.style.display = 'none';
     this._open = false;
+    this._game?.observer?.menuClose?.('maker_bench');   // OBSERVER: Maker Lab surface
     this._exitStepMode();
     if (this._rafId) { cancelAnimationFrame(this._rafId); this._rafId = null; }
     // Workshop OOM hardening — dispose live sub-views on close. Quilt (X-RAY)

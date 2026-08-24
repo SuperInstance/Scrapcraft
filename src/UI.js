@@ -356,8 +356,15 @@ export class UI {
   get paused() { return this._paused; }
 
   setPaused(paused) {
+    const changed = this._paused !== paused;
     this._paused = paused;
     this.game?.observer?.pause?.(paused);   // OBSERVER: pause / resume
+    // OBSERVER: pause overlay as a surface — only on real state changes, so
+    // boot-time setPaused(false) calls don't fabricate menu_close entries.
+    if (changed) {
+      if (paused) this.game?.observer?.menuOpen?.('pause');
+      else this.game?.observer?.menuClose?.('pause');
+    }
     if (this._pauseOverlay) {
       this._pauseOverlay.style.display = paused ? 'flex' : 'none';
     }
@@ -534,6 +541,7 @@ export class UI {
     this._currentStation = station;
     this._overlayOpen = true;
     this._overlay.classList.add('open');
+    this.game?.observer?.menuOpen?.('workshop', station);   // OBSERVER: station panel (workshop)
     this._activeTab = 'crafting';
     document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
     document.querySelectorAll('.tab-panel').forEach((p, i) => p.style.display = i === 0 ? 'block' : 'none');
@@ -545,6 +553,7 @@ export class UI {
   closeInventory() {
     this._overlayOpen = false;
     this._overlay.classList.remove('open');
+    this.game?.observer?.menuClose?.('workshop');   // OBSERVER: station panel closed
     this._selectedRecipe = null;
     this._craftBtn.style.display = 'none';
     this._craftBtnX5.style.display = 'none';
@@ -1358,6 +1367,8 @@ export class UI {
     const panel = document.getElementById('codex-panel');
     if (!panel) return;
     const isOpen = panel.classList.toggle('open');
+    // OBSERVER: field guide surface open/close (C key + codex button)
+    try { isOpen ? this.game?.observer?.menuOpen?.('codex') : this.game?.observer?.menuClose?.('codex'); } catch { /* observer is a garnish */ }
     if (!isOpen) return;
     this._renderCodex(codex, 'all');
     if (!panel.dataset.listenersAttached) {
@@ -1369,7 +1380,11 @@ export class UI {
           this._renderCodex(codex, btn.dataset.cat);
         });
       });
-      panel.querySelector('#codex-close').onclick = () => panel.classList.remove('open');
+      // Close button bypasses toggleCodex — log the surface close here too.
+      panel.querySelector('#codex-close').onclick = () => {
+        panel.classList.remove('open');
+        try { this.game?.observer?.menuClose?.('codex'); } catch { /* observer is a garnish */ }
+      };
     }
   }
 
