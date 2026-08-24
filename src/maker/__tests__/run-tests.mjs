@@ -22,6 +22,7 @@ import { runColdstartTests } from '../../onboarding/__tests__/coldstart-tests.mj
 import { runDelightTests } from '../../onboarding/__tests__/delight-tests.mjs';
 import { runSpineLiveTests } from '../../quests/__tests__/spine-live-tests.mjs';
 import { runNextStepTests } from '../../quests/__tests__/nextstep-tests.mjs';
+import { runDiscoverTests } from '../../quests/__tests__/discover-tests.mjs';
 import { runPrestigeTests } from '../../prestige/__tests__/prestige-tests.mjs';
 import { runGeographyTests } from '../../world/__tests__/geography-tests.mjs';
 import { runWakesTests } from '../../story/__tests__/wakes-tests.mjs';
@@ -1855,6 +1856,12 @@ runColdstartTests(ok);
 runDelightTests(ok);
 runSpineLiveTests(ok);
 runNextStepTests(ok);
+
+// ── Discoverability: the dry-run re-entry fixes (#1/#2/#4a) — heap ─────
+// beacon scan + active gating, veteran-ride fresh-vs-returning gate, and
+// the Earl chat prompt() fallback ────────────────────────────────────────
+console.log('\nDiscoverability · dry-run re-entry fixes');
+await runDiscoverTests(ok);
 
 // ── Prestige: Earl's Back Room + achievement perks ──────────────────────
 console.log('\nPrestige & Perks');

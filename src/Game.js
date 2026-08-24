@@ -31,12 +31,13 @@ import { ScrapExchange, EXCHANGE_POS, EXCHANGE_RADIUS } from './ScrapExchange.js
 import { OnboardingWizard } from './onboarding/OnboardingWizard.js';
 import { SettingsPanel } from './onboarding/SettingsPanel.js';
 import { ColdStartGate, sparkFirstGreeting } from './onboarding/coldstart.js';
+import { openEarlChat } from './onboarding/earlChat.js';
 import { DelightGate, delightLine, FIRST_DENT_RECOVERY, BATTERY_RECOVERY } from './onboarding/delights.js';
 import { AmbientLife, ambientLine, AMBIENT_NOTABLE } from './world/AmbientLife.js';
 import { OpeningCinematic } from './world/OpeningCinematic.js';
 import { CutsceneDirector } from './cinema/CutsceneDirector.js';
 import { TutorialEngine, renderMissionCard } from './onboarding/tutorial/index.js';
-import { generateVeteranSave, applyVeteranProfile, veteranRideSummary, VETERAN_SAVE_KEY, LIVE_SAVE_KEY } from './veteran/veteranRide.js';
+import { generateVeteranSave, applyVeteranProfile, veteranRideSummary, VETERAN_SAVE_KEY, LIVE_SAVE_KEY, isReturningProfileSignal } from './veteran/veteranRide.js';
 import { sparkGateway } from './spark/index.js';
 import { RaceBoard, NPC_GHOSTS, BEAT_QUIPS } from './RaceBoard.js';
 import { Codex } from './Codex.js';
@@ -50,6 +51,7 @@ import { CompanionRoster, EARL_PAIRING_LINE } from './companion/registry.js';
 import { RivetAvatar } from './companion/avatar.js';
 import { CompanionGate, gateDeliveryLine } from './companion/entry.js';
 import { QuestSystem, CAMPAIGN } from './quests/index.js';
+import { nearestScrapHeap, heapBeaconActive } from './quests/heapBeacon.js';
 import { openMosLedgerPanel } from './quests/MosLedger.js';
 import { ConceptLedger } from './learning/ConceptLedger.js';
 import { TeachBack } from './learning/TeachBack.js';
@@ -662,11 +664,15 @@ export class Game {
           this._startTutorial();
         }
       };
-      // The veteran ride fork — one honest offer, only on a truly fresh boot
-      // (no save on disk). "Keep fresh" (or Escape) continues into the intro.
+      // The veteran ride fork — one honest offer, and only to a RETURNING
+      // player (no save on disk tonight, but this machine has played before:
+      // onboarding done, or a prior veteran backup/provenance). A genuinely
+      // brand-new kid — first boot, never walked the wizard — gets NO card;
+      // the ride offer is for blank-profile restarts and old hands, not a
+      // first-timer who'd read "level 8 veteran" as a corruption error.
       // While the offer card is up the opening holds (no pointer lock to
       // fight the buttons); the card's own handlers end the opening.
-      if (!this.saveSystem?.hasSave?.() && !this._veteranRideOffered) {
+      if (!this.saveSystem?.hasSave?.() && !this._veteranRideOffered && this._isReturningProfile()) {
         rideOffered = this.offerVeteranRide('fresh-boot', () => {
           this._endOpening();
           startFresh();
@@ -1007,13 +1013,21 @@ export class Game {
       }
       if (e.code === 'F9') { e.preventDefault(); this.saveSystem.load(); }
       if (e.code === 'KeyF' && !e.repeat && !this._earlBusy) {
-        // prompt() is modal and hard-blocks; the guard stops queued key-mash
-        // F presses from stacking prompts and wedging the tab (beta P1).
+        // Finding #4a: in-fiction Earl chat panel (ClassRoom-modal style),
+        // keyed to F. prompt() remains the absolute fallback — never the
+        // default — so headless/old runtimes still work.
         this._earlBusy = true;
-        const msg = prompt('Talk to Big Earl:') ?? '';
-        this._earlBusy = false;
-        if (msg) this.foreman.playerTalks(msg);
-        else this.foreman.say('idle');
+        openEarlChat({
+          title: 'Talk to Big Earl:',
+          placeholder: "Ask Earl about the yard, the jobs, the bots…",
+          fallback: () => (typeof prompt === 'function' ? prompt('Talk to Big Earl:') ?? '' : null),
+        }).then(msg => {
+          this._earlBusy = false;
+          if (msg != null) {
+            if (msg) this.foreman.playerTalks(msg);
+            else this.foreman.say('idle');
+          }
+        }).catch(() => { this._earlBusy = false; });
       }
       if (e.code === 'F2') { e.preventDefault(); this._toggleFullscreen?.(); }
       if (e.code === 'Escape') {
@@ -1796,6 +1810,35 @@ export class Game {
     arrowEl.style.color = distEl.style.color;
   }
 
+  /**
+   * First-mine Heap Beacon — while the kid's next step is still the "mine
+   * iron" objective (quest earl-1) and they haven't broken a block yet, a
+   * soft pulsing chip points a rotating ↑ arrow at the NEAREST scrap heap.
+   * Additive + fail-soft: no DOM / no quest / heap out of range → hidden,
+   * exactly like the Signal Radio drop. Reuses the Ore-Scanner arrow math.
+   */
+  _tickHeapBeacon(dt) {
+    const hud = typeof document === 'undefined' ? null : document.getElementById('heap-beacon-hud');
+    if (!hud) return;
+    const step = this.quests?.currentNextStep?.() ?? null;
+    const want = heapBeaconActive(step);
+    hud.classList.toggle('active', want);
+    if (!want) return;
+
+    // nearest heap from the player (surface blocks the kid aims at)
+    const h = nearestScrapHeap(this.world, this.player.pos.x, this.player.pos.z);
+    const arrow = document.getElementById('heap-arrow');
+    const distEl = document.getElementById('heap-dist');
+    if (!h || !arrow || !distEl) { hud.classList.remove('active'); return; }
+
+    const px = Math.round(this.player.pos.x), pz = Math.round(this.player.pos.z);
+    const bearing = Math.atan2(h.x - px, h.z - pz);
+    const screenAngle = bearing - this.player.yaw;
+    arrow.style.transform = `rotate(${(screenAngle * 180 / Math.PI).toFixed(1)}deg)`;
+    arrow.textContent = '↑';
+    distEl.textContent = `${Math.round(h.d)} blocks`;
+  }
+
   _lootBuriedCache(x, z) {
     const key = `${x},${z}`;
     if (!this.world.signalCaches?.has(key)) return;
@@ -2241,6 +2284,18 @@ export class Game {
 
   // ── Veteran Ride — the honest fork for kids who already know the yard ────
 
+  /**
+   * Is this a profile that has PLAYED before on this machine (or owns a
+   * veteran provenance/backup), even though the live slot is currently
+   * empty? Used to gate the fresh-boot ride offer so it never appears for a
+   * genuinely brand-new kid (finding #2: a fresh profile at "level 8
+   * veteran" reads as a save-corruption error). Headless/fail-soft: any
+   * storage hiccup → false (no offer, fresh walk continues).
+   */
+  _isReturningProfile() {
+    return isReturningProfileSignal(typeof localStorage !== 'undefined' ? localStorage : null);
+  }
+
   /** Show the one-time veteran-ride offer card (ceremony-card pattern):
    *  the summary line + two buttons — "jump in at Chapter 7" or keep the
    *  fresh walk. Only EVER shown at the fresh-boot onboarding moment or by
@@ -2554,6 +2609,49 @@ export class Game {
     });
     // the voxel face: follows the player, looks where they look, mirrors mood
     this.companionAvatar?.update(dt, this.player.pos, this.player.yaw, this.rivet.mood);
+
+    // First-mine "follow me" look-cue: while the mine-iron objective is the
+    // active next step, the companion aims at the nearest scrap heap (a lean,
+    // not a journey) so a lost kid sees WHERE to go. Fail-soft throughout.
+    this._pointCompanionAtHeap?.();
+  }
+
+  /**
+   * Companion "follow me" beat — point the active companion's face at the
+   * nearest scrap heap (and speak a short directional line once per session)
+   * while the FIRST mine objective is still the active next step. No new
+   * engine: reuses nearestScrapHeap + the avatar's pointToward lean. Never
+   * fires once a block has been mined (or the objective advances).
+   */
+  _pointCompanionAtHeap() {
+    try {
+      const step = this.quests?.currentNextStep?.() ?? null;
+      if (!heapBeaconActive(step)) { this._heapLeadSpoken = true; return; }
+      const h = this.quests && nearestScrapHeap(this.world, this.player.pos.x, this.player.pos.z);
+      if (!h) { this._heapLeadSpoken = true; return; }
+      // the lean — aim the face at the heap (renewed every tick, cheap)
+      this.companionAvatar?.pointToward?.(h.x, h.z, 3);
+      // one short directional "follow me" line, once per session, only before
+      // any block has been mined
+      const c = this.companions?.active;
+      const mined = c?.state?.data?.counters?.blocksMined ?? 0;
+      if (mined === 0 && !this._heapLeadSpoken) {
+        this._heapLeadSpoken = true;
+        const line = this._firstMineLeadLine(c?.persona?.id);
+        c?.say?.(line, { mood: 'happy', event: 'first_mine_lead', type: 'nudge' });
+      }
+    } catch { /* the lead is a garnish, never a crash */ }
+  }
+
+  /** Persona-flavored "follow me, it's that heap" lines — one per soul. */
+  _firstMineLeadLine(personaId) {
+    const bank = {
+      rivet: 'The shiny piles. That one, over there. I\'ll wait — hold left-click and dig.',
+      bolt:  'Rust heap, that way. Race bots are BUILT from iron — hold left-click. I\'ll time the swings.',
+      magma: 'Small builder, that rust heap. Iron sleeps inside — go wake some. I will watch your hands.',
+      juno:  'Ooh, THAT one! Scrap pile! Walk over and hold left-click — science starts with a handful!',
+    };
+    return bank[personaId] ?? bank.rivet;
   }
 
   _update(dt) {
@@ -2797,6 +2895,9 @@ export class Game {
     this._tickOreScanner();
     // Signal Radio HUD — active when signal_radio is in the active hotbar slot
     this._tickSignalRadio();
+    // First-mine Heap Beacon — a soft pointer while the "mine iron" objective
+    // is the active next step (fail-soft: nobodies/no-quest/no-heap → hidden)
+    this._tickHeapBeacon(dt);
 
     // Band entry detection → toast + sky/fog color shift
     const bandIdx = this.world.getBandIndex(Math.floor(this.player.pos.z));

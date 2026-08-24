@@ -114,8 +114,26 @@ export class RivetAvatar {
     this._hopT = 0;      // 1 → hop animation countdown
     this._dismayT = 0;   // 1 → dismay animation countdown
     this._talkingUntil = 0;
+    this._pointX = null; // world-space target for the "follow me" look-cue
+    this._pointZ = null;
+    this._pointUntil = 0;
 
     scene.add(this.root);
+  }
+
+  /**
+   * "Follow me" look-cue: turn and ease toward a world target for `s`
+   * seconds (the first-mine nudge points at the nearest scrap heap).
+   * The companion doesn't leave — it leans in the direction of the heap the
+   * way you'd point to something across a parking lot. Decays back to
+   * shoulder-following once the cue lapses. Fail-soft: no-op with a bad
+   * target.
+   */
+  pointToward(x, z, s = 3) {
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return;
+    this._pointX = x;
+    this._pointZ = z;
+    this._pointUntil = this._t + Math.max(0.5, s);
   }
 
   /** Speech pulse for `ms` milliseconds (wired to Rivet.say). */
@@ -137,11 +155,23 @@ export class RivetAvatar {
   update(dt, playerPos, playerYaw, mood = 'idle') {
     this._t += dt;
 
+    // "follow me" look-cue: point at the nearest heap instead of the player's
+    // shoulder. Turn to face it and ease the hover position a step toward it
+    // (a lean, not a journey). When the cue lapses the companion returns to
+    // riding the player's shoulder.
+    const pointing = this._pointX !== null && this._t < this._pointUntil;
+    let pointYaw = playerYaw;
+    if (pointing) {
+      pointYaw = Math.atan2(this._pointX - playerPos.x, this._pointZ - playerPos.z);
+    }
+
     // hover position: trailing the player's right shoulder, gently
-    const orbit = playerYaw + Math.PI + 0.9;   // slightly to the right-behind
+    const orbit = pointYaw + Math.PI + 0.9;   // slightly to the right-behind
     const radius = 1.15;
-    const tx = playerPos.x + Math.sin(orbit) * radius;
-    const tz = playerPos.z + Math.cos(orbit) * radius;
+    // the "lean": when pointing, drift a touch toward the heap's bearing
+    const drift = pointing ? 0.5 : 0;
+    const tx = playerPos.x + Math.sin(orbit) * radius + Math.sin(pointYaw) * drift;
+    const tz = playerPos.z + Math.cos(orbit) * radius + Math.cos(pointYaw) * drift;
     const bob = Math.sin(this._t * 2.1) * 0.06;
     const ty = playerPos.y + 1.35 + bob;
     this.root.position.x += (tx - this.root.position.x) * Math.min(1, dt * 3.2);
@@ -149,7 +179,7 @@ export class RivetAvatar {
     this.root.position.z += (tz - this.root.position.z) * Math.min(1, dt * 3.2);
 
     // look at what the player looks at (lead a little)
-    const targetYaw = playerYaw + Math.PI;
+    const targetYaw = pointing ? pointYaw : (playerYaw + Math.PI);
     let dYaw = targetYaw - this.root.rotation.y;
     while (dYaw > Math.PI) dYaw -= Math.PI * 2;
     while (dYaw < -Math.PI) dYaw += Math.PI * 2;
