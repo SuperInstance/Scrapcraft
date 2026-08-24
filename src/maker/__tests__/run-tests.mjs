@@ -42,6 +42,7 @@ import { runZoneGateTransitionTests } from '../../__tests__/zonegate-transition.
 import { runPerfGuardTests } from '../../__tests__/perf-guards.mjs';
 import { runHudLayerTests } from '../../__tests__/hud-layer-tests.mjs';
 import { runObserverTests } from '../../observer/__tests__/observer-tests.mjs';
+import { runAttentionTests } from '../../ui/__tests__/attention-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -1942,6 +1943,11 @@ runHudLayerTests(ok);
 // ── Observer mode: the playtest instrument (?observe=1) — URL gate, ───────
 // fail-soft, milestones-once, export payload, headless hardening ───────────
 runObserverTests(ok);
+
+// ── Attention discipline: playtest finding #1 — one voice per moment, ─────
+// gate/Earl turn-taking, secondary chips say "later" until the first quest ──
+console.log('\nAttention discipline');
+await runAttentionTests(ok);
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);

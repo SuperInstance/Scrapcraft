@@ -433,7 +433,7 @@
        the click surface (pointer-events:auto); bodies stay inert except in
        the quest panel, which sets pointer-events:auto on itself. */
     .hud-panel-header {
-      display:flex; align-items:center; gap:8px;
+      display:flex; align-items:center; gap:8px; flex-wrap:wrap;
       pointer-events:auto; cursor:pointer;
     }
     .hud-panel-header > * { margin-bottom:0; }
@@ -443,6 +443,24 @@
     .hud-panel.collapsed .collapse-toggle::before { content:'+'; }
     .hud-panel.collapsed .hud-panel-body { display:none; }
     .hud-panel.collapsed { overflow:hidden; }
+
+    /* Attention discipline (playtest finding #1) — one voice per moment.
+       .deferred = secondary chip dimmed + collapsed to a slim header with
+       the "Earl's mission first" cue line; .unfold = the one-time fanfare
+       when the first quest completes. Additive: panels without these classes
+       render exactly as before. */
+    .hud-defer-note {
+      flex-basis:100%; font-size:9px; font-style:italic;
+      color:#b0a060; line-height:1.35; letter-spacing:0.2px; opacity:0.9;
+    }
+    .hud-panel.deferred { border-color:#4a442a; opacity:0.8; }
+    .hud-panel.deferred .collapse-toggle { display:none; }
+    .hud-panel.unfold { animation:hud-unfold 0.9s ease; }
+    @keyframes hud-unfold {
+      0%   { transform:translateY(-3px); border-color:#8a6d2f; box-shadow:0 0 0 rgba(240,180,41,0); }
+      40%  { border-color:#f0b429; box-shadow:0 0 16px rgba(240,180,41,0.5); }
+      100% { transform:translateY(0); border-color:#8a6d2f; box-shadow:0 0 0 rgba(240,180,41,0); }
+    }
 
     /* ── Welcome Back card (center, returning sessions) ── */
     #welcome-back {
@@ -1564,6 +1582,7 @@
       <div id="challenge-hud" class="hud-panel" data-collapsed="false">
         <div class="hud-panel-header">
           <div id="ch-title">📋 SALVAGE RUN</div>
+          <div class="hud-defer-note"></div>
           <span class="collapse-toggle"></span>
         </div>
         <div class="hud-panel-body">
@@ -1577,6 +1596,7 @@
       <div id="daily-hud" class="hud-panel" data-collapsed="false">
         <div class="hud-panel-header">
           <div id="dc-title"><span>📜 DAILY CONTRACT</span><span id="dc-streak">🔥</span></div>
+          <div class="hud-defer-note"></div>
           <span class="collapse-toggle"></span>
         </div>
         <div class="hud-panel-body">

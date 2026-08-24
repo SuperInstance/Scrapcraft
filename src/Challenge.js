@@ -1,5 +1,6 @@
 import { B } from './data/blocks.js';
 import { getItem } from './data/items.js';
+import { FIRST_QUEST_ID } from './ui/attention.js';
 
 // Pool of one-session challenges.  One is picked at random each session (and
 // again 8 seconds after completion).  No persistence — fresh goal every time.
@@ -191,7 +192,17 @@ export class Challenge {
     this._completed = false;
     this._cooldown  = 0;
     this._game.ui?.updateChallenge(this._current, 0, false);
-    this._game.ui?.notify(`📋 Salvage Run: ${this._current.label}`);
+    // Attention discipline (finding #1): while the FIRST quest is still open
+    // (or the gate/Earl is talking), the Salvage Run says "later" — the chip
+    // is collapsed with a cue, so the toast stays quiet too. Fail-soft: no
+    // tracker → toast as before. (Challenge is constructed after the tracker
+    // in Game, so earl-1's state is always consultable here.)
+    const g = this._game;
+    const t = g?.quests?.tracker;
+    const firstPending = !!t && !t.isCompleted(FIRST_QUEST_ID);
+    if (!firstPending && !(g?.attention?.hushed?.() ?? false)) {
+      this._game.ui?.notify(`📋 Salvage Run: ${this._current.label}`);
+    }
   }
 
   _advance(amount) {

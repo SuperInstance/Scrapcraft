@@ -24,6 +24,7 @@ import { WeatherSystem } from './WeatherSystem.js';
 import { ProjectileSystem } from './ProjectileSystem.js';
 import { Challenge } from './Challenge.js';
 import { DailyContract } from './DailyContract.js';
+import { AttentionDirector } from './ui/attention.js';
 import { WelcomeBack } from './WelcomeBack.js';
 import { NightShiftClock } from './NightShift.js';
 import { BotUpgrades, UPGRADE_DEFS } from './BotUpgrades.js';
@@ -196,6 +197,11 @@ export class Game {
 
     this.ui = new UI(this);
     this.foreman.setUI(this.ui);
+    // ATTENTION DISCIPLINE (playtest finding #1): one voice per moment —
+    // collapses the quest panel + secondary chips while the gate or Earl's
+    // tutorial owns the screen, defers Salvage Run + Daily until the first
+    // quest completes. Fail-soft by construction.
+    this.attention = new AttentionDirector(this);
 
     this.craftingSystem = new CraftingSystem(this.player, this.foreman);
 
@@ -263,7 +269,6 @@ export class Game {
     this.concepts.load();
     this.teachBack = new TeachBack({ ledger: this.concepts });
 
-    this.challenge    = new Challenge(this);
     this.dailyContract = new DailyContract(this);   // before load() — state restores below
     this.nightShiftClock = new NightShiftClock();    // away-clock (own localStorage key)
     this.botUpgrades  = new BotUpgrades();
@@ -484,6 +489,10 @@ export class Game {
     // Tracker + Logbook over the same event stream the foreman quips and the
     // companions bond on. Old saves migrate: Earl's chain index → completed quests.
     this.quests = new QuestSystem(this, CAMPAIGN);
+    // Challenge constructed AFTER the quest tracker: the first _pick consults
+    // earl-1's state so the Salvage Run boot toast stays quiet until the
+    // first quest completes (attention discipline, finding #1).
+    this.challenge    = new Challenge(this);
     // Prestige — Earl's Back Room (marks from arc / Midnight-Race completion).
     // Perk effects are read live from achievements, never stored twice.
     this.prestige = new PrestigeSystem(this);
@@ -2254,6 +2263,9 @@ export class Game {
     } catch { /* camera parked best-effort; pointer lock drives the rest */ }
     if (!document.pointerLockElement) this.canvas?.requestPointerLock?.();
     this.ui?.setPaused?.(false);
+    // The last opening overlay closed — the panels may speak again; make the
+    // turn-taking switch immediate (no waiting for the next throttled sync).
+    this.attention?.sync?.(true);
   }
 
   /** Play a cutscene by id. Fail-soft: no cinema → onDone fires immediately
@@ -2656,6 +2668,11 @@ export class Game {
 
   _update(dt) {
     this._clock += dt;
+
+    // Attention discipline (finding #1) — throttled + dirty-checked, so the
+    // steady state costs a few classList reads per ~150ms. Keeps the panels
+    // in their turn-taking states across every overlay/dialog transition.
+    this.attention?.sync?.();
 
     // ── Spectator/coach mode (radio) ──
     if (this._spectator) {
