@@ -598,6 +598,60 @@ export const RECIPES = [
     tier: 2,
     foremanQuip: "Signal beacons. Teal, glowy, pulsing. Place them around the yard and your bot can home in on them like a drone on a landing pad. Place it, load the beacon_signal sensor tile, and watch the bot find its way.",
   },
+
+  // ── BUILD bench parts (physical assembly) ──
+  {
+    id: 'r_bot_chassis',
+    output: 'bot_chassis',
+    qty: 1,
+    ingredients: { iron_scrap: 4, wood_plank: 2, rubber_chunk: 2 },
+    station: 'workbench',
+    tool: 'wrench',
+    tier: 1,
+    foremanQuip: 'A frame. Everything bolts to it — wheels, motors, the brain. You can\u2019t build a bot out of vibes, kid.',
+  },
+  {
+    id: 'r_wheel_set',
+    output: 'wheel_set',
+    qty: 1,
+    ingredients: { rubber_chunk: 2, gear_small: 2, iron_scrap: 1 },
+    station: 'workbench',
+    tool: 'wrench',
+    tier: 1,
+    foremanQuip: 'Wheels. Round, mostly. No wheels, no drive tiles — the compiler checks, and so does physics.',
+  },
+
+  // ── Inference-chip growth (the crystal form) ──
+  {
+    id: 'r_salvaged_wafer',
+    output: 'salvaged_wafer',
+    qty: 1,
+    ingredients: { circuit_board: 2, glass_shard: 1 },
+    station: 'workbench',
+    tool: 'pliers',
+    tier: 2,
+    foremanQuip: 'A wafer of salvaged silicon. Seed it in the acid bath at the BUILD bench and it grows a temperament overnight. Or cracks. Both are interesting.',
+  },
+  {
+    id: 'r_failure_shard',
+    output: 'failure_shard',
+    qty: 2,
+    ingredients: { glass_shard: 1, copper_wire: 1 },
+    station: 'workbench',
+    tool: 'pliers',
+    tier: 1,
+    foremanQuip: 'Failure shards — chips that didn\u2019t make it, snapped small. More shards in the bath, more stubborn the crystal. Past three, you\u2019re growing dice.',
+  },
+  {
+    id: 'r_acid_vial',
+    output: 'acid_vial',
+    qty: 1,
+    ingredients: { fuel_can: 1, glass_shard: 1 },
+    station: 'workbench',
+    tool: 'pliers',
+    tier: 2,
+    foremanQuip: 'Electrolyte. The acid bath etches the mask into the wafer — what the chip faces while it grows is all it will ever see. No pressure.',
+  },
 ];
 
 export function getRecipe(id) {

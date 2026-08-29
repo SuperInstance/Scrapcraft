@@ -1489,6 +1489,56 @@
     }
     .sp-send:hover { background:#0c3050; }
 
+    /* ══ BUILD Panel (the [E] assembly menu — shares .te-* frame styling) ═ */
+    #build-panel {
+      position:fixed; inset:0; z-index:200;
+      background:rgba(4,4,4,0.96);
+      flex-direction:column;
+      font-family:'Courier New',monospace; color:#ddd;
+      user-select:none;
+      align-items:center; justify-content:center;
+    }
+    .bp-body { display:flex; gap:22px; max-width:920px; width:92%; }
+    .bp-col { flex:1; background:#0c0c0c; border:1px solid #1c1c1c; border-radius:8px; padding:14px; }
+    .bp-col-title { font-size:9px; letter-spacing:2px; color:#f0b429; margin-bottom:10px; }
+    .bp-slot, .bp-socket {
+      display:flex; align-items:center; gap:10px;
+      border:1px dashed #2a2a2a; border-radius:6px;
+      padding:8px 10px; margin-bottom:6px; cursor:pointer;
+      transition:border-color 0.12s, background 0.12s;
+    }
+    .bp-slot:hover, .bp-socket:hover { border-color:#f0b42966; background:#111; }
+    .bp-slot-over { border-color:#f0b429 !important; background:rgba(240,180,41,0.08) !important; }
+    .bp-slot-filled, .bp-socket-filled { border-style:solid; border-color:#1a3a1a; background:#0a140a; }
+    .bp-slot-icon { font-size:20px; min-width:26px; text-align:center; }
+    .bp-slot-empty { color:#333; }
+    .bp-slot-txt { font-size:11px; line-height:1.5; }
+    .bp-slot-txt b { color:#ccc; font-size:11px; }
+    .bp-slot-sub { color:#555; font-size:10px; }
+    .bp-bin { margin-top:10px; border-top:1px solid #1c1c1c; padding-top:8px; }
+    .bp-bin-title { font-size:8px; letter-spacing:2px; color:#383838; margin-bottom:6px; }
+    .bp-part {
+      display:inline-flex; align-items:center; gap:6px;
+      font-size:10px; color:#999; background:#131313;
+      border:1px solid #2a2a2a; border-radius:4px;
+      padding:5px 8px; margin:2px; cursor:grab;
+    }
+    .bp-part:hover { border-color:#f0b42955; }
+    .bp-chip { border-color:#3a2a4a; background:#140f1c; color:#b9a; }
+    .bp-chip-cracked { border-color:#4a2a1a; }
+    .bp-cracked { color:#f08c4a; font-size:10px; }
+    .bp-picker { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px; }
+    .bp-chip-btn {
+      padding:5px 10px; background:#131313; border:1px solid #2a2a2a; border-radius:4px;
+      color:#777; font-family:inherit; font-size:10px; letter-spacing:1px; cursor:pointer;
+    }
+    .bp-chip-btn:hover { border-color:#666; color:#bbb; }
+    .bp-chip-btn-active { border-color:#7a5aa0; color:#c9a; background:#171021; }
+    .bp-shard-row { display:flex; align-items:center; gap:6px; margin-bottom:10px; font-size:11px; }
+    .bp-shard-count { color:#f0b429; min-width:14px; text-align:center; font-size:13px; }
+    .bp-shelf-status { font-size:12px; color:#9f9; padding:10px; border:1px solid #1a3a1a; border-radius:6px; background:#0a140a; }
+    .bp-note { font-size:10px; color:#555; line-height:1.7; margin-top:8px; }
+
     /* ══ Start screen ════════════════════════════════════════════════════ */
     #start-screen {
       position:fixed; inset:0; background:#080808;

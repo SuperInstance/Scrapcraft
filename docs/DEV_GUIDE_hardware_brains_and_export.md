@@ -587,3 +587,108 @@ designs a robot in the scrapyard, exports it, buys a $6 ESP32 + $3 motor, and
 builds the real thing. That story sells site licenses to schools and convinces
 parents. Keep the exported code **honest** (it must actually run on hardware) —
 that honesty is the whole value proposition.
+
+---
+
+## Part D — Inference Chips (the crystal form)
+
+**Canon:** `ai-writings/papers/223-inference-chips.md`. Intelligence in the
+yard is not an API you call — it is a **part you salvage, grow, and mount**.
+Six chips, each with a **mask** (the physical lattice of what it may read,
+locked at growth time) that unlocks one agentic tile. The mask is not a
+permission system: a SENTRY chip literally cannot see the gallery wall. In
+compiler terms, an agentic tile whose chip isn't mounted is an **error**, not
+a warning — *the lattice doesn't bend*.
+
+**Files:**
+
+| File | Role |
+|------|------|
+| `src/maker/Chips.js` | Pure: `CHIPS` registry, pure-JS `sha256Hex`, seeded growth math, `ChipForge` (acid bath → cold shelf → sockets) |
+| `src/maker/primitives.js` | Six agentic actuators (`requiresChip`), honest firmware templates |
+| `src/ui/BuildPanel.js` | The **[E] BUILD** menu: part slots + chip sockets + growth bench |
+| `src/TileEditor.js` | The **chip rail** in PROGRAM: mounted chips' tiles, top of tray |
+| `src/Game.js` | E-key context routing (bot in reach → PROGRAM, near bench → BUILD), forge ticked in the game loop |
+
+### The chip table (mask → tile → codegen)
+
+| Chip | Mask | Tile | Minimal honest codegen |
+|---|---|---|---|
+| ECHO | road behind | remember-path | replay recorded drive/turn seq (ring buffer) |
+| SENTRY | yard ahead | watch-obstacle | proximity guard + hysteresis around a chosen block |
+| RUMOR | gallery wall | hear-share | serial/bt packet tx-rx one fact byte |
+| WITNESS | journal | log-tick | EEPROM.write milestone counters |
+| PILOT | track | seek-line | line-sensor P-control correcting toward lane |
+| EMBER | own heat | keep-warm | low-battery guard: park + flash LED |
+
+All six go through the SAME `TileProgram` → `compile()` → `TileVM` /
+`toArduino()` / `toMicroPython()` path. No parallel runtime: an agentic tile
+is just an actuator whose `exec` reads the same world the sensors read
+(`TileVM._act` passes `(robot, params, world)`), and whose firmware is a real
+template emitted by the existing helper mechanism. The SENTRY tile doesn't
+steer — it declares *what matters*, and the chip decides *when*.
+
+### Growth (crafting recipe, deterministic per night)
+
+```
+salvaged_wafer + failure_shard × N + acid_vial
+  → acid bath (BUILD bench)          [consumes ingredients]
+  → cold shelf, 2 real minutes       [ticked by the GAME LOOP, panel closed or not]
+  → chip                             [seed = SHA-256(recipe + shard count + shelf start tick)]
+```
+
+- Same wafer + same shard count + same shelf-start tick → **the same crystal,
+  forever** (`growOutcome` is pure). Kids engineer the growth conditions.
+- Shards control temperament. **≤ 3 shards: never cracks.** Above that, the
+  seed decides (odds climb 30% per extra shard, capped 90%).
+- A **cracked** chip keeps its mask but **mumbles**: seeded ±15% timing
+  jitter that reaches the *exported firmware* — `delay()`/`sleep()` values
+  are scaled by the seeded multiplier and the header carries the ⚠ canon
+  note. Cracked is not a bug; a cracked ECHO that replays your path slightly
+  wrong is the Most Interesting Failure of the Week.
+
+### Gates (compiler-enforced)
+
+- **Mask gate** — `compileAction` errors on a `requiresChip` primitive whose
+  chip isn't in `program.chips`. The TileEditor stamps
+  `chipForge.mountedDescriptors()` onto the program at `open()`, and the chip
+  rail only offers mounted chips — but the compiler is the real gate.
+- **Assembly gate** — `program.meta.assembly` (stamped from `botAssembly` by
+  the BUILD bench): `wheels: false` → drive/turn tiles are errors ("no
+  wheels, no drive blocks"). **Absent assembly = permissive**, so legacy
+  saves and Jr-generated brains keep compiling.
+- **Socket gate** — chips only mount in sockets, and sockets only exist once
+  an Arduino (tin brain) is bolted on. Unslotting the Arduino pops both
+  chips back to the shelf.
+
+### Persistence
+
+`SaveSystem` carries `chips: { forge, assembly }` (MosLedger precedent):
+growing shelf, ready chips, mounted sockets, and the assembly flags all ride
+the v6 payload. The program's `chips` list serializes inside
+`TileProgram.toJSON()` (and share codes), so gallery programs state their own
+chip requirements.
+
+### Curriculum note (ages 10–12, AFTER tile editor basics)
+
+Chips are the big-kid layer on top of the tile editor — sequence, loops, and
+conditionals first; then the inversion the paper is about: in the API world
+you *call* intelligence, in the crystal world you *grow a temperament and
+negotiate with it*. The felt lessons: masks (a sensor's view is its shape),
+determinism (engineer the growth conditions, get the same crystal), and
+failure-as-content (a cracked chip is canon). Jr mode is untouched: Jr blocks
+stay ungated except the existing motor gate; chips simply don't appear until
+graduation. Playtest surface: `menu_open('build_bench')` observer events
+already ride the existing instrument.
+
+### What stayed a seam (v0)
+
+- **Real model inference behind a chip** (a Worker-backed chip dropping
+  behind the same tile contract) — deferred by design; the mask interface
+  already says "what this chip may read".
+- Jitter rides **WAIT tiles** in export; the ECHO replay helper's internal
+  cadence is not yet jitter-scaled.
+- RUMOR's rx side is an event seam (`heardRumor` on the robot) — bot-to-bot
+  wire plumbing (two live ScrapBots swapping fact bytes) lands with
+  multiplayer presence.
+- Wheel *sizes* ("per-size drive constants") — one wheel set at v0.

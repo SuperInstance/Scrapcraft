@@ -21,6 +21,14 @@
  * ───────────────────────────────────────────────────────────────────────────
  */
 
+import { CHIPS, ECHO_CAP } from './Chips.js';
+
+/** Chip that unlocks a given agentic tile primitive, or null. */
+export function chipForPrimitive(primId) {
+  for (const chip of Object.values(CHIPS)) if (chip.tile === primId) return chip;
+  return null;
+}
+
 /**
  * Parameter type system used for validation + UI knob surfacing.
  *   number  → slider        { min, max, step, default, unit }
@@ -645,6 +653,204 @@ export const ACTUATORS = {
                     green:'(0,200,0)', cyan:'(0,200,200)', blue:'(0,0,255)', purple:'(150,0,200)', white:'(255,255,255)' };
         return `np.fill(${C[p.color] ?? '(0,200,0)'}); np.write()`;
       },
+    },
+  },
+  // ── Inference-chip actuators (the agentic tiles) ──────────────────────
+  // Canon: papers/223-inference-chips.md. Each tile is unlocked by GROWING
+  // and MOUNTING its chip (BUILD bench); the mask is the chip's shape, so a
+  // missing chip is a compile ERROR, not a warning. `exec` gets (robot,
+  // params, world) — the same world the sensors read — so the sim and the
+  // exported firmware describe the same behaviour.
+
+  remember_path: {
+    id: 'remember_path',
+    category: 'act',
+    label: 'remember-path',
+    blurb: 'ECHO chip: record the road behind, then replay the exact drive/turn sequence from a ring buffer',
+    requiresChip: 'echo',
+    params: {
+      mode: { type: 'enum', values: ['record', 'replay', 'clear'], default: 'replay' },
+      pwm:  { type: 'number', min: -255, max: 255, step: 1, default: 153, unit: 'pwm' },
+      spin: { type: 'number', min: -255, max: 255, step: 1, default: 0, unit: 'pwm' },
+    },
+    exec: (robot, p) => {
+      if (!Array.isArray(robot.echoBuffer)) robot.echoBuffer = [];
+      if (p.mode === 'record') {
+        if (robot.echoBuffer.length >= ECHO_CAP) robot.echoBuffer.shift();   // ring buffer
+        robot.echoBuffer.push({ drive: p.pwm / 255, turn: p.spin / 255 });   // the motor order to remember
+        robot.emit('echo', { state: 'record', len: robot.echoBuffer.length });
+      } else if (p.mode === 'clear') {
+        robot.echoBuffer = [];
+        robot.replayQueue = null;
+        robot.emit('echo', { state: 'clear' });
+      } else {
+        robot.replayQueue = robot.echoBuffer.map(s => ({ ...s }));          // replay
+        robot._replayT = 0;
+        robot.emit('echo', { state: 'replay', len: robot.replayQueue.length });
+      }
+    },
+    hw: {
+      platform: ['uno', 'esp32', 'jetson'],
+      peripheral: 'ring buffer of drive/turn commands (SRAM, 64 steps)',
+      pin: 'internal',
+      setup: { arduino: '', micropython: 'echo_buf = []; ena = PWM(Pin(27)); enb = PWM(Pin(14))' },
+    },
+    firmware: {
+      arduino: (p) => (p.mode === 'record' ? `echoRecord(${Math.round(p.pwm)}, ${Math.round(p.spin)});`
+        : p.mode === 'clear' ? 'echoLen = 0;' : 'echoReplay();'),
+      micropython: (p) => (p.mode === 'record' ? `echo_record(${Math.round(p.pwm)}, ${Math.round(p.spin)})`
+        : p.mode === 'clear' ? 'echo_buf.clear()' : 'echo_replay()'),
+    },
+  },
+
+  watch_obstacle: {
+    id: 'watch_obstacle',
+    label: 'watch-obstacle',
+    category: 'act',
+    blurb: 'SENTRY chip: proximity guard with hysteresis — reacts without being told to look',
+    requiresChip: 'sentry',
+    params: {
+      trip:  { type: 'number', min: 0.05, max: 0.9, step: 0.05, default: 0.25, unit: 'fraction' },
+      clear: { type: 'number', min: 0.1,  max: 1.0, step: 0.05, default: 0.4,  unit: 'fraction' },
+    },
+    exec: (robot, p, world) => {
+      const d = world?.distanceAhead?.(robot.x, robot.z, robot.heading) ?? 1;
+      if (!robot.sentryTripped && d < p.trip) {
+        robot.sentryTripped = true;                     // latch — hysteresis
+        robot.setDrive(0); robot.setTurn(0);            // guard: park
+        robot.emit('sentry', { state: 'trip', distance: d });
+      } else if (robot.sentryTripped && d > Math.max(p.clear, p.trip)) {
+        robot.sentryTripped = false;                    // release only past clear
+        robot.emit('sentry', { state: 'clear', distance: d });
+      }
+    },
+    hw: {
+      platform: ['uno', 'esp32', 'jetson'],
+      peripheral: 'HC-SR04 ultrasonic + hysteresis latch',
+      pin: 'TRIG=5, ECHO=18',
+      setup: { arduino: 'pinMode(TRIG_PIN, OUTPUT); pinMode(ECHO_PIN, INPUT);', micropython: 'sonar = HCSR04(trigger_pin=5, echo_pin=18); sentry_tripped = False; ena = PWM(Pin(27)); enb = PWM(Pin(14))' },
+    },
+    firmware: {
+      arduino: (p) => `sentryWatch(${Math.round(p.trip * 100)}, ${Math.round(p.clear * 100)});`,
+      micropython: (p) => `sentry_watch(${(p.trip).toFixed(2)}, ${(p.clear).toFixed(2)})`,
+    },
+  },
+
+  hear_share: {
+    id: 'hear_share',
+    label: 'hear-share',
+    category: 'act',
+    blurb: 'RUMOR chip: trade exactly one fact byte with a neighbor bot over the wire',
+    requiresChip: 'rumor',
+    params: {
+      fact: { type: 'enum', values: ['ore', 'rain', 'bot', 'earl'], default: 'ore' },
+    },
+    exec: (robot, p) => {
+      robot.lastRumor = p.fact;
+      robot.emit('rumor', { fact: p.fact, dir: 'tx' });
+      // rx side: the integration layer swaps one fact byte between bots
+      const heard = robot.heardRumor ?? null;
+      if (heard) robot.emit('rumor', { fact: heard, dir: 'rx' });
+    },
+    hw: {
+      platform: ['uno', 'esp32', 'jetson'],
+      peripheral: 'UART serial link bot-to-bot (one fact byte)',
+      pin: 'TX=17, RX=16',
+      pyImports: ['from machine import UART'],
+      setup: { arduino: 'Serial1.begin(9600);', micropython: 'uart = UART(1, baudrate=9600, tx=Pin(17), rx=Pin(16)); rumor_in = 0' },
+    },
+    firmware: {
+      arduino: (p) => `rumorShare(${({ ore: 1, rain: 2, bot: 3, earl: 4 })[p.fact] ?? 1});`,
+      micropython: (p) => `rumor_share(${({ ore: 1, rain: 2, bot: 3, earl: 4 })[p.fact] ?? 1})`,
+    },
+  },
+
+  log_tick: {
+    id: 'log_tick',
+    label: 'log-tick',
+    category: 'act',
+    blurb: 'WITNESS chip: write its own ledger page — EEPROM milestone counters',
+    requiresChip: 'witness',
+    params: {
+      milestone: { type: 'enum', values: ['steps', 'laps', 'bumps', 'charges'], default: 'steps' },
+    },
+    exec: (robot, p) => {
+      if (!robot.witnessCounters) robot.witnessCounters = {};
+      robot.witnessCounters[p.milestone] = (robot.witnessCounters[p.milestone] ?? 0) + 1;
+      robot.emit('witness', { milestone: p.milestone, count: robot.witnessCounters[p.milestone] });
+    },
+    hw: {
+      platform: ['uno', 'esp32', 'jetson'],
+      peripheral: 'EEPROM (Uno) / NVS (ESP32) milestone counters',
+      pin: 'internal',
+      arduinoIncludes: ['EEPROM.h'],
+      pyImports: ['from esp32 import NVS'],
+      setup: { arduino: '', micropython: 'nvs = NVS("witness")' },
+    },
+    firmware: {
+      arduino: (p) => `witnessTick(${({ steps: 0, laps: 1, bumps: 2, charges: 3 })[p.milestone] ?? 0});`,
+      micropython: (p) => `witness_tick("${p.milestone}")`,
+    },
+  },
+
+  seek_line: {
+    id: 'seek_line',
+    label: 'seek-line',
+    category: 'act',
+    blurb: 'PILOT chip: line-sensor P-control — corrects toward the marked line, no waypoints',
+    requiresChip: 'pilot',
+    params: {
+      speed: { type: 'number', min: 0.1, max: 1, step: 0.05, default: 0.4, unit: 'fraction' },
+      gain:  { type: 'number', min: 0.1, max: 1, step: 0.05, default: 0.6, unit: 'fraction' },
+    },
+    exec: (robot, p, world) => {
+      // P-control: steer proportionally to how far off the line we are.
+      // Put this tile inside forever{} — the loop IS the control loop.
+      const err = world?.lineBearing?.(robot.x, robot.z, robot.heading) ?? 0;
+      const corr = Math.max(-1, Math.min(1, p.gain * err));
+      robot.setDrive(p.speed);
+      robot.setTurn(corr);
+    },
+    hw: {
+      platform: ['uno', 'esp32', 'jetson'],
+      peripheral: 'TCRT5000 IR pair — proportional line steering',
+      pin: 'IR_L=A1, IR_R=A2',
+      setup: { arduino: '', micropython: 'ir_l = ADC(Pin(34)); ir_r = ADC(Pin(35)); ena = PWM(Pin(27)); enb = PWM(Pin(14))' },
+    },
+    firmware: {
+      arduino: (p) => `pilotSeek(${Math.round(p.gain * 100)}, ${Math.round(p.speed * 255)});`,
+      micropython: (p) => `pilot_seek(${(p.gain).toFixed(2)}, ${(p.speed).toFixed(2)})`,
+    },
+  },
+
+  keep_warm: {
+    id: 'keep_warm',
+    label: 'keep-warm',
+    category: 'act',
+    blurb: 'EMBER chip: low-battery guard — park and flash the LED rather than go cold',
+    requiresChip: 'ember',
+    params: {
+      floor: { type: 'number', min: 0.05, max: 0.5, step: 0.05, default: 0.2, unit: 'fraction' },
+    },
+    exec: (robot, p, world) => {
+      const bat = world?.batteryLevel?.() ?? 1;
+      if (bat < p.floor) {
+        robot.setDrive(0); robot.setTurn(0);            // park
+        robot.emit('led', { state: 'red' });            // flash
+        robot.emit('ember', { state: 'park', battery: bat });
+      } else {
+        robot.emit('ember', { state: 'warm', battery: bat });
+      }
+    },
+    hw: {
+      platform: ['uno', 'esp32', 'jetson'],
+      peripheral: 'INA219 voltage sense + status LED',
+      pin: 'SDA=21, SCL=22',
+      setup: { arduino: 'ina219.begin();', micropython: 'ina = INA219(i2c); lr = Pin(14, Pin.OUT); ena = PWM(Pin(27)); enb = PWM(Pin(14))' },
+    },
+    firmware: {
+      arduino: (p) => `emberGuard(${Math.round(p.floor * 100)});`,
+      micropython: (p) => `ember_guard(${(p.floor).toFixed(2)})`,
     },
   },
 };

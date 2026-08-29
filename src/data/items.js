@@ -339,6 +339,45 @@ export const ITEMS = {
     stackSize: 4,
   },
 
+  // ── BUILD bench parts (physical assembly) ──
+  bot_chassis: {
+    name: 'Bot Chassis',
+    icon: '▤',
+    desc: 'A salvaged frame. Everything bolts to this. Bolt it on at the BUILD bench [E].',
+    category: 'maker',
+    stackSize: 2,
+  },
+  wheel_set: {
+    name: 'Wheel Set',
+    icon: '🛞',
+    desc: 'Four wheels, matched tread. Per-size drive constants — no wheels, no drive tiles.',
+    category: 'maker',
+    stackSize: 2,
+  },
+
+  // ── Inference-chip growth (the crystal form) ──
+  salvaged_wafer: {
+    name: 'Salvaged Wafer',
+    icon: '⬡',
+    desc: 'A slice of somebody\u2019s discarded silicon. Seed it in the acid bath and it might grow a mind.',
+    category: 'maker',
+    stackSize: 8,
+  },
+  failure_shard: {
+    name: 'Failure Shard',
+    icon: '🔻',
+    desc: 'A chip that failed QA, snapped small. More shards in the bath → a more stubborn (or cracked) crystal.',
+    category: 'maker',
+    stackSize: 32,
+  },
+  acid_vial: {
+    name: 'Acid Vial',
+    icon: '🧪',
+    desc: 'Electrolyte for the acid bath. Etches the mask into the wafer. Handle with gloves you don\u2019t like.',
+    category: 'maker',
+    stackSize: 8,
+  },
+
   // ── Light & power ──
   headlamp: {
     name: 'Headlamp',

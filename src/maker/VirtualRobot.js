@@ -21,6 +21,7 @@
  */
 
 import { DRIVE_SPEED, TURN_RATE, BOT_RADIUS } from './kinematics.js';
+import { ECHO_STEP_S } from './Chips.js';
 
 const DEG2RAD = Math.PI / 180;
 
@@ -54,6 +55,23 @@ export class VirtualRobot {
    *                       collision if absent)
    */
   tick(dt, world) {
+    // ECHO chip replay: the ring buffer drives the motors at a fixed cadence
+    // — exactly what echoReplay() does in the exported firmware.
+    if (this.replayQueue && this.replayQueue.length) {
+      this._replayT = (this._replayT ?? 0) + dt;
+      while (this._replayT >= ECHO_STEP_S && this.replayQueue.length) {
+        this._replayT -= ECHO_STEP_S;
+        const step = this.replayQueue.shift();
+        this.setDrive(step.drive);
+        this.setTurn(step.turn);
+      }
+      if (!this.replayQueue.length) {
+        this.setDrive(0); this.setTurn(0);
+        this.replayQueue = null;
+        this._replayT = 0;
+      }
+    }
+
     // Rotation first.
     if (this.turnPower !== 0) {
       this.heading += this.turnPower * TURN_RATE * DEG2RAD * dt;

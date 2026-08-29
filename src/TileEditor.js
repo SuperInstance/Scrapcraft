@@ -5,7 +5,7 @@
 
 import { TileProgram, EXAMPLE_WALL_AVOIDER, EXAMPLE_LIGHT_RUNNER, EXAMPLE_SQUARE, EXAMPLE_LINE_FOLLOWER, EXAMPLE_WAYPOINT_NAV, EXAMPLE_ORE_HUNTER, EXAMPLE_BATTERY_SAVER, EXAMPLE_BUMP_COUNTER } from './maker/TileProgram.js';
 import { SENSORS, ACTUATORS, BRAINS, withDefaults } from './maker/primitives.js';
-import { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG, compile, TileVM, VirtualRobot } from './maker/index.js';
+import { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG, compile, TileVM, VirtualRobot, CHIPS } from './maker/index.js';
 import { Avr109Flasher } from './maker/Avr109Flasher.js';
 import { UNO_WIRING } from './maker/PinModel.js';
 import { QuiltSheet } from './maker/QuiltSheet.js';
@@ -48,6 +48,13 @@ const NODE_META = {
   read_sensor:    { icon: '📡', label: 'read sensor',    bg: '#0e1a28', tip: 'Read the live value of a sensor into a variable. Use it to store a snapshot or drive proportional behavior.' },
   math_var:       { icon: '🔢', label: 'math variable',  bg: '#0e1a28', tip: 'Do math on a variable: multiply, divide, add, or subtract a number. Great for scaling sensor values.' },
   add_score:      { icon: '⭐', label: 'add score',      bg: '#1a1500', tip: 'Add points to the bot\'s running score total. Score shows in the Maker Lab monitor. Resets each time you hit Run.' },
+  // ── agentic (inference-chip) tiles — one per chip, rail-gated by mounting ──
+  remember_path:  { icon: '🔁', label: 'remember-path',  bg: '#0d1220', tip: 'ECHO chip: record the road behind, then replay the exact drive/turn sequence from a ring buffer.' },
+  watch_obstacle: { icon: '🛰️', label: 'watch-obstacle', bg: '#0d1220', tip: 'SENTRY chip: proximity guard with hysteresis — reacts without being told to look.' },
+  hear_share:     { icon: '📻', label: 'hear-share',     bg: '#0d1220', tip: 'RUMOR chip: trade exactly one fact byte with a neighbor bot over the wire.' },
+  log_tick:       { icon: '📓', label: 'log-tick',       bg: '#0d1220', tip: 'WITNESS chip: write its own ledger page — EEPROM milestone counters.' },
+  seek_line:      { icon: '🎯', label: 'seek-line',      bg: '#0d1220', tip: 'PILOT chip: line-sensor P-control — corrects toward the marked line. Put it inside forever.' },
+  keep_warm:      { icon: '🔥', label: 'keep-warm',      bg: '#0d1220', tip: 'EMBER chip: low-battery guard — parks and flashes the LED rather than going cold.' },
 };
 
 const TRAY_GROUPS = [
@@ -650,6 +657,12 @@ export class TileEditor {
   }
 
   _buildTray() {
+    // chip rail first — mounted inference chips and their agentic tiles
+    // (refreshed on every open via _refreshChipRail; no chips, no rail)
+    const rail = document.createElement('div');
+    rail.id = 'te-chip-rail';
+    this._tray.appendChild(rail);
+
     for (const { label, items } of TRAY_GROUPS) {
       const hdr = document.createElement('div');
       hdr.className = 'te-tray-group';
@@ -681,6 +694,53 @@ export class TileEditor {
 
         this._tray.appendChild(tile);
       }
+    }
+  }
+
+  /** The CHIP RAIL: agentic tiles for chips mounted in the Arduino's
+   *  sockets (BUILD bench). Unmounted chips don't appear — the mask is the
+   *  chip's shape, so the tile literally cannot be dragged without it. */
+  _refreshChipRail() {
+    const rail = this._panel?.querySelector('#te-chip-rail');
+    if (!rail) return;
+    rail.innerHTML = '';
+    const mounted = this._game?.chipForge?.mountedTypes?.() ?? [];
+    if (!mounted.length) {
+      const hint = document.createElement('div');
+      hint.className = 'te-tray-group';
+      hint.style.color = '#4a3a5a';
+      hint.textContent = '⚡ CHIPS — grow + mount at BUILD [E]';
+      rail.appendChild(hint);
+      return;
+    }
+    const hdr = document.createElement('div');
+    hdr.className = 'te-tray-group';
+    hdr.style.color = '#7a5aa0';
+    hdr.textContent = '⚡ CHIP TILES';
+    rail.appendChild(hdr);
+    for (const type of mounted) {
+      const chip = CHIPS[type];
+      if (!chip) continue;
+      const meta = NODE_META[chip.tile] ?? {};
+      const tile = document.createElement('div');
+      tile.className = 'te-tray-tile';
+      tile.style.background = meta.bg ?? '#0d1220';
+      tile.style.borderColor = '#3a2a4a';
+      tile.draggable = true;
+      tile.innerHTML = `<span class="te-tile-icon">${meta.icon ?? '◈'}</span>`
+        + `<span class="te-tile-label">${meta.label ?? chip.tile}</span>`;
+      tile.title = `${chip.label} chip · mask: ${chip.mask}\n${meta.tip ?? ''}`;
+      tile.addEventListener('dragstart', e => {
+        this._dragData = { kind: 'new', spec: { type: 'action', prim: chip.tile } };
+        e.dataTransfer.effectAllowed = 'copy';
+        tile.classList.add('te-dragging');
+      });
+      tile.addEventListener('dragend', () => {
+        tile.classList.remove('te-dragging');
+        if (!this._dropOK) this._dragData = null;
+        this._dropOK = false;
+      });
+      rail.appendChild(tile);
     }
   }
 
@@ -2186,6 +2246,13 @@ export class TileEditor {
     if (!this._panel) return;
     this._brainTier = brainTier;
     this._game?.observer?.menuOpen?.('maker_bench');   // OBSERVER: Maker Lab surface
+    // PROGRAM assumes what BUILD bolted on: stamp mounted chips (mask gate)
+    // + assembly flags (drive gate) onto the program the compiler sees.
+    if (this._game?.chipForge) {
+      this._program.chips = this._game.chipForge.mountedDescriptors();
+      this._program.meta.assembly = { ...(this._game.botAssembly ?? {}) };
+    }
+    this._refreshChipRail();
     // Limit brain selector to tiers the player has earned
     if (this._brainSel) {
       const maxIdx = BRAIN_ORDER.indexOf(brainTier);

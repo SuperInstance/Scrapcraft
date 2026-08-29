@@ -94,27 +94,38 @@ export const T = {
 
 /**
  * A TileProgram wraps the node list plus metadata (brain tier, name, author).
+ *
+ * `chips` lists the inference chips mounted in the Arduino's sockets when the
+ * program runs — either plain type strings ('echo') or chip descriptors
+ * ({ type, seed, cracked, jitter }) grown in the ChipForge. Agentic tiles
+ * gate against this list at compile time (mask = the chip's shape).
  */
 export class TileProgram {
-  constructor({ name = 'Untitled Brain', brain = 'tin', nodes = [], meta = {} } = {}) {
+  constructor({ name = 'Untitled Brain', brain = 'tin', nodes = [], meta = {}, chips = [] } = {}) {
     this.name = name;
     this.brain = brain;        // 'tin' | 'spark' | 'vision'
     this.nodes = nodes;        // array of root-level nodes
-    this.meta = meta;          // { author, createdAt, remixOf, ... }
+    this.meta = meta;          // { author, createdAt, remixOf, assembly, ... }
+    this.chips = chips;        // mounted inference chips (types or descriptors)
     this.version = SCHEMA_VERSION;
   }
 
   // ── Serialization (save / load / share-by-URL) ──────────────────────────
 
   toJSON() {
-    return { version: this.version, name: this.name, brain: this.brain, nodes: this.nodes, meta: this.meta };
+    return { version: this.version, name: this.name, brain: this.brain, nodes: this.nodes, meta: this.meta, chips: this.chips };
   }
 
   static fromJSON(obj) {
     if (!obj || typeof obj !== 'object') throw new Error('TileProgram.fromJSON: not an object');
-    const prog = new TileProgram({ name: obj.name, brain: obj.brain, nodes: obj.nodes ?? [], meta: obj.meta ?? {} });
+    const prog = new TileProgram({ name: obj.name, brain: obj.brain, nodes: obj.nodes ?? [], meta: obj.meta ?? {}, chips: obj.chips ?? [] });
     prog.version = obj.version ?? SCHEMA_VERSION;
     return prog;
+  }
+
+  /** Mounted chip type strings (normalizes descriptors → types). */
+  mountedChipTypes() {
+    return (this.chips ?? []).map(c => (typeof c === 'string' ? c : c?.type)).filter(Boolean);
   }
 
   /** Compact base64 string for ?brain=... share links. */

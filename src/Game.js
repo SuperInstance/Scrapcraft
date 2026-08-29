@@ -16,6 +16,8 @@ import { EXAMPLE_WALL_AVOIDER, EXAMPLE_LINE_FOLLOWER } from './maker/TileProgram
 import { getSensor } from './maker/primitives.js';
 import { TileEditor } from './TileEditor.js';
 import { JrEditor } from './jr/JrEditor.js';
+import { BuildPanel } from './ui/BuildPanel.js';
+import { ChipForge, CHIPS } from './maker/Chips.js';
 import { SpectatorCoach } from './radio/SpectatorCoach.js';
 import { installUscp } from './cns/uscp.js';
 import { SaveSystem } from './SaveSystem.js';
@@ -250,6 +252,12 @@ export class Game {
     this.tileEditor = new TileEditor(this);
     // ── Scrapcraft Jr — icon-block lane for ages 6–10 (Shift+T) ──
     this.jrEditor = new JrEditor(this);
+    // ── Inference chips + the [E] BUILD bench (the crystal form) ──
+    // The forge clock is ticked in update(); growth is game-loop-ticked so
+    // the cold shelf keeps running with the panel closed.
+    this.chipForge  = new ChipForge();
+    this.botAssembly = { chassis: false, wheels: false, motors: false, battery: false, arduino: false };
+    this.buildPanel = new BuildPanel(this);
     // ── Spectator/coach mode (radio) ──
     this.radio = new SpectatorCoach(this);
     this._spectator = false;
@@ -646,6 +654,20 @@ export class Game {
     }
   }
 
+  /** "Bot selected" for the E-menu router: an active bot within arm's reach.
+   *  Being at the bot means you're attending IT, so PROGRAM wins over BUILD. */
+  _botInFocus() {
+    const bot = this.scrapBot?.isActive ? this.scrapBot : (this.scrapBot2?.isActive ? this.scrapBot2 : null);
+    if (!bot?._pos) return false;
+    const p = this.player.pos;
+    return (p.x - bot._pos.x) ** 2 + (p.z - bot._pos.z) ** 2 < 12.25;   // 3.5 blocks
+  }
+
+  /** Re-grab the pointer after a panel closes (E-menu routing helper). */
+  _relockPointer() {
+    if (!this._touchMode) document.getElementById('game-canvas')?.requestPointerLock?.();
+  }
+
   /** The touch ⚒ button rides the E-key's core path: close if open, else
    *  open the nearest station's workshop tab. */
   _touchInteract() {
@@ -1016,7 +1038,23 @@ export class Game {
           if (plq) { this.ui.showPlaquePanel(plq, () => this._onPlaqueRead(plq)); return; }
         }
 
+        // ── E-MENU context routing (chips lane) ──────────────────────────
+        // Two E-menus: BUILD (physical assembly) and PROGRAM (tiles). Context
+        // decides: an open panel toggles; a bot in reach → PROGRAM; near a
+        // bench/inventory context → BUILD; otherwise the classic workshop.
+        // (Tutorial keeps the classic workshop path — don't fork onboarding.)
+        if (!this._tutorialActive && this.buildPanel?.isOpen) { this.buildPanel.close(); this._relockPointer(); return; }
+        if (!this._tutorialActive && this._botInFocus()) {
+          // bot selected → PROGRAM (the tile editor + its chip rail)
+          if (this.tileEditor?.isOpen) this.tileEditor.close();
+          else this.tileEditor.open(this._getBrainTier());
+          return;
+        }
         const nearby = this.world.getNearbyInteractives(p.x, p.y, p.z, 3);
+        if (!this._tutorialActive && nearby.length && this.buildPanel) {
+          this.buildPanel.open();   // near bench / inventory context → BUILD
+          return;
+        }
         this.ui.openInventory(nearby[0]?.station ?? 'any');
       }
       // ── Tutorial: T completes the Maker Lab step (starter program autoloads) ──
@@ -1070,7 +1108,8 @@ export class Game {
       }
       if (e.code === 'F2') { e.preventDefault(); this._toggleFullscreen?.(); }
       if (e.code === 'Escape') {
-        if (this.ui.isOpen) this.ui.closeInventory();
+        if (this.buildPanel?.isOpen) this.buildPanel.close();
+        else if (this.ui.isOpen) this.ui.closeInventory();
         else this._toggleHelp(false);
       }
       if (e.code === 'KeyI' && this.ui.isOpen) {
@@ -2911,6 +2950,22 @@ export class Game {
     this.scrapBot.tick(dt, this.world);
     if (this.scrapBot2) this.scrapBot2.tick(dt, this.world);
 
+    // Cold-shelf timer: real minutes ticked by the game loop (chips lane).
+    // Finished growths announce themselves — crack of dawn, literally.
+    if (this.chipForge) {
+      const done = this.chipForge.tick(dt * 1000);
+      for (const uid of done) {
+        const chip = this.chipForge.ready.find(c => c.uid === uid);
+        if (!chip) continue;
+        const cd = CHIPS[chip.type];
+        this.ui?.notify(chip.cracked
+          ? `${cd?.icon ?? ''} <b>${cd?.label}</b> cracked off the shelf — ⚠ it mumbles ±15%. Canon, not a bug.`
+          : `${cd?.icon ?? ''} <b>${cd?.label}</b> chip cracked free of the shelf — mount it at BUILD [E].`);
+        this.audio?.craft?.();
+        this.saveSystem?.markDirty();
+      }
+    }
+
     this._tickBotBadge();
     this._tickLapTimer(dt);
     this._tickOvalLapTimer(dt);
@@ -3497,7 +3552,7 @@ export class Game {
         } else if (def?.category === 'material' || def?.category === 'block') {
           this.ui.notify(`📦 ${def.name} is a crafting material. Open Workshop [E] to see recipes.`);
         } else if (def?.category === 'maker') {
-          this.ui.notify(`🧠 ${def.name} — used in the Maker Bench [T] for robot programs.`);
+          this.ui.notify(`🧠 ${def.name} — a Maker Lab part. Bolt parts on at BUILD [E]; grow chips at the growth bench.`);
         } else if (def) {
           this.ui.notify(`${def.icon} ${def.name} — ${def.desc}`);
         } else {

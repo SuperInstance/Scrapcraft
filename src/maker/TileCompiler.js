@@ -46,11 +46,21 @@
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-import { getActuator, getSensor, withDefaults, BRAINS } from './primitives.js';
+import { getActuator, getSensor, withDefaults, BRAINS, chipForPrimitive } from './primitives.js';
 import { TURN_RATE } from './kinematics.js';
 
 const CMP_OPS = new Set(['gt', 'lt', 'gte', 'lte', 'eq', 'neq', 'is']);
 const BRAIN_TIER = { tin: 0, spark: 1, vision: 2 };
+
+/** Mounted chip types on a program (accepts strings or chip descriptors). */
+function mountedChipTypes(program) {
+  return (program?.chips ?? []).map(c => (typeof c === 'string' ? c : c?.type)).filter(Boolean);
+}
+
+/** Assembly flags (BUILD bench). Absent → permissive: legacy programs and
+ *  Jr-generated brains keep compiling; only programs stamped by the BUILD
+ *  panel carry the gate. No wheels bolted on, no drive blocks. */
+function assemblyOf(program) { return program?.meta?.assembly ?? null; }
 
 export function compile(program) {
   const brain = program?.brain ?? 'tin';
@@ -59,6 +69,7 @@ export function compile(program) {
     out: [],
     errors: [],
     warnings: [],
+    program,                        // for chip-mask + assembly gating
     brainTier: BRAIN_TIER[brain] ?? 0,
     sourceMap: [],    // [{ pc, nodeId }] — maps bytecode offset to tile node id
     subs: {},         // name → start PC (filled when subroutines are emitted)
@@ -170,6 +181,31 @@ function compileAction(node, ctx) {
     ctx.errors.push(`No such action "${node.prim}" — this tile does not map to any real hardware, skipped.`);
     return;
   }
+
+  // Mask gate (inference chips): the mask is the chip's SHAPE, not a
+  // permission. An agentic tile without its chip is an error — the lattice
+  // doesn't bend, no matter how you program around it.
+  const chip = chipForPrimitive(node.prim);
+  if (chip && !mountedChipTypes(ctx.program).includes(chip.id)) {
+    ctx.errors.push(
+      `"${def.label}" needs a ${chip.label} chip (mask: ${chip.mask}) grown and mounted in a socket — the lattice doesn't bend.`
+    );
+    return;
+  }
+
+  // Assembly gate (BUILD bench): drive/turn assume wheels + motors bolted on.
+  const asm = assemblyOf(ctx.program);
+  if (asm && (node.prim === 'drive' || node.prim === 'turn')) {
+    if (asm.wheels === false) {
+      ctx.errors.push(`"${def.label}" assumes wheels — bolt a wheel set on at the BUILD bench [E] first.`);
+      return;
+    }
+    if (asm.motors === false) {
+      ctx.errors.push(`"${def.label}" assumes motors — mount a motor driver at the BUILD bench [E] first.`);
+      return;
+    }
+  }
+
   if (def.requiresBrain && (BRAIN_TIER[def.requiresBrain] ?? 0) > ctx.brainTier) {
     ctx.warnings.push(`"${def.label}" needs a ${BRAINS[def.requiresBrain]?.label}; current brain can't do it yet.`);
   }

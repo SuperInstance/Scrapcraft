@@ -44,6 +44,7 @@ import { runPerfGuardTests } from '../../__tests__/perf-guards.mjs';
 import { runHudLayerTests } from '../../__tests__/hud-layer-tests.mjs';
 import { runObserverTests } from '../../observer/__tests__/observer-tests.mjs';
 import { runAttentionTests } from '../../ui/__tests__/attention-tests.mjs';
+import { runChipsTests } from './chips-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -1955,6 +1956,13 @@ runObserverTests(ok);
 // gate/Earl turn-taking, secondary chips say "later" until the first quest ──
 console.log('\nAttention discipline');
 await runAttentionTests(ok);
+
+// ── Inference chips: growth determinism, mask gating, codegen snapshots ───
+console.log('\nInference chips (the crystal form)');
+runChipsTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);

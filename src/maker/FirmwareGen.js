@@ -30,6 +30,19 @@ const ARDUINO_HELPERS = {
   led:   `void setLed(String c){ digitalWrite(LED_R, c=="red"||c=="white"); digitalWrite(LED_G, c=="green"||c=="white"); digitalWrite(LED_B, c=="blue"||c=="white"); }`,
   brightness: `float readBrightness(){ return analogRead(LDR_PIN) / 1023.0; }`,
   distance_ahead: `float readDistance(){ digitalWrite(TRIG_PIN,LOW); delayMicroseconds(2); digitalWrite(TRIG_PIN,HIGH); delayMicroseconds(10); digitalWrite(TRIG_PIN,LOW); long us=pulseIn(ECHO_PIN,HIGH); float cm=us/58.0; return min(cm/200.0, 1.0); }`,
+  // ── inference-chip helpers (templates, honest + minimal) ──
+  // ECHO — ring buffer replay of the recorded drive/turn sequence
+  remember_path: `int echoBuf[64][2]; int echoLen=0; void echoRecord(int dpwm,int tpwm){ if(echoLen<64){ echoBuf[echoLen][0]=dpwm; echoBuf[echoLen][1]=tpwm; echoLen++; } } void echoReplay(){ for(int i=0;i<echoLen;i++){ analogWrite(ENA,echoBuf[i][0]); analogWrite(ENB,echoBuf[i][1]); delay(500); } analogWrite(ENA,0); analogWrite(ENB,0); }`,
+  // SENTRY — proximity guard + hysteresis latch around the chosen block
+  watch_obstacle: `bool sentryTripped=false; void sentryWatch(int tripPct,int clearPct){ digitalWrite(TRIG_PIN,LOW); delayMicroseconds(2); digitalWrite(TRIG_PIN,HIGH); delayMicroseconds(10); digitalWrite(TRIG_PIN,LOW); float d=min(pulseIn(ECHO_PIN,HIGH)/58.0/200.0,1.0); if(!sentryTripped&&d*100<tripPct){ sentryTripped=true; analogWrite(ENA,0); analogWrite(ENB,0); } else if(sentryTripped&&d*100>clearPct){ sentryTripped=false; } }`,
+  // RUMOR — tx/rx exactly one fact byte over the wire
+  hear_share: `byte rumorIn=0; void rumorShare(byte f){ Serial1.write(f); if(Serial1.available()) rumorIn=Serial1.read(); }`,
+  // WITNESS — EEPROM milestone counters
+  log_tick: `void witnessTick(int addr){ byte c=EEPROM.read(addr); if(c<255) c++; EEPROM.update(addr,c); }`,
+  // PILOT — line-sensor P-control toward the lane
+  seek_line: `void pilotSeek(int kp,int base){ int err=analogRead(A2)-analogRead(A1); int corr=constrain(kp*err/4,-255,255); digitalWrite(IN1,HIGH); digitalWrite(IN2,LOW); analogWrite(ENA,base); analogWrite(ENB,constrain(base+corr,0,255)); }`,
+  // EMBER — low-battery guard: park + flash the LED
+  keep_warm: `void emberGuard(int floorPct){ float v=ina219.getBusVoltage_V()/7.4; if(v*100<floorPct){ analogWrite(ENA,0); analogWrite(ENB,0); for(int i=0;i<6;i++){ digitalWrite(LED_R,HIGH); delay(150); digitalWrite(LED_R,LOW); delay(150); } } }`,
 };
 
 const PY_HELPERS = {
@@ -37,12 +50,34 @@ const PY_HELPERS = {
   distance_ahead: `def read_distance():\n    return min(sonar.distance_cm() / 200, 1.0)`,
   beep: `def beep(freq):\n    buzz.freq(freq); buzz.duty(512); sleep_ms(150); buzz.duty(0)`,
   led: `def set_led(c):\n    r.value(c in ("red","white")); g.value(c in ("green","white")); b.value(c in ("blue","white"))`,
+  // ── inference-chip helpers (templates, honest + minimal) ──
+  remember_path: `def echo_record(dpwm, tpwm):\n    if len(echo_buf) < 64: echo_buf.append((dpwm, tpwm))\ndef echo_replay():\n    for dpwm, tpwm in echo_buf:\n        ena.duty(abs(dpwm)); enb.duty(abs(tpwm)); sleep_ms(500)\n    ena.duty(0); enb.duty(0)`,
+  watch_obstacle: `def sentry_watch(trip, clear):\n    global sentry_tripped\n    d = min(sonar.distance_cm() / 200, 1.0)\n    if (not sentry_tripped) and d < trip:\n        sentry_tripped = True; ena.duty(0); enb.duty(0)\n    elif sentry_tripped and d > clear:\n        sentry_tripped = False`,
+  hear_share: `def rumor_share(f):\n    uart.write(bytes([f]))\n    if uart.any(): rumor_in = uart.read(1)[0]`,
+  log_tick: `def witness_tick(key):\n    try: cnt = nvs.get_i32(key) + 1\n    except OSError: cnt = 1\n    nvs.set_i32(key, cnt); nvs.commit()`,
+  seek_line: `def pilot_seek(kp, speed):\n    err = ir_r.read() - ir_l.read()\n    corr = max(-255, min(255, int(kp * err)))\n    ena.duty(int(speed * 255)); enb.duty(max(0, min(255, int(speed * 255) + corr)))`,
+  keep_warm: `def ember_guard(floor):\n    v = ina.voltage() / 7.4\n    if v < floor:\n        ena.duty(0); enb.duty(0)\n        for _ in range(6):\n            lr.value(1); sleep_ms(150); lr.value(0); sleep_ms(150)`,
 };
+
+// ── Inference-chip jitter (canon: a cracked chip mumbles ±15%, seeded) ──────
+
+/** First cracked chip on the program → its seeded timing multiplier.
+ *  Clean board → 1.0 (no change). Deterministic: the multiplier is the one
+ *  the growth seed fixed at shelf time — same chip, same mumble, forever. */
+function _chipJitter(program) {
+  for (const c of program?.chips ?? []) {
+    if (c && typeof c === 'object' && c.cracked) {
+      return { jm: Number(c.jitter) || 1, chip: c.type, seed: c.seed };
+    }
+  }
+  return { jm: 1, chip: null, seed: null };
+}
 
 // ── Arduino C++ ──────────────────────────────────────────────────────────────
 
 export function toArduino(program) {
   const used = program.usedPrimitives();
+  const { jm, chip, seed } = _chipJitter(program);
   const L = [];
 
   L.push(`// ─────────────────────────────────────────────`);
@@ -55,6 +90,18 @@ export function toArduino(program) {
   L.push('#define BACKWARD 0');
   L.push('#define RIGHT 1');
   L.push('#define LEFT 0');
+
+  // Cracked-chip canon note: the mumble is IN the timing, not a comment.
+  if (chip) L.push(`// ⚠ cracked ${String(chip).toUpperCase()} chip mounted: delays fire ±15% off (seed ${String(seed).slice(0, 12)}) — canon, not a bug`);
+
+  // Extra #includes a primitive needs (e.g. EEPROM for WITNESS's counters).
+  const includes = new Set();
+  for (const id of [...used.actuators, ...used.sensors]) {
+    const def = getActuator(id) ?? getSensor(id);
+    for (const inc of def?.hw?.arduinoIncludes ?? []) includes.add(inc);
+  }
+  for (const inc of includes) L.push(`#include <${inc}>`);
+  if (includes.size) L.push('');
 
   // Pin declarations from the hardware mappings of used primitives.
   const pins = collectPins([...used.actuators, ...used.sensors]);
@@ -89,7 +136,7 @@ export function toArduino(program) {
   for (const sub of subNodes) {
     L.push('');
     L.push(`void ${sub.name || 'sub'}() {`);
-    emitArduino(sub.body ?? [], L, 1);
+    emitArduino(sub.body ?? [], L, 1, { jm });
     L.push('}');
   }
   if (subNodes.length) L.push('');
@@ -97,13 +144,13 @@ export function toArduino(program) {
   // loop()
   const { loopBody } = splitRoots(program.nodes.filter(n => n.type !== 'define_sub'));
   L.push('void loop() {');
-  emitArduino(loopBody, L, 1);
+  emitArduino(loopBody, L, 1, { jm });
   L.push('}');
 
   return L.join('\n');
 }
 
-function emitArduino(nodes, L, depth) {
+function emitArduino(nodes, L, depth, jx = { jm: 1 }) {
   const pad = '  '.repeat(depth);
   for (const node of nodes) {
     switch (node.type) {
@@ -113,35 +160,36 @@ function emitArduino(nodes, L, depth) {
         break;
       }
       case 'wait':
-        L.push(pad + `delay(${Math.round(node.seconds * 1000)});`);
+        // Cracked-chip mumble: waits fire late/early within seeded ±15%.
+        L.push(pad + `delay(${Math.round(node.seconds * 1000 * jx.jm)});`);
         break;
       case 'if':
         L.push(pad + `if (${condArduino(node.cond)}) {`);
-        emitArduino(node.body, L, depth + 1);
+        emitArduino(node.body, L, depth + 1, jx);
         L.push(pad + '}');
         break;
       case 'if_else':
         L.push(pad + `if (${condArduino(node.cond)}) {`);
-        emitArduino(node.body, L, depth + 1);
+        emitArduino(node.body, L, depth + 1, jx);
         L.push(pad + '} else {');
-        emitArduino(node.elseBody, L, depth + 1);
+        emitArduino(node.elseBody, L, depth + 1, jx);
         L.push(pad + '}');
         break;
       case 'repeat': {
         const v = `i${depth}`;
         L.push(pad + `for (int ${v}=0; ${v}<${node.count}; ${v}++) {`);
-        emitArduino(node.body, L, depth + 1);
+        emitArduino(node.body, L, depth + 1, jx);
         L.push(pad + '}');
         break;
       }
       case 'forever':
         L.push(pad + 'while (true) {');
-        emitArduino(node.body, L, depth + 1);
+        emitArduino(node.body, L, depth + 1, jx);
         L.push(pad + '}');
         break;
       case 'repeat_until':
         L.push(pad + `while (!(${condArduino(node.cond)})) {`);
-        emitArduino(Array.isArray(node.body) ? node.body : [], L, depth + 1);
+        emitArduino(Array.isArray(node.body) ? node.body : [], L, depth + 1, jx);
         L.push(pad + '}');
         break;
       case 'wait_until':
@@ -184,7 +232,7 @@ function emitArduino(nodes, L, depth) {
         L.push(pad + `${node.name || 'sub'}();`);
         break;
       case 'macro':
-        emitArduino(expandMacro(node) ?? [], L, depth);
+        emitArduino(expandMacro(node) ?? [], L, depth, jx);
         break;
       case 'set_var':
         L.push(pad + `${node.name || 'count'} = ${Number(node.value) || 0};`);
@@ -219,10 +267,19 @@ function condArduino(cond) {
 
 export function toMicroPython(program) {
   const used = program.usedPrimitives();
+  const { jm, chip, seed } = _chipJitter(program);
   const L = [];
   L.push(`# Generated by Scrapcraft Maker Lab`);
   L.push(`# Brain: "${program.name}"  ·  Target: ${BRAINS[program.brain]?.chip ?? 'ESP32'}`);
+  if (chip) L.push(`# ⚠ cracked ${String(chip).toUpperCase()} chip mounted: sleeps fire ±15% off (seed ${String(seed).slice(0, 12)}) — canon, not a bug`);
   L.push('from machine import Pin, ADC, PWM');
+  // Extra imports a primitive needs (UART for RUMOR, NVS for WITNESS).
+  const pyImports = new Set();
+  for (const id of [...used.actuators, ...used.sensors]) {
+    const def = getActuator(id) ?? getSensor(id);
+    for (const imp of def?.hw?.pyImports ?? []) pyImports.add(imp);
+  }
+  for (const imp of pyImports) L.push(imp);
   L.push('from time import sleep_ms, sleep');
   L.push('');
   // setup
@@ -245,17 +302,17 @@ export function toMicroPython(program) {
   const pySubNodes = program.nodes.filter(n => n.type === 'define_sub');
   for (const sub of pySubNodes) {
     L.push(`def ${sub.name || 'sub'}():`);
-    emitPython(sub.body ?? [], L, 1);
+    emitPython(sub.body ?? [], L, 1, { jm });
     L.push('');
   }
 
   const { loopBody } = splitRoots(program.nodes.filter(n => n.type !== 'define_sub'));
   L.push('while True:');
-  emitPython(loopBody, L, 1);
+  emitPython(loopBody, L, 1, { jm });
   return L.join('\n');
 }
 
-function emitPython(nodes, L, depth) {
+function emitPython(nodes, L, depth, jx = { jm: 1 }) {
   const pad = '    '.repeat(depth);
   if (!nodes.length) { L.push(pad + 'pass'); return; }
   for (const node of nodes) {
@@ -266,29 +323,30 @@ function emitPython(nodes, L, depth) {
         break;
       }
       case 'wait':
-        L.push(pad + `sleep(${node.seconds.toFixed(2)})`);
+        // Cracked-chip mumble: sleeps fire late/early within seeded ±15%.
+        L.push(pad + `sleep(${(node.seconds * jx.jm).toFixed(2)})`);
         break;
       case 'if':
         L.push(pad + `if ${condPython(node.cond)}:`);
-        emitPython(node.body, L, depth + 1);
+        emitPython(node.body, L, depth + 1, jx);
         break;
       case 'if_else':
         L.push(pad + `if ${condPython(node.cond)}:`);
-        emitPython(node.body, L, depth + 1);
+        emitPython(node.body, L, depth + 1, jx);
         L.push(pad + 'else:');
-        emitPython(node.elseBody, L, depth + 1);
+        emitPython(node.elseBody, L, depth + 1, jx);
         break;
       case 'repeat':
         L.push(pad + `for _ in range(${node.count}):`);
-        emitPython(node.body, L, depth + 1);
+        emitPython(node.body, L, depth + 1, jx);
         break;
       case 'forever':
         L.push(pad + 'while True:');
-        emitPython(node.body, L, depth + 1);
+        emitPython(node.body, L, depth + 1, jx);
         break;
       case 'repeat_until':
         L.push(pad + `while not (${condPython(node.cond)}):`);
-        emitPython(Array.isArray(node.body) ? node.body : [], L, depth + 1);
+        emitPython(Array.isArray(node.body) ? node.body : [], L, depth + 1, jx);
         break;
       case 'wait_until':
         L.push(pad + `while not (${condPython(node.cond)}):`);
@@ -328,7 +386,7 @@ function emitPython(nodes, L, depth) {
         L.push(pad + `${node.name || 'sub'}()`);
         break;
       case 'macro':
-        emitPython(expandMacro(node) ?? [], L, depth);
+        emitPython(expandMacro(node) ?? [], L, depth, jx);
         break;
       case 'set_var':
         L.push(pad + `${node.name || 'count'} = ${Number(node.value) || 0}`);
@@ -524,6 +582,10 @@ function collectPins(ids) {
     if (id === 'led') { add('LED_R', '14'); add('LED_G', '12'); add('LED_B', '33'); }
     if (id === 'drive' || id === 'turn' || id === 'stop') { add('IN1', '25'); add('IN2', '26'); add('ENA', '27'); add('ENB', '14'); }
     if (id === 'player_near') add('PIR_PIN', '19');
+    // Inference-chip peripherals: the templates above reference these pins.
+    if (id === 'watch_obstacle') { add('TRIG_PIN', '5'); add('ECHO_PIN', '18'); }
+    if (id === 'remember_path' || id === 'seek_line' || id === 'keep_warm') { add('IN1', '25'); add('IN2', '26'); add('ENA', '27'); add('ENB', '14'); }
+    if (id === 'keep_warm') { add('LED_R', '14'); add('LED_G', '12'); add('LED_B', '33'); }
   }
   return [...defines.entries()].map(([n, v]) => `#define ${n} ${v}`);
 }

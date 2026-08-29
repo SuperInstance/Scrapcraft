@@ -282,7 +282,9 @@ export class TileVM {
   _act(actionId, params) {
     const def = getActuator(actionId);
     if (!def) return;
-    def.exec(this.robot, params ?? {});
+    // world passed as 3rd arg (chip tiles read the same sensors the
+    // conditions read); older two-arg execs simply ignore it.
+    def.exec(this.robot, params ?? {}, this.world);
   }
 }
 

@@ -156,6 +156,19 @@ export class GameWorldAdapter {
     return LINE_IDS.has(id);
   }
 
+  /** PILOT chip — two-sensor line bearing: sample the floor slightly left and
+   *  right of the bot's heading. +1 = line under the right sensor (steer
+   *  right), −1 = left, 0 = centred on the line. This is exactly what the
+   *  exported pilotSeek() P-control does with its IR pair. */
+  lineBearing(x, z, heading) {
+    const s = Math.sin(heading), c = Math.cos(heading);
+    const R = this.lineUnder(x + c * 0.35, z - s * 0.35);
+    const L = this.lineUnder(x - c * 0.35, z + s * 0.35);
+    if (R && !L) return 1;
+    if (L && !R) return -1;
+    return this.lineUnder(x, z) ? 0 : 0.6;   // centred, or hunting when lost
+  }
+
   /**
    * Ambient temperature: forge blocks radiate heat; open yard is cool.
    * Returns 0..1 (0 = arctic, 1 = next to a forge).

@@ -549,6 +549,10 @@ export class SaveSystem {
 
     // Bot hardware upgrades
     if (data.botUpgrades) g.botUpgrades?.fromSaveData(data.botUpgrades);
+    if (data.chips) {
+      if (data.chips.forge)    g.chipForge?.fromSaveData(data.chips.forge);
+      if (data.chips.assembly && g.botAssembly) Object.assign(g.botAssembly, data.chips.assembly);
+    }
 
     // Scrap Exchange trade count
     if (data.exchange) g.exchange?.fromSaveData(data.exchange);
