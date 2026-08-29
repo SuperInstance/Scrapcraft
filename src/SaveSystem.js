@@ -305,6 +305,10 @@ export class SaveSystem {
         spine:   g.quests.spine?.data   ?? null,
       } : null,
 
+      // Mo's Ledger journal — the pages Mo wrote (once-ever firsts). Rides
+      // the payload like everything else; no side storage to keep in sync.
+      mosLedger: g.mosJournal?.toSaveData() ?? null,
+
       // Companion roster + per-companion state (tiers, bond, counters) —
       // same deal: side-storage primary locally, payload restores elsewhere.
       companions: g.companions ? {
@@ -483,6 +487,9 @@ export class SaveSystem {
     // machine has no local copy — local side-storage is always fresher here;
     // the payload copy exists for fresh browsers / classroom machines.
     if (data.quests) g.quests?.fromSaveData?.(data.quests);
+
+    // Mo's Ledger journal — the entries Mo wrote survive the reload
+    if (data.mosLedger) g.mosJournal?.fromSaveData?.(data.mosLedger);
 
     // Companion roster + tiers — same policy as quests (local copy wins).
     if (data.companions) g.companions?.fromSaveData?.(data.companions);

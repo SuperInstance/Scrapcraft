@@ -1261,6 +1261,9 @@ export class TileEditor {
       this._codePre.textContent = this._codeLang === 'arduino'
         ? toArduino(this._program)
         : toMicroPython(this._program);
+      // Mo's Ledger: the first time tiles become real Arduino C++ is a build
+      // milestone — Mo writes the page once (the journal's own once-gate).
+      if (this._codeLang === 'arduino') this._game?.mosJournal?.observe('arduino_compile', {});
     } catch (err) {
       this._codePre.textContent = `// Code generation error:\n// ${err.message}`;
     }

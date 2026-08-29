@@ -373,6 +373,10 @@ export class BrainGallery {
         });
         if (res && asFailure) {
           this._editor._game.ui?.notify('💥 Failure published to the yard wall — teach the others!');
+          // Mo's Ledger × scrap-spark /gallery: publishing an interesting
+          // failure is exactly the milestone Mo keeps ("Most Interesting
+          // Failure of the Week" wall — SparkCache.publish kind:'failure').
+          this._editor._game?.mosJournal?.observe('failure_published', { title: prog.name });
         }
       }
 

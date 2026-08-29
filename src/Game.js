@@ -53,7 +53,7 @@ import { RivetAvatar } from './companion/avatar.js';
 import { CompanionGate, gateDeliveryLine } from './companion/entry.js';
 import { QuestSystem, CAMPAIGN } from './quests/index.js';
 import { nearestScrapHeap, heapBeaconActive } from './quests/heapBeacon.js';
-import { openMosLedgerPanel } from './quests/MosLedger.js';
+import { openMosLedgerPanel, MosLedgerJournal } from './quests/MosLedger.js';
 import { ConceptLedger } from './learning/ConceptLedger.js';
 import { TeachBack } from './learning/TeachBack.js';
 import { TouchControls, touchSupported } from './touch/TouchControls.js';
@@ -271,6 +271,13 @@ export class Game {
     this.concepts = new ConceptLedger();
     this.concepts.load();
     this.teachBack = new TeachBack({ ledger: this.concepts });
+
+    // Mo's Ledger journal — the entries Mo writes at build firsts. Constructed
+    // BEFORE saveSystem.load(): the v6 payload carries `mosLedger` and _apply()
+    // hands it back here. No side storage — the save IS the ledger's memory.
+    this.mosJournal = new MosLedgerJournal({
+      onWrite: () => this.saveSystem?.markDirty(),   // a written page autosaves
+    });
 
     this.dailyContract = new DailyContract(this);   // before load() — state restores below
     this.nightShiftClock = new NightShiftClock();    // away-clock (own localStorage key)
@@ -784,6 +791,7 @@ export class Game {
 
   /** First dent ever: normalize it, name the recovery, keep moving. */
   _noteFirstDent(bot) {
+    this.mosJournal?.observe('dent', {});   // Mo's Ledger: the first crash is an entry, not a shame
     if (!this._delights?.once('first_dent')) return;
     try {
       const c = this.companions?.active;
@@ -2185,6 +2193,7 @@ export class Game {
     const isNew = !this.achievements.stats.crafted.has(output);
     this.observer?.firstBuild?.(output);   // OBSERVER: first build (once per session)
     this.achievements.track('craft', { id: output });
+    this.mosJournal?.observe('craft', { id: output });   // Mo's Ledger: the first robot gets its page
     this.challenge.onCraft();
     this.dailyContract?.onCraft();
     this.xpSystem.gain(isNew ? 10 : 3);
@@ -3541,6 +3550,7 @@ export class Game {
         // Confetti burst at start/finish gate
         this.particles.burst(38, 1.5, 14, 'confetti', improved ? 30 : 14);
         this.achievements.track('lap_complete', {});
+        this.mosJournal?.observe('lap_complete', { secs });   // Mo's Ledger: the first lap gets its page
         this.challenge.onLapComplete();
         this.noteBotTaskComplete(bot);   // panic reset: a lap is a completed task
         this.dailyContract?.onLapComplete();
@@ -3661,6 +3671,7 @@ export class Game {
         this.audio.lapComplete?.(improved);
         this.particles.burst(49, 1.5, 84, 'confetti', improved ? 30 : 14);
         this.achievements.track('lap_complete', {});
+        this.mosJournal?.observe('lap_complete', { secs });   // Mo's Ledger: the first lap gets its page
         this.challenge.onLapComplete();
         this.noteBotTaskComplete(bot);   // panic reset: a lap is a completed task
         this.dailyContract?.onLapComplete();

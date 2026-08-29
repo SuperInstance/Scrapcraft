@@ -14,6 +14,11 @@
  *   - `buildMosLedger(game)` is PURE over a game-shaped object — every
  *     read is optional-chained, every system absent-safe. A headless {},
  *     a half-booted rig, a fresh profile: no throws, just fewer rows.
+ *   - `MosLedgerJournal` is the other half — the PAGES Mo writes, at the
+ *     moment a first happens (first robot, first Arduino C++ compile,
+ *     first lap, first crash, first failure hung on the /gallery wall).
+ *     Event-fed via `observe()`, once-ever per milestone, persisted in the
+ *     save payload (`mosLedger` — SaveSystem full-payload semantics).
  *   - `ledgerText(report)` flattens to plain text (the teacher export).
  *   - `openMosLedgerPanel(game)` is the thin DOM face — the Logbook's
  *     field-notes pattern: fixed scrim, one card, ESC/J to close, releases
@@ -26,6 +31,106 @@
 
 export const LEDGER_TITLE = "MO'S LEDGER";
 export const LEDGER_SUBTITLE = 'every first, every lap, every dent — the yard remembers';
+
+// ── the journal — the entries Mo writes when the yard notices ──────────────
+//
+// The career rows above are DERIVED (read live at open time); the journal
+// is what Mo actually WROTE, at the moment it happened, once each. Canon
+// check (worldbible): Mo is the Ghost — the yard's twenty-six-year memory —
+// and Rivet is the yard cat, quality inspection division. So the ledger
+// keeps Mo's name, the entries keep the cat's register (dry, short, zero
+// exclamation points — a quality report that deigns to be prose), and 🐾
+// marks the ones Rivet napped on. In-world she only sits on builds people
+// care about; her nap IS the certification.
+
+/** The milestone entries Mo writes — once each, text fixed at write time. */
+export const MO_ENTRY_TABLE = {
+  first_robot: {
+    icon: '🤖',
+    text: () => 'Kid built a robot. It whirred once, beeped at the wall, decided to stay. The cat sat on it — certified. 🐾',
+  },
+  first_compile: {
+    icon: '📟',
+    text: () => 'The tiles turned into real Arduino C++ today. Semicolons, pin numbers, everything. Nobody was harmed.',
+  },
+  first_lap: {
+    icon: '🏁',
+    text: (d) => `One full lap. All wheels, no help${d?.secs ? `, ${d.secs}s` : ''}. The track noticed. I wrote it down.`,
+  },
+  first_failure: {
+    icon: '💥',
+    text: () => 'First crash. The wall is fine. The bot is finer. Dents are the yard keeping notes — the good ones go on the shared wall.',
+  },
+  failure_published: {
+    icon: '📌',
+    text: () => 'They hung the crash on the yard wall for everyone to learn from. Bold. Correct. The cat approves of teaching by example. 🐾',
+  },
+};
+
+/** Max entries — firsts are bounded, but a ledger never grows unbounded. */
+const MO_ENTRY_CAP = 100;
+
+/**
+ * The journal Mo keeps. Headless, zero-dep, fail-soft: `observe()` taps the
+ * yard's existing event streams (craft / arduino_compile / lap_complete /
+ * dent / failure_published) and writes one entry per milestone id — the
+ * once-gate is the journal's own, so callers never pre-check. Persistence
+ * rides the save payload (`mosLedger` in SaveSystem._collect — full-payload
+ * semantics, no side storage: the save IS the ledger's memory).
+ */
+export class MosLedgerJournal {
+  /** @param {{onWrite?: (entry:object)=>void}} [opts] optional write hook (Game marks the save dirty) */
+  constructor(opts = {}) {
+    this.entries = [];                 // [{ id, at, icon, text }]
+    this._onWrite = typeof opts.onWrite === 'function' ? opts.onWrite : null;
+  }
+
+  /** Feed an event. Returns the entry if Mo wrote one now, else null. */
+  observe(event, data = {}) {
+    let id = null;
+    switch (event) {
+      case 'craft':
+        if (data?.id === 'robot_helper' || data?.id === 'robot_helper_starter') id = 'first_robot';
+        break;
+      case 'arduino_compile':   id = 'first_compile';      break;
+      case 'lap_complete':      id = 'first_lap';          break;
+      case 'dent':              id = 'first_failure';      break;
+      case 'failure_published': id = 'failure_published';  break;
+    }
+    if (!id || !(id in MO_ENTRY_TABLE)) return null;
+    if (this.entries.some(e => e?.id === id)) return null;   // once-ever, like every first
+
+    const entry = {
+      id,
+      at: new Date().toISOString(),
+      icon: MO_ENTRY_TABLE[id].icon,
+      text: MO_ENTRY_TABLE[id].text(data),
+    };
+    this.entries.push(entry);
+    if (this.entries.length > MO_ENTRY_CAP) this.entries.shift();
+    try { this._onWrite?.(entry); } catch { /* a write hook never blocks the pen */ }
+    return entry;
+  }
+
+  /** True once Mo has written this milestone (panel + tests read it). */
+  wrote(id) { return this.entries.some(e => e?.id === id); }
+
+  toSaveData() { return { entries: this.entries.map(e => ({ ...e })) }; }
+
+  fromSaveData(data) {
+    if (!data || !Array.isArray(data.entries)) return;
+    this.entries = data.entries
+      .filter(e => e && typeof e.id === 'string' && e.id in MO_ENTRY_TABLE)
+      .slice(-MO_ENTRY_CAP)
+      .map(e => ({ id: e.id, at: e.at ?? new Date().toISOString(), icon: e.icon ?? MO_ENTRY_TABLE[e.id].icon, text: e.text ?? MO_ENTRY_TABLE[e.id].text({}) }));
+  }
+}
+
+/** Date stamp for the panel — ledger style: quiet, just the day. */
+function entryDay(at) {
+  try { return new Date(at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
+  catch { return ''; }
+}
 
 const CH_TOTAL = 12;   // spine chapters (spine.json — authored, stable)
 
@@ -134,6 +239,7 @@ export function buildMosLedger(game) {
   return {
     title: LEDGER_TITLE,
     subtitle: LEDGER_SUBTITLE,
+    entries: [...(g.mosJournal?.entries ?? [])],   // the pages Mo wrote (journal, not derived)
     rows,
     footer: 'June keeps hers in marker. Mo keeps yours. (Press J any time — the yard keeps receipts.)',
   };
@@ -143,6 +249,10 @@ export function buildMosLedger(game) {
 export function ledgerText(report) {
   const r = report ?? buildMosLedger(null);
   const lines = [`${r.title} — ${r.subtitle}`, ''];
+  for (const e of r.entries ?? []) {
+    lines.push(`${e.icon} ${entryDay(e.at)} — ${e.text}`);
+  }
+  if (r.entries?.length) lines.push('');
   for (const row of r.rows) {
     lines.push(`${row.dim ? '·' : row.icon} ${row.text}`);
   }
@@ -183,6 +293,15 @@ export function openMosLedgerPanel(game) {
       </div>
       <div style="font-size:11px;opacity:.65;letter-spacing:1px;margin-top:2px">${report.subtitle}</div>
       <div id="ml-body" style="margin-top:12px">
+        <div style="font-size:10px;letter-spacing:2px;opacity:.55;margin-bottom:4px">THE PAGES MO WROTE — the cat observes, the Ghost remembers</div>
+        ${report.entries.length
+          ? report.entries.map(e => `
+            <div style="display:flex;gap:10px;align-items:baseline;padding:5px 0;border-bottom:1px dashed #2a2214">
+              <span style="font-size:15px">${e.icon}</span>
+              <span><span style="opacity:.5;font-size:11px">${entryDay(e.at)}</span> — ${e.text}</span>
+            </div>`).join('')
+          : `<div style="padding:6px 0 10px;opacity:.5;font-style:italic">Nothing on the pages yet. Build something. The cat is watching. The cat is always watching.</div>`}
+        <div style="font-size:10px;letter-spacing:2px;opacity:.55;margin:12px 0 4px">THE CAREER ON THE BOOKS</div>
         ${report.rows.map(r => `
           <div style="display:flex;gap:10px;align-items:baseline;padding:5px 0;border-bottom:1px dashed #2a2214;${r.dim ? 'opacity:.45' : ''}">
             <span style="font-size:15px">${r.dim ? '·' : r.icon}</span>
