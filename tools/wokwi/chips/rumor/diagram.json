@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "author": "Scrapcraft Maker Lab",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "mcu1", "top": 0, "left": 0, "attrs": {} }
+  ],
+  "connections": [
+    [ "mcu1:17", "mcu1:16", "purple", [] ]
+  ],
+  "dependencies": {}
+}

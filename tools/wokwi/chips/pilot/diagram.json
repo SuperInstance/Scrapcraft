@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "author": "Scrapcraft Maker Lab",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "mcu1", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-photoresistor-sensor", "id": "irl1", "top": -140, "left": 220, "attrs": {} },
+    { "type": "wokwi-photoresistor-sensor", "id": "irr1", "top": -140, "left": 330, "attrs": {} },
+    { "type": "wokwi-l298n", "id": "l298n1", "top": 40, "left": 250, "attrs": {} }
+  ],
+  "connections": [
+    [ "mcu1:34", "irl1:A0", "green", [] ],
+    [ "mcu1:35", "irr1:A0", "green", [] ],
+    [ "mcu1:3V3", "irl1:VCC", "red", [] ],
+    [ "mcu1:3V3", "irr1:VCC", "red", [] ],
+    [ "mcu1:GND.1", "irl1:GND", "black", [] ],
+    [ "mcu1:GND.1", "irr1:GND", "black", [] ],
+    [ "mcu1:25", "l298n1:IN1", "green", [] ],
+    [ "mcu1:26", "l298n1:IN2", "orange", [] ],
+    [ "mcu1:27", "l298n1:ENA", "yellow", [] ],
+    [ "mcu1:14", "l298n1:ENB", "gold", [] ],
+    [ "mcu1:5V", "l298n1:12V", "red", [] ],
+    [ "mcu1:GND.2", "l298n1:GND", "black", [] ]
+  ],
+  "dependencies": {}
+}

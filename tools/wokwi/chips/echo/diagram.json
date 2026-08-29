@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "author": "Scrapcraft Maker Lab",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "mcu1", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-l298n", "id": "l298n1", "top": -80, "left": 250, "attrs": {} }
+  ],
+  "connections": [
+    [ "mcu1:25", "l298n1:IN1", "green", [] ],
+    [ "mcu1:26", "l298n1:IN2", "orange", [] ],
+    [ "mcu1:27", "l298n1:ENA", "yellow", [] ],
+    [ "mcu1:14", "l298n1:ENB", "gold", [] ],
+    [ "mcu1:5V", "l298n1:12V", "red", [] ],
+    [ "mcu1:GND.1", "l298n1:GND", "black", [] ]
+  ],
+  "dependencies": {}
+}
