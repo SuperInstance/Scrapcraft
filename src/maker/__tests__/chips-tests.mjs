@@ -145,7 +145,7 @@ export function runChipsTests(ok) {
     sentry: { cpp: ['void sentryWatch(int tripPct,int clearPct)', 'sentryTripped'], py: ['def sentry_watch(trip, clear)', 'sentry_tripped'] },
     rumor:  { cpp: ['Serial1.write(f)', 'rumorIn=Serial1.read()'], py: ['uart.write(bytes([f]))', 'uart.any()'] },
     witness:{ cpp: ['#include <EEPROM.h>', 'EEPROM.update(addr,c)'], py: ['from esp32 import NVS', 'nvs.commit()'] },
-    pilot:  { cpp: ['analogRead(A2)-analogRead(A1)', 'constrain(kp*err/4'], py: ['pilot_seek(kp, speed)', 'ir_r.read() - ir_l.read()'] },
+    pilot:  { cpp: ['analogRead(IR_R)-analogRead(IR_L)', 'constrain(kp*err/4'], py: ['pilot_seek(kp, speed)', 'ir_r.read() - ir_l.read()'] },
     ember:  { cpp: ['ina219.getBusVoltage_V()', 'digitalWrite(LED_R,HIGH)'], py: ['ina.voltage() / 7.4', 'lr.value(1)'] },
   };
   for (const id of CHIP_IDS) {

@@ -40,9 +40,10 @@ const ARDUINO_HELPERS = {
   // WITNESS — EEPROM milestone counters
   log_tick: `void witnessTick(int addr){ byte c=EEPROM.read(addr); if(c<255) c++; EEPROM.update(addr,c); }`,
   // PILOT — line-sensor P-control toward the lane
-  seek_line: `void pilotSeek(int kp,int base){ int err=analogRead(A2)-analogRead(A1); int corr=constrain(kp*err/4,-255,255); digitalWrite(IN1,HIGH); digitalWrite(IN2,LOW); analogWrite(ENA,base); analogWrite(ENB,constrain(base+corr,0,255)); }`,
+  seek_line: `void pilotSeek(int kp,int base){ int err=analogRead(IR_R)-analogRead(IR_L); int corr=constrain(kp*err/4,-255,255); digitalWrite(IN1,HIGH); digitalWrite(IN2,LOW); analogWrite(ENA,base); analogWrite(ENB,constrain(base+corr,0,255)); }`,
   // EMBER — low-battery guard: park + flash the LED
-  keep_warm: `void emberGuard(int floorPct){ float v=ina219.getBusVoltage_V()/7.4; if(v*100<floorPct){ analogWrite(ENA,0); analogWrite(ENB,0); for(int i=0;i<6;i++){ digitalWrite(LED_R,HIGH); delay(150); digitalWrite(LED_R,LOW); delay(150); } } }`,
+  // (declares the INA219 object too — helpers emit as top-level statements, before setup())
+  keep_warm: `Adafruit_INA219 ina219;\nvoid emberGuard(int floorPct){ float v=ina219.getBusVoltage_V()/7.4; if(v*100<floorPct){ analogWrite(ENA,0); analogWrite(ENB,0); for(int i=0;i<6;i++){ digitalWrite(LED_R,HIGH); delay(150); digitalWrite(LED_R,LOW); delay(150); } } }`,
 };
 
 const PY_HELPERS = {
@@ -583,7 +584,7 @@ function collectPins(ids) {
     if (id === 'drive' || id === 'turn' || id === 'stop') { add('IN1', '25'); add('IN2', '26'); add('ENA', '27'); add('ENB', '14'); }
     if (id === 'player_near') add('PIR_PIN', '19');
     // Inference-chip peripherals: the templates above reference these pins.
-    if (id === 'watch_obstacle') { add('TRIG_PIN', '5'); add('ECHO_PIN', '18'); }
+    if (id === 'watch_obstacle') { add('TRIG_PIN', '5'); add('ECHO_PIN', '18'); add('ENA', '27'); add('ENB', '14'); }  // sentryWatch parks the motors on trip
     if (id === 'remember_path' || id === 'seek_line' || id === 'keep_warm') { add('IN1', '25'); add('IN2', '26'); add('ENA', '27'); add('ENB', '14'); }
     if (id === 'keep_warm') { add('LED_R', '14'); add('LED_G', '12'); add('LED_B', '33'); }
   }

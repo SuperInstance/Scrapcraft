@@ -757,7 +757,8 @@ export const ACTUATORS = {
       peripheral: 'UART serial link bot-to-bot (one fact byte)',
       pin: 'TX=17, RX=16',
       pyImports: ['from machine import UART'],
-      setup: { arduino: 'Serial1.begin(9600);', micropython: 'uart = UART(1, baudrate=9600, tx=Pin(17), rx=Pin(16)); rumor_in = 0' },
+      // ESP32 core: Serial1 defaults to GPIO9/10 (flash pins on devkits) — route it to the documented TX=17/RX=16.
+      setup: { arduino: 'Serial1.begin(9600, SERIAL_8N1, 16, 17);', micropython: 'uart = UART(1, baudrate=9600, tx=Pin(17), rx=Pin(16)); rumor_in = 0' },
     },
     firmware: {
       arduino: (p) => `rumorShare(${({ ore: 1, rain: 2, bot: 3, earl: 4 })[p.fact] ?? 1});`,
@@ -814,7 +815,7 @@ export const ACTUATORS = {
     hw: {
       platform: ['uno', 'esp32', 'jetson'],
       peripheral: 'TCRT5000 IR pair — proportional line steering',
-      pin: 'IR_L=A1, IR_R=A2',
+      pin: 'IR_L=34, IR_R=35',   // ADC1 input-only pins, matching the MicroPython target (34/35)
       setup: { arduino: '', micropython: 'ir_l = ADC(Pin(34)); ir_r = ADC(Pin(35)); ena = PWM(Pin(27)); enb = PWM(Pin(14))' },
     },
     firmware: {
@@ -846,6 +847,7 @@ export const ACTUATORS = {
       platform: ['uno', 'esp32', 'jetson'],
       peripheral: 'INA219 voltage sense + status LED',
       pin: 'SDA=21, SCL=22',
+      arduinoIncludes: ['Adafruit_INA219.h'],
       setup: { arduino: 'ina219.begin();', micropython: 'ina = INA219(i2c); lr = Pin(14, Pin.OUT); ena = PWM(Pin(27)); enb = PWM(Pin(14))' },
     },
     firmware: {
