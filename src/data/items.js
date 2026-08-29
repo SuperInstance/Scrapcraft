@@ -303,6 +303,13 @@ export const ITEMS = {
     category: 'maker',
     stackSize: 4,
   },
+  led_module: {
+    name: 'LED Module',
+    icon: '💡',
+    desc: 'An RGB LED on a little board. Turns a pile of scrap into a robot with something to say.',
+    category: 'maker',
+    stackSize: 4,
+  },
   servo_module: {
     name: 'Servo Motor (SG90)',
     icon: '🦾',

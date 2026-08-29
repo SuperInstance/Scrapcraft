@@ -292,6 +292,11 @@ export class TileEditor {
     this._panel.querySelector('#te-code-btn').addEventListener('click',  () => this._toggleCode());
     this._panel.querySelector('#te-close-btn').addEventListener('click', () => this.close());
     this._panel.querySelector('#te-upgrades-btn')?.addEventListener('click', () => this._game._toggleBotUpgradePanel?.());
+    this._panel.querySelector('#te-jr-btn')?.addEventListener('click', () => {
+      // 🧒 JR — hand off to the Jr lane (icon blocks, ages 6–10), program in hand
+      this.close();
+      this._game.jrEditor?.open();
+    });
     this._panel.querySelector('#te-botcard-btn')?.addEventListener('click', () => this._toggleBotCard());
     this._panel.querySelector('#te-spark-btn')?.addEventListener('click', () => this._toggleSpark());
     this._panel.querySelector('#te-share-btn')?.addEventListener('click', () => this._shareProgram());

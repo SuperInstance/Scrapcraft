@@ -15,6 +15,7 @@ import { getItem } from './data/items.js';
 import { EXAMPLE_WALL_AVOIDER, EXAMPLE_LINE_FOLLOWER } from './maker/TileProgram.js';
 import { getSensor } from './maker/primitives.js';
 import { TileEditor } from './TileEditor.js';
+import { JrEditor } from './jr/JrEditor.js';
 import { SpectatorCoach } from './radio/SpectatorCoach.js';
 import { installUscp } from './cns/uscp.js';
 import { SaveSystem } from './SaveSystem.js';
@@ -247,6 +248,8 @@ export class Game {
     this.projectiles = new ProjectileSystem(this.renderer.scene);
 
     this.tileEditor = new TileEditor(this);
+    // ── Scrapcraft Jr — icon-block lane for ages 6–10 (Shift+T) ──
+    this.jrEditor = new JrEditor(this);
     // ── Spectator/coach mode (radio) ──
     this.radio = new SpectatorCoach(this);
     this._spectator = false;
@@ -918,6 +921,13 @@ export class Game {
       // play-mode handlers below (KeyB/KeyR/…) assume the kid is driving.
       if (this._spectator) { this.radio?.onKeyDown(e); return; }
 
+      // ── Scrapcraft Jr: while the Jr editor is up it owns the keyboard ──
+      // (Escape closes it; everything else waits, like the tile editor)
+      if (this.jrEditor?.isOpen) {
+        if (e.code === 'Escape') this.jrEditor.close();
+        return;
+      }
+
       // Any keypress resets the auto-help timer
       this._helpAutoTimer = -1;
 
@@ -1011,6 +1021,15 @@ export class Game {
       }
       // ── Tutorial: T completes the Maker Lab step (starter program autoloads) ──
       if (e.code === 'KeyT') {
+        // Shift+T — Scrapcraft Jr: the icon-block lane for the youngest builders
+        if (e.shiftKey) {
+          if (this.jrEditor?.isOpen) { this.jrEditor.close(); }
+          else {
+            if (this.tileEditor?.isOpen) this.tileEditor.close();
+            this.jrEditor?.open();
+          }
+          return;
+        }
         if (this._tutorialActive) {
           this._tutorialEvent('open_maker');
           // Auto-load the wall-avoider starter program if the canvas is empty
@@ -2192,6 +2211,7 @@ export class Game {
   onCraft(recipeId, output, qty) {
     const isNew = !this.achievements.stats.crafted.has(output);
     this.observer?.firstBuild?.(output);   // OBSERVER: first build (once per session)
+    this.jrEditor?.onCrafted(output);      // Jr lane: crafting a part can unlock icon blocks
     this.achievements.track('craft', { id: output });
     this.mosJournal?.observe('craft', { id: output });   // Mo's Ledger: the first robot gets its page
     this.challenge.onCraft();

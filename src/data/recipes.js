@@ -321,6 +321,14 @@ export const RECIPES = [
     station: 'workbench',
     tier: 1,
   },
+  {
+    id: 'r_led_module',
+    output: 'led_module',
+    qty: 2,
+    ingredients: { circuit_board: 1, copper_wire: 1, glass_shard: 1 },
+    station: 'workbench',
+    tier: 1,
+  },
 
   // ── Maker Lab — Tier 2 (Spark Brain / ESP32 modules) ──
   {

@@ -38,6 +38,7 @@ import { runLearningTests } from '../../learning/__tests__/learning-tests.mjs';
 import { runRadioTests } from '../../radio/__tests__/radio-tests.mjs';
 import { runUscpTests } from '../../cns/__tests__/uscp-tests.mjs';
 import { runSaveRoundTripTests } from '../../__tests__/save-roundtrip.mjs';
+import { runJrTests } from '../../jr/__tests__/jr-tests.mjs';
 import { runZoneGateTransitionTests } from '../../__tests__/zonegate-transition.mjs';
 import { runPerfGuardTests } from '../../__tests__/perf-guards.mjs';
 import { runHudLayerTests } from '../../__tests__/hud-layer-tests.mjs';
@@ -1925,6 +1926,12 @@ runRadioTests(
 // dirty hooks, autosave cadence, exit guards, cloud parity, version gating ─
 console.log('\nSave round-trip');
 runSaveRoundTripTests(ok);
+
+// ── Jr mode: icon-block registry, craft gates, codegen to real firmware ────
+runJrTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
 
 console.log('\nZone-gate transitions');
 runZoneGateTransitionTests(ok);
