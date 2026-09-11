@@ -1209,6 +1209,32 @@
     }
     .sp-send:hover { background:#0c3050; }
 
+    /* ══ Maker Challenge panel ═══════════════════════════════════════════ */
+    #te-challenge-panel {
+      width:280px; flex-shrink:0; flex-direction:column;
+      background:#0b0806; border-left:1px solid #2a1a00; overflow-y:auto;
+    }
+    .tc-header {
+      display:flex; align-items:center; gap:6px;
+      padding:8px 12px; font-size:10px; letter-spacing:3px; color:#f0b429;
+      border-bottom:1px solid #2a1a00; background:#120c04; flex-shrink:0;
+    }
+    .tc-item {
+      padding:8px 10px; margin:6px 8px; border:1px solid #2a1a00; border-radius:4px;
+      background:#100a04; cursor:pointer; transition:background 0.1s, border-color 0.1s;
+    }
+    .tc-item:hover { background:#1a1008; border-color:#f0b429; }
+    .tc-item-title { font-size:11px; color:#f0b429; letter-spacing:1px; }
+    .tc-item-skill { font-size:9px; color:#7a6a4a; margin-top:2px; letter-spacing:0.5px; }
+    #te-challenge-detail { padding:10px 12px; }
+    #te-challenge-title { font-size:12px; color:#f0b429; letter-spacing:1px; margin-bottom:6px; }
+    #te-challenge-brief { font-size:11px; line-height:1.55; color:#c8b898; }
+    #te-challenge-verdict {
+      margin-top:10px; padding:8px 10px; border-radius:4px; font-size:11px; line-height:1.5;
+    }
+    .tc-pass { background:#0e1e10; color:#8fe08f; border:1px solid #1a3a1a; }
+    .tc-fail { background:#1e1210; color:#e0a08f; border:1px solid #3a1a1a; }
+
     /* ══ Start screen ════════════════════════════════════════════════════ */
     #start-screen {
       position:fixed; inset:0; background:#080808;
@@ -1676,6 +1702,7 @@
         <button id="te-step-btn"    class="te-btn" title="Step through your program one tile at a time — great for debugging!">▷ STEP</button>
         <button id="te-spark-btn"   class="te-btn">⚡ SPARK</button>
         <button id="te-gallery-btn" class="te-btn" title="Browse and publish community robot programs">🧠 GALLERY</button>
+        <button id="te-challenge-btn" class="te-btn" title="Take on a Maker Challenge — check your tiles against a goal">🎯 CHALLENGE</button>
         <button id="te-share-btn"   class="te-btn" title="Copy share link to clipboard">🔗 SHARE</button>
         <button id="te-receipt-btn" class="te-btn te-receipt-btn" title="See generated firmware + Wokwi / flash options">⚡ BUILD IT</button>
         <button id="te-upgrades-btn" class="te-btn" title="Bot Workshop — install hardware upgrades [U]">🔧 MODS</button>
@@ -1703,6 +1730,22 @@
         <div class="sp-input-row">
           <input class="sp-input" type="text" placeholder="tell Spark what you want…" spellcheck="false" />
           <button class="sp-send">→</button>
+        </div>
+      </div>
+
+      <!-- Maker Challenge panel (shown when 🎯 CHALLENGE toggled) -->
+      <div id="te-challenge-panel" style="display:none;">
+        <div class="tc-header">
+          <span>🎯 MAKER CHALLENGES</span>
+          <button id="te-challenge-close" class="te-btn" style="margin-left:auto;font-size:9px;padding:2px 7px;">✕</button>
+        </div>
+        <div id="te-challenge-list"></div>
+        <div id="te-challenge-detail" style="display:none;">
+          <div id="te-challenge-title"></div>
+          <div id="te-challenge-brief"></div>
+          <button id="te-challenge-check" class="te-btn te-btn-run" style="margin-top:8px;">✓ CHECK MY TILES</button>
+          <button id="te-challenge-back"  class="te-btn" style="margin-top:8px;margin-left:6px;">← all challenges</button>
+          <div id="te-challenge-verdict" style="display:none;"></div>
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@
 import { TileProgram, EXAMPLE_WALL_AVOIDER, EXAMPLE_LIGHT_RUNNER, EXAMPLE_SQUARE, EXAMPLE_LINE_FOLLOWER, EXAMPLE_WAYPOINT_NAV, EXAMPLE_ORE_HUNTER, EXAMPLE_BATTERY_SAVER, EXAMPLE_BUMP_COUNTER } from './maker/TileProgram.js';
 import { SENSORS, ACTUATORS, BRAINS, withDefaults } from './maker/primitives.js';
 import { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG, compile, TileVM, VirtualRobot } from './maker/index.js';
+import { runChallenge, MAKER_CHALLENGES, getChallenge } from './maker/MakerChallenge.js';
 import { WebSerialBridge } from './maker/WebSerialBridge.js';
 import { Spark } from './Spark.js';
 import { BrainGallery } from './BrainGallery.js';
@@ -275,6 +276,10 @@ export class TileEditor {
     this._panel.querySelector('#te-share-btn')?.addEventListener('click', () => this._shareProgram());
     this._panel.querySelector('#te-receipt-btn')?.addEventListener('click', () => this._showFlashReceipt());
     this._panel.querySelector('#te-gallery-btn')?.addEventListener('click', () => this._gallery?.open());
+    this._panel.querySelector('#te-challenge-btn')?.addEventListener('click', () => this._toggleChallenge());
+    this._panel.querySelector('#te-challenge-close')?.addEventListener('click', () => this._toggleChallenge(false));
+    this._panel.querySelector('#te-challenge-back')?.addEventListener('click', () => this._openChallenge(null));
+    this._panel.querySelector('#te-challenge-check')?.addEventListener('click', () => this._checkChallenge());
 
     this._undoBtn = this._panel.querySelector('#te-undo-btn');
     this._redoBtn = this._panel.querySelector('#te-redo-btn');
@@ -1458,6 +1463,66 @@ export class TileEditor {
     this._sparkPanel.style.display = this._sparkOpen ? 'flex' : 'none';
     const btn = this._panel.querySelector('#te-spark-btn');
     if (btn) { btn.style.borderColor = this._sparkOpen ? '#00ccff' : ''; btn.style.color = this._sparkOpen ? '#00ccff' : ''; }
+  }
+
+  // ── Maker Challenges ──────────────────────────────────────────────────────
+  /** Show/hide the challenge panel. Pass false to force-close. */
+  _toggleChallenge(force) {
+    const panel = this._panel.querySelector('#te-challenge-panel');
+    if (!panel) return;
+    this._challengeOpen = force === false ? false : !this._challengeOpen;
+    panel.style.display = this._challengeOpen ? 'flex' : 'none';
+    const btn = this._panel.querySelector('#te-challenge-btn');
+    if (btn) { btn.style.borderColor = this._challengeOpen ? '#f0b429' : ''; btn.style.color = this._challengeOpen ? '#f0b429' : ''; }
+    if (this._challengeOpen) { this._renderChallengeList(); this._openChallenge(null); }
+  }
+
+  _renderChallengeList() {
+    const list = this._panel.querySelector('#te-challenge-list');
+    if (!list) return;
+    list.innerHTML = '';
+    for (const c of MAKER_CHALLENGES) {
+      const item = document.createElement('div');
+      item.className = 'tc-item';
+      item.innerHTML = `<div class="tc-item-title">${_esc(c.title)}</div>`
+        + `<div class="tc-item-skill">${_esc(c.skill || '')}</div>`;
+      item.addEventListener('click', () => this._openChallenge(c.id));
+      list.appendChild(item);
+    }
+  }
+
+  /** Show one challenge's brief (id), or return to the list (null). */
+  _openChallenge(id) {
+    const list   = this._panel.querySelector('#te-challenge-list');
+    const detail = this._panel.querySelector('#te-challenge-detail');
+    const verdict = this._panel.querySelector('#te-challenge-verdict');
+    if (!list || !detail) return;
+    const c = id ? getChallenge(id) : null;
+    this._activeChallenge = c;
+    if (!c) { list.style.display = ''; detail.style.display = 'none'; return; }
+    list.style.display = 'none';
+    detail.style.display = '';
+    if (verdict) verdict.style.display = 'none';
+    this._panel.querySelector('#te-challenge-title').textContent = `🎯 ${c.title}`;
+    this._panel.querySelector('#te-challenge-brief').textContent = c.brief;
+  }
+
+  /** Run the current tiles against the active challenge and show the verdict. */
+  _checkChallenge() {
+    const c = this._activeChallenge;
+    const verdictEl = this._panel.querySelector('#te-challenge-verdict');
+    if (!c || !verdictEl) return;
+    let result;
+    try {
+      result = runChallenge(this._program, c);
+    } catch (e) {
+      result = { passed: false, reason: 'Something went wrong running the check: ' + e.message };
+    }
+    verdictEl.style.display = '';
+    verdictEl.className = result.passed ? 'tc-pass' : 'tc-fail';
+    const head = result.passed ? '✓ PASSED' : '✗ NOT YET';
+    verdictEl.innerHTML = `<strong>${head}</strong><br>${_esc(result.reason)}`;
+    if (result.passed) this._game?.saveSystem?.markDirty?.();
   }
 
   /** Called by Spark, share-link loader, or SaveSystem restore when building a program. */
