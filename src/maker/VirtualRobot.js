@@ -34,6 +34,7 @@ export class VirtualRobot {
     this.gripping = false;
     this.events = [];         // drained by integration layer each frame
     this.led = 'off';
+    this.clock = 0;           // seconds since spawn — backs the "timer" sensor
   }
 
   // ── Actuator interface (called by primitives.exec) ────────────────────────
@@ -54,6 +55,8 @@ export class VirtualRobot {
    *                       collision if absent)
    */
   tick(dt, world) {
+    this.clock += dt;          // advance the elapsed-time clock (timer sensor)
+
     // Rotation first.
     if (this.turnPower !== 0) {
       this.heading += this.turnPower * TURN_RATE * DEG2RAD * dt;

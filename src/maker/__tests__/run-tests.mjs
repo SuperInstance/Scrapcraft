@@ -966,6 +966,66 @@ console.log('\nwait_until tile');
   ok('T.waitUntil has no body field', node.body === undefined);
 }
 
+// ── 25. timer sensor ───────────────────────────────────────────────────────
+console.log('\ntimer sensor');
+{
+  // read_sensor 'timer' into a var, then beep once it passes a threshold
+  const prog = new TileProgram({ name: 'Timer', brain: 'tin', nodes: [
+    T.forever([
+      T.readSensor('t', 'timer'),
+      T.if(T.varCond('t', 'gte', 1.0), [
+        T.action('beep', { pitch: 'high' }),
+        T.break(),
+      ]),
+    ]),
+  ]});
+
+  const res = compile(prog);
+  ok('timer program compiles ok', res.ok, res.errors.join(', '));
+  ok('timer is a known sensor (no error)', !res.errors.some(e => e.includes('timer')));
+
+  // VirtualRobot accumulates clock in tick()
+  {
+    const robot = new VirtualRobot({});
+    ok('robot.clock starts at 0', robot.clock === 0);
+    robot.tick(0.5, {});
+    robot.tick(0.5, {});
+    ok('robot.clock accumulates dt (≈1.0)', approx(robot.clock, 1.0, 0.001), `clock=${robot.clock}`);
+  }
+
+  // End-to-end: runs for ~1s of ticks, then beeps and breaks out (halts)
+  {
+    const world = new MockWorld();
+    const rt = new MakerRuntime(prog, {}, world);
+    const events = [];
+    // 0.1s ticks — after ~10 ticks clock passes 1.0 → beep + break
+    for (let i = 0; i < 40 && !rt.vm.halted; i++) { rt.tick(0.1); events.push(...rt.drainEvents()); }
+    ok('timer-gated beep fires after ~1s', events.some(e => e.kind === 'beep'));
+    ok('program halts after break', rt.vm.halted);
+  }
+
+  // timer works as a wait_until condition
+  const waitProg = new TileProgram({ name: 'TimerGate', brain: 'tin', nodes: [
+    T.waitUntil(T.cond('timer', 'gte', 0.5)),
+    T.action('led', { state: 'green' }),
+  ]});
+  const wres = compile(waitProg);
+  ok('wait_until on timer compiles ok', wres.ok, wres.errors.join(', '));
+  {
+    const rt = new MakerRuntime(waitProg, {}, new MockWorld());
+    const events = [];
+    for (let i = 0; i < 30 && !rt.vm.halted; i++) { rt.tick(0.1); events.push(...rt.drainEvents()); }
+    ok('wait_until timer releases and sets LED', events.some(e => e.kind === 'led' && e.state === 'green'));
+  }
+
+  // Firmware: Arduino uses millis(), Python uses ticks_ms()
+  const fw = toArduino(prog);
+  ok('Arduino codegen uses millis()', fw.includes('millis() / 1000.0'));
+  const py = toMicroPython(prog);
+  ok('Python codegen uses ticks_ms()', py.includes('ticks_ms() / 1000'));
+  ok('Python imports ticks_ms', py.includes('from time import') && py.includes('ticks_ms'));
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

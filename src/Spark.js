@@ -93,6 +93,7 @@ READ_SENSOR (capture a live sensor reading into a variable):
 - Use it to snapshot a sensor value, compare it later, or drive proportional behaviors (e.g. speed based on distance).
 - When a student says "store the sensor value", "read distance into a variable", "save the brightness", "proportional control" — use read_sensor.
 - Example: read distance_ahead into 'dist', then if var:dist < 0.2 → stop. Pairs well with print to show the value.
+- TIMER: the 'timer' sensor returns seconds elapsed since the program started (0, rising). When a student says "after N seconds", "for N seconds", "timed", "countdown", "stopwatch" — read_sensor 'timer' then compare, or use wait_until with cond sensor:'timer'. Example: wait_until timer >= 5, then beep.
 
 MATH_VAR (arithmetic on a variable):
 - math_var: { type:'math_var', name:'dist', op:'mul', operand:0.8 } — applies an arithmetic operation: name = name op operand.

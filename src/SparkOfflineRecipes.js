@@ -510,6 +510,35 @@ export const OFFLINE_RECIPES = [
     ]}),
   },
   {
+    keywords: ['timer', 'seconds', 'after', 'elapsed', 'stopwatch', 'countdown', 'time limit', 'timed'],
+    reply:    "Timed patrol! The bot drives and avoids walls, but reads its built-in timer each lap. After 10 seconds it parks, flashes green, and celebrates. The timer sensor counts seconds since the program started — pair it with wait_until or an if for any timed behaviour.",
+    program:  new TileProgram({ name: 'Timed Patrol', brain: 'tin', nodes: [
+      T.setVar('done', 0),
+      T.forever([
+        T.readSensor('t', 'timer'),
+        T.ifElse(T.varCond('t', 'gte', 10),
+          [
+            T.action('stop'),
+            T.if(T.varCond('done', 'lt', 1), [
+              T.action('led', { state: 'green' }),
+              T.action('beep', { pitch: 'high' }),
+              T.wait(0.2),
+              T.action('beep', { pitch: 'high' }),
+              T.setVar('done', 1),
+            ]),
+          ],
+          [
+            T.action('drive', { dir: 'forward', speed: 0.5 }),
+            T.if(T.cond('distance_ahead', 'lt', 0.25), [
+              T.action('turn', { dir: 'right', speed: 0.6 }),
+              T.wait(0.3),
+            ]),
+          ],
+        ),
+      ]),
+    ]}),
+  },
+  {
     keywords: ['wait until', 'pause until', 'hold until', 'stop until', 'dont move until', 'gate'],
     reply:    "Gate bot! It waits until a bumper press before launching. Great for synchronized starts or waiting for a signal before driving. The wait_until tile is a pure pause — no loop body needed!",
     program:  new TileProgram({ name: 'Gate Launcher', brain: 'tin', nodes: [
