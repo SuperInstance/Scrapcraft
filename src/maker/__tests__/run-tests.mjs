@@ -1026,6 +1026,100 @@ console.log('\ntimer sensor');
   ok('Python imports ticks_ms', py.includes('from time import') && py.includes('ticks_ms'));
 }
 
+// ── 26. Maker Challenges (gradeable editor-beat quests) ─────────────────────
+console.log('\nMaker Challenges');
+{
+  const { runChallenge, getChallenge, MAKER_CHALLENGES, ChallengeWorld } =
+    await import('../MakerChallenge.js');
+
+  ok('challenge bank is non-empty', MAKER_CHALLENGES.length >= 5);
+  ok('every challenge has id/title/brief/check', MAKER_CHALLENGES.every(c =>
+    c.id && c.title && c.brief && typeof c.check === 'function'));
+  ok('getChallenge resolves by id', getChallenge('reach-and-stop')?.title === 'Reach the Bay');
+  ok('getChallenge returns null for unknown', getChallenge('nope') === null);
+
+  // ChallengeWorld: solid walls, bounds, ray-cast, line cells
+  {
+    const w = new ChallengeWorld({ bounds: { x0:-2, z0:-2, x1:2, z1:2 }, walls: [[0,1,0,1]], lines: [[0,0,0,5]] });
+    ok('CW: inside bounds not solid', !w.isSolidAt(0, 0));
+    ok('CW: outside bounds is solid', w.isSolidAt(9, 9));
+    ok('CW: wall cell is solid', w.isSolidAt(0, 1));
+    ok('CW: distanceAhead detects a wall ahead (<1)', w.distanceAhead(0, -1, 0) < 1);
+    ok('CW: distanceAhead clear returns 1', new ChallengeWorld({}).distanceAhead(0,0,0) === 1);
+    ok('CW: lineUnder true on a line cell', w.lineUnder(0, 3));
+    ok('CW: lineUnder false off the line', !w.lineUnder(2, 3));
+  }
+
+  // SAFETY RAIL: an uncompilable program never runs and is failed with errors.
+  {
+    const bad = runChallenge(new TileProgram({ nodes: [T.action('frobnicate')] }), getChallenge('reach-and-stop'));
+    ok('rail: uncompilable program is blocked', bad.passed === false);
+    ok('rail: compiler errors surfaced', bad.compileErrors.length > 0);
+    ok('rail: no ticks executed', bad.ticks === 0);
+  }
+
+  // reach-and-stop: drive until near the wall, then stop → PASS; drive forever → FAIL
+  {
+    const good = new TileProgram({ brain:'tin', nodes: [
+      T.repeatUntil(T.cond('distance_ahead','lt',0.30), [ T.action('drive',{dir:'forward',speed:0.5}) ]),
+      T.action('stop'),
+    ]});
+    const bad = new TileProgram({ brain:'tin', nodes: [ T.forever([ T.action('drive',{dir:'forward',speed:0.7}) ]) ]});
+    ok('reach-and-stop: correct program passes', runChallenge(good, getChallenge('reach-and-stop')).passed);
+    ok('reach-and-stop: drive-forever fails', !runChallenge(bad, getChallenge('reach-and-stop')).passed);
+  }
+
+  // dont-crash: sense→turn survives; straight-into-wall fails
+  {
+    const good = new TileProgram({ brain:'tin', nodes: [ T.forever([
+      T.ifElse(T.cond('distance_ahead','lt',0.35),
+        [ T.action('turn',{dir:'right',speed:0.8}), T.wait(0.25) ],
+        [ T.action('drive',{dir:'forward',speed:0.5}) ]),
+    ]) ]});
+    const bad = new TileProgram({ brain:'tin', nodes: [ T.forever([ T.action('drive',{dir:'forward',speed:0.8}) ]) ]});
+    ok('dont-crash: sensing survivor passes', runChallenge(good, getChallenge('dont-crash')).passed);
+    ok('dont-crash: wall-grinder fails', !runChallenge(bad, getChallenge('dont-crash')).passed);
+  }
+
+  // timed-halt: timer-gated stop passes; drive-forever fails
+  {
+    const good = new TileProgram({ brain:'tin', nodes: [
+      T.action('drive',{dir:'forward',speed:0.5}),
+      T.waitUntil(T.cond('timer','gte',3.0)),
+      T.action('stop'),
+    ]});
+    const bad = new TileProgram({ brain:'tin', nodes: [ T.forever([ T.action('drive',{dir:'forward',speed:0.5}) ]) ]});
+    ok('timed-halt: timer stop passes', runChallenge(good, getChallenge('timed-halt')).passed);
+    ok('timed-halt: never-stop fails', !runChallenge(bad, getChallenge('timed-halt')).passed);
+  }
+
+  // score-sprint: looped add_score passes; no scoring fails
+  {
+    const good = new TileProgram({ brain:'tin', nodes: [ T.repeat(6, [ T.action('add_score',{amount:1}), T.wait(0.1) ]) ]});
+    const bad = new TileProgram({ brain:'tin', nodes: [ T.forever([ T.action('drive',{dir:'forward',speed:0.3}) ]) ]});
+    const r = runChallenge(good, getChallenge('score-sprint'));
+    ok('score-sprint: scoring loop passes', r.passed);
+    ok('score-sprint: tracks maxScore >= 5', r.metrics.maxScore >= 5);
+    ok('score-sprint: no-score program fails', !runChallenge(bad, getChallenge('score-sprint')).passed);
+  }
+
+  // line-hold: forward-on-track passes; spin fails
+  {
+    const good = new TileProgram({ brain:'tin', nodes: [ T.forever([ T.action('drive',{dir:'forward',speed:0.4}) ]) ]});
+    const bad = new TileProgram({ brain:'tin', nodes: [ T.forever([ T.action('turn',{dir:'right',speed:0.8}) ]) ]});
+    ok('line-hold: forward tracker passes', runChallenge(good, getChallenge('line-hold')).passed);
+    ok('line-hold: spinner fails', !runChallenge(bad, getChallenge('line-hold')).passed);
+  }
+
+  // Determinism: same program + challenge → identical verdict & metrics twice.
+  {
+    const p = new TileProgram({ brain:'tin', nodes: [ T.repeat(6, [ T.action('add_score',{amount:1}), T.wait(0.1) ]) ]});
+    const a = runChallenge(p, getChallenge('score-sprint'));
+    const b = runChallenge(p, getChallenge('score-sprint'));
+    ok('challenges are deterministic', a.passed === b.passed && a.metrics.maxScore === b.metrics.maxScore && a.elapsed === b.elapsed);
+  }
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
