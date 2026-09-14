@@ -27,7 +27,8 @@ export { VirtualRobot } from './VirtualRobot.js';
 export { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG } from './FirmwareGen.js';
 export { SENSORS, ACTUATORS, BRAINS } from './primitives.js';
 export { GameWorldAdapter } from './GameWorldAdapter.js';
-export { runChallenge, getChallenge, MAKER_CHALLENGES, ChallengeWorld } from './MakerChallenge.js';
+export { runChallenge, getChallenge, MAKER_CHALLENGES, ChallengeWorld, countTiles } from './MakerChallenge.js';
+export { ChallengeProgress } from './ChallengeProgress.js';
 
 export class MakerRuntime {
   /**

@@ -177,11 +177,38 @@ export function runChallenge(program, challenge, opts = {}) {
   metrics.finalPos = { x: +b.x.toFixed(3), z: +b.z.toFixed(3), heading: +b.heading.toFixed(3) };
   if (metrics.minGoalDist === Infinity) metrics.minGoalDist = null;
 
+  metrics.tileCount = countTiles(program.nodes);
+
   const verdict = challenge.check(metrics, { events, robot: b, world, runtime: rt });
   const passed = verdict === true || (verdict && verdict.passed === true);
   const reason = (verdict && verdict.reason) || (passed ? (challenge.successText || 'Challenge passed!') : (challenge.failText || 'Not yet — try again.'));
 
-  return { passed, reason, elapsed: metrics.elapsed, ticks, metrics, events, compileErrors: [] };
+  // Star rating (0 = failed, 1 = solved, 2 = solved cleanly, 3 = mastered):
+  //   ★   pass the challenge at all
+  //   ★★  AND do it with no more than `par.tiles` tiles (elegance)
+  //   ★★★ AND clear the challenge-specific mastery bar `par.bonus(metrics)`
+  const par = challenge.par || {};
+  let stars = 0;
+  if (passed) {
+    stars = 1;
+    const cleanTiles = par.tiles == null || metrics.tileCount <= par.tiles;
+    if (cleanTiles) stars = 2;
+    const mastered = typeof par.bonus === 'function' ? !!par.bonus(metrics) : false;
+    if (stars === 2 && mastered) stars = 3;
+  }
+
+  return { passed, stars, reason, elapsed: metrics.elapsed, ticks, metrics, events, compileErrors: [] };
+}
+
+/** Count every executable tile in a program tree (bodies + else-bodies). */
+export function countTiles(nodes) {
+  let n = 0;
+  for (const node of Array.isArray(nodes) ? nodes : []) {
+    n++;
+    if (Array.isArray(node.body))     n += countTiles(node.body);
+    if (Array.isArray(node.elseBody)) n += countTiles(node.elseBody);
+  }
+  return n;
 }
 
 // ── MAKER_CHALLENGES ────────────────────────────────────────────────────────
@@ -208,6 +235,7 @@ export const MAKER_CHALLENGES = [
         : m.secondsBumping >= 0.3 ? 'You ground against the back wall — ease off sooner.'
         : 'Parked in the bay — clean stop, no crunch.',
     }),
+    par: { tiles: 4, bonus: (m) => m.minGoalDist != null && m.minGoalDist < 0.7 },
   },
   {
     id: 'dont-crash',
@@ -226,6 +254,7 @@ export const MAKER_CHALLENGES = [
         : m.secondsBumping >= 0.6 ? `Scraped walls for ${m.secondsBumping}s — sense the wall sooner.`
         : 'Ten seconds, no crunch — that bot reads the room.',
     }),
+    par: { tiles: 6, bonus: (m) => m.secondsBumping === 0 },
   },
   {
     id: 'timed-halt',
@@ -246,6 +275,7 @@ export const MAKER_CHALLENGES = [
         : m.elapsed > 4.0 ? 'Stopped too late — check your timer threshold.'
         : 'Stopped right on the 3-second bell.',
     }),
+    par: { tiles: 4, bonus: (m) => Math.abs(m.elapsed - 3.0) <= 0.35 },
   },
   {
     id: 'score-sprint',
@@ -263,6 +293,7 @@ export const MAKER_CHALLENGES = [
       reason: m.maxScore >= 5 ? 'Five points on the board — the counter works.'
         : `Only scored ${m.maxScore} — add score inside a loop so it keeps climbing.`,
     }),
+    par: { tiles: 4, bonus: (m) => m.maxScore >= 10 },
   },
   {
     id: 'line-hold',
@@ -289,6 +320,72 @@ export const MAKER_CHALLENGES = [
           : 'Rode the line the whole way — smooth tracking.',
       };
     },
+    par: { tiles: 3, bonus: (m) => m.finalPos && m.finalPos.z >= 8 },
+  },
+  {
+    id: 'wake-on-dark',
+    title: 'Wake on Dark',
+    skill: 'light sensor + if',
+    brain: 'tin',
+    brief: 'The yard is pitch black. Wait in the dark, and the moment your light sensor reads dark, flash the LED green.',
+    spawn: { x: 0, z: 0, heading: 0 },
+    world: { bounds: { x0: -4, z0: -4, x1: 4, z1: 4 }, light: 0.1 },  // dark yard
+    timeLimit: 6,
+    successText: 'Lit up the night — the sensor triggered the LED.',
+    failText: 'The LED never went green in the dark.',
+    check: (m, ctx) => {
+      const litGreen = ctx.events.some(e => e.kind === 'led' && e.state === 'green');
+      return {
+        passed: litGreen,
+        reason: litGreen ? 'Lit up the night — the sensor triggered the LED.'
+          : 'No green LED — check "is dark" and set the light inside the loop.',
+      };
+    },
+    par: { tiles: 3, bonus: (m) => m.elapsed <= 1.0 },  // reacted almost immediately
+  },
+  {
+    id: 'count-to-three',
+    title: 'Count to Three',
+    skill: 'variables + repeat + change',
+    brain: 'tin',
+    brief: 'Beep exactly three times, counting each beep in a variable, then stop. No more, no less.',
+    spawn: { x: 0, z: 0, heading: 0 },
+    world: { bounds: { x0: -4, z0: -4, x1: 4, z1: 4 } },
+    timeLimit: 8,
+    successText: 'Three beeps, counted clean.',
+    failText: 'That was not exactly three beeps.',
+    check: (m, ctx) => {
+      const beeps = ctx.events.filter(e => e.kind === 'beep').length;
+      return {
+        passed: beeps === 3,
+        reason: beeps === 3 ? 'Three beeps, counted clean.'
+          : `Heard ${beeps} beep(s) — you need exactly 3. Use repeat or a counter variable.`,
+      };
+    },
+    par: { tiles: 4, bonus: (m) => m.tileCount <= 3 },
+  },
+  {
+    id: 'signal-boost',
+    title: 'Signal Boost',
+    skill: 'read_sensor + math_var + print',
+    brain: 'tin',
+    brief: 'The light sensor reads a small decimal. Read it into a variable, scale it up with math, and PRINT a value of at least 50.',
+    spawn: { x: 0, z: 0, heading: 0 },
+    world: { bounds: { x0: -4, z0: -4, x1: 4, z1: 4 }, light: 0.8 },
+    timeLimit: 6,
+    successText: 'Boosted the reading past 50 — sensor math works.',
+    failText: 'No printed value reached 50.',
+    check: (m, ctx) => {
+      const prints = ctx.events.filter(e => e.kind === 'print').map(e => e.value ?? 0);
+      const best = prints.length ? Math.max(...prints) : null;
+      return {
+        passed: best != null && best >= 50,
+        reason: best == null ? 'Nothing was printed — read the sensor, scale it, then print the variable.'
+          : best >= 50 ? 'Boosted the reading past 50 — sensor math works.'
+          : `Printed ${best} — multiply the reading by a bigger number.`,
+      };
+    },
+    par: { tiles: 4, bonus: (m) => m.tileCount <= 3 },
   },
 ];
 

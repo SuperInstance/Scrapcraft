@@ -1120,6 +1120,91 @@ console.log('\nMaker Challenges');
   }
 }
 
+// ── 27. Challenge stars, new challenges & progress ──────────────────────────
+console.log('\nChallenge stars & progress');
+{
+  const { runChallenge, getChallenge, MAKER_CHALLENGES, countTiles } = await import('../MakerChallenge.js');
+  const { ChallengeProgress } = await import('../ChallengeProgress.js');
+
+  ok('bank grew to >= 8 challenges', MAKER_CHALLENGES.length >= 8);
+
+  // countTiles walks bodies + elseBodies
+  ok('countTiles counts nested tiles', countTiles([
+    T.forever([ T.action('beep'), T.ifElse(T.is('bumped', true), [T.action('stop')], [T.action('drive')]) ]),
+  ]) === 5);
+
+  // Stars: a clean, mastered solution earns 3; a bloated one earns fewer.
+  {
+    const lean = new TileProgram({ brain:'tin', nodes:[
+      T.repeatUntil(T.cond('distance_ahead','lt',0.30), [ T.action('drive',{dir:'forward',speed:0.5}) ]),
+      T.action('stop'),
+    ]});
+    const r = runChallenge(lean, getChallenge('reach-and-stop'));
+    ok('lean reach-and-stop earns 3 stars', r.passed && r.stars === 3, `stars=${r.stars}`);
+
+    // pad with no-op comments to blow the tile budget → still passes but fewer stars
+    const bloated = new TileProgram({ brain:'tin', nodes:[
+      T.comment('a'), T.comment('b'), T.comment('c'), T.comment('d'), T.comment('e'),
+      T.repeatUntil(T.cond('distance_ahead','lt',0.30), [ T.action('drive',{dir:'forward',speed:0.5}) ]),
+      T.action('stop'),
+    ]});
+    const r2 = runChallenge(bloated, getChallenge('reach-and-stop'));
+    ok('bloated solution passes but loses the tidy star', r2.passed && r2.stars < r.stars, `stars=${r2.stars}`);
+    ok('failed run earns 0 stars', runChallenge(new TileProgram({brain:'tin',nodes:[T.action('stop')]}), getChallenge('reach-and-stop')).stars === 0);
+  }
+
+  // New challenges: correct programs pass; wrong ones fail.
+  {
+    const wake = new TileProgram({ brain:'tin', nodes:[ T.forever([ T.if(T.is('is_dark', true), [ T.action('led',{state:'green'}) ]) ]) ]});
+    ok('wake-on-dark: lights LED in the dark', runChallenge(wake, getChallenge('wake-on-dark')).passed);
+    const noLed = new TileProgram({ brain:'tin', nodes:[ T.forever([ T.action('drive',{dir:'forward',speed:0.3}) ]) ]});
+    ok('wake-on-dark: no LED fails', !runChallenge(noLed, getChallenge('wake-on-dark')).passed);
+
+    const three = new TileProgram({ brain:'tin', nodes:[ T.repeat(3, [ T.action('beep',{pitch:'high'}), T.wait(0.1) ]), T.action('stop') ]});
+    ok('count-to-three: exactly 3 beeps passes', runChallenge(three, getChallenge('count-to-three')).passed);
+    const five = new TileProgram({ brain:'tin', nodes:[ T.repeat(5, [ T.action('beep',{pitch:'high'}) ]) ]});
+    ok('count-to-three: 5 beeps fails', !runChallenge(five, getChallenge('count-to-three')).passed);
+
+    const boost = new TileProgram({ brain:'tin', nodes:[ T.readSensor('v','brightness'), T.mathVar('v','mul',100), T.print('v') ]});
+    ok('signal-boost: scaled print >= 50 passes', runChallenge(boost, getChallenge('signal-boost')).passed);
+    const small = new TileProgram({ brain:'tin', nodes:[ T.readSensor('v','brightness'), T.print('v') ]});
+    ok('signal-boost: unscaled print fails', !runChallenge(small, getChallenge('signal-boost')).passed);
+  }
+
+  // ChallengeProgress: keeps the best stars, persists via injected store, summarises.
+  {
+    let backing = null;
+    const store = { get: () => backing, set: (v) => { backing = v; } };
+    const p = new ChallengeProgress(store);
+    ok('progress starts empty', p.best('reach-and-stop') === 0 && !p.solved('reach-and-stop'));
+    ok('record returns improved=true', p.record('reach-and-stop', 2) === true);
+    ok('best reflects recorded stars', p.best('reach-and-stop') === 2 && p.solved('reach-and-stop'));
+    ok('lower score does not downgrade', p.record('reach-and-stop', 1) === false && p.best('reach-and-stop') === 2);
+    ok('higher score upgrades', p.record('reach-and-stop', 3) === true && p.best('reach-and-stop') === 3);
+    ok('stars are clamped to 0..3', (() => { p.record('dont-crash', 9); return p.best('dont-crash') === 3; })());
+
+    // persistence: a fresh instance on the same store reloads the data
+    ok('progress persists across instances', new ChallengeProgress(store).best('reach-and-stop') === 3);
+
+    const s = p.summary(MAKER_CHALLENGES);
+    ok('summary counts solved/total', s.total === MAKER_CHALLENGES.length && s.solved === 2);
+    ok('summary sums stars & maxStars', s.stars === 6 && s.maxStars === MAKER_CHALLENGES.length * 3);
+    ok('summary not complete yet', s.complete === false);
+
+    p.reset();
+    ok('reset clears progress', p.best('reach-and-stop') === 0 && p.summary(MAKER_CHALLENGES).solved === 0);
+  }
+
+  // Corrupt/empty storage must never throw.
+  {
+    ok('bad JSON in store falls back to empty', new ChallengeProgress({ get: () => '{not json', set: () => {} }).best('x') === 0);
+    ok('throwing store still works in-memory', (() => {
+      const p = new ChallengeProgress({ get: () => { throw new Error('boom'); }, set: () => { throw new Error('boom'); } });
+      p.record('a', 2); return p.best('a') === 2;
+    })());
+  }
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
