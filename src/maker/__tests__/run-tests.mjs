@@ -1205,6 +1205,29 @@ console.log('\nChallenge stars & progress');
   }
 }
 
+// ── 28. Shipped content integrity ───────────────────────────────────────────
+// Guards against shipping a Spark recipe or built-in example that references a
+// non-existent primitive (the class of bug that broke "Collector Bot").
+console.log('\nShipped content integrity');
+{
+  const { OFFLINE_RECIPES } = await import('../../SparkOfflineRecipes.js');
+  ok('offline recipe bank is non-trivial', OFFLINE_RECIPES.length >= 20);
+  let bad = [];
+  for (const r of OFFLINE_RECIPES) {
+    const res = compile(r.program);
+    if (!res.ok) bad.push(`${r.program.name}: ${res.errors.join('; ')}`);
+  }
+  ok('every Spark offline recipe compiles', bad.length === 0, bad.join(' | '));
+
+  // Built-in editor examples must also compile cleanly.
+  const examples = { EXAMPLE_WALL_AVOIDER, EXAMPLE_LIGHT_RUNNER, EXAMPLE_SQUARE, EXAMPLE_BUMP_COUNTER };
+  let badEx = [];
+  for (const [name, prog] of Object.entries(examples)) {
+    if (!compile(prog).ok) badEx.push(name);
+  }
+  ok('every built-in example compiles', badEx.length === 0, badEx.join(', '));
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
