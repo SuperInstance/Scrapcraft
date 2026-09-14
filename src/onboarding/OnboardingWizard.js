@@ -85,15 +85,22 @@ export class OnboardingWizard {
     this._onMineCheck = null;
   }
 
-  /** Returns true if onboarding was already completed */
+  /** Returns true if onboarding was already completed.
+   *  Guarded: storage can throw (private windows, sandboxed iframes, blocked
+   *  cookies). This runs on the boot path (Game.init), so a throw here must
+   *  never white-screen the game — treat an unreadable store as "not done". */
   isComplete() {
-    return localStorage.getItem('scrapcraft_onboarding_done') === 'true';
+    try {
+      return localStorage.getItem('scrapcraft_onboarding_done') === 'true';
+    } catch { return false; }
   }
 
-  /** Mark onboarding done */
+  /** Mark onboarding done (best-effort — never throw on a blocked store). */
   markComplete() {
-    localStorage.setItem('scrapcraft_onboarding_done', 'true');
-    localStorage.setItem('scrapcraft_onboarding_config', JSON.stringify(this.config));
+    try {
+      localStorage.setItem('scrapcraft_onboarding_done', 'true');
+      localStorage.setItem('scrapcraft_onboarding_config', JSON.stringify(this.config));
+    } catch { /* storage unavailable — onboarding will show again next visit */ }
   }
 
   /** Load saved config */
