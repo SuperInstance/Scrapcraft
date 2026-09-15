@@ -25,7 +25,7 @@ export { compile } from './TileCompiler.js';
 export { TileVM } from './TileVM.js';
 export { VirtualRobot } from './VirtualRobot.js';
 export { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG } from './FirmwareGen.js';
-export { SENSORS, ACTUATORS, BRAINS, chipForPrimitive } from './primitives.js';
+export { SENSORS, ACTUATORS, BRAINS, chipForPrimitive, validateParams } from './primitives.js';
 export { GameWorldAdapter } from './GameWorldAdapter.js';
 export {
   CHIPS, CHIP_IDS, SOCKET_COUNT, SHELF_MS, SHARD_CRACK_THRESHOLD, MAX_SHARDS,
