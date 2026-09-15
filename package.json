@@ -10,6 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node src/maker/__tests__/run-tests.mjs",
+    "size": "node scripts/size-check.mjs",
     "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
