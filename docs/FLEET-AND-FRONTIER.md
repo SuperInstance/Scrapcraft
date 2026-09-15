@@ -46,6 +46,43 @@ embedded engineering instead of Roblox Lua.
 > where a human learns to author the tile/cell programs that the rest of the
 > fleet runs on real silicon.
 
+### 1b. `scrap-quilt` is **already deployed** — and the game isn't wired to it (verified)
+
+The single most important discovery of this scouting pass. `scrap-quilt` is not
+a stub — it is **live, deployed production code** (Cloudflare Worker at
+`scrap-quilt.casey-digennaro.workers.dev`, backed by D1 / KV / Durable Objects,
+19 passing tests). It exists to turn Scrapcraft's live play into a networked
+Quilt, and it already implements exactly the moat plays in §3:
+
+| Endpoint | Direction | What it does |
+|---|---|---|
+| `POST /tick` | game → sheet | 2 Hz cell updates (robot pose, sensors, program counter, race state); 14 formulas computed server-side (motor voltage, battery %, lap detection, odometry) |
+| `GET /ws` | sheet → UI | live snapshot + tick deltas + flash events |
+| `GET /history` | tape | aligned forward-filled time-series `{t:[…],series:{cell:[…]}}` |
+| `POST /predict` | forward-sim | **20–60 ghost ticks** with battery sag / brownout — the ghost racer |
+| `POST /chat` | Spark | cached QA **over the live cells** (SHA-256 digest key) — AI explanation grounded in real state |
+| `POST /flash-log` | hardware | WebSerial flashes become quilt cells |
+
+Tick payload is plain: `{"cells":{"robot.x":29.8,"robot.batteryV":7.9,…}}`.
+
+**The gap:** the shipping game does **not** post to it. `src/maker/QuiltSheet.js`
+is a *local* port (its own header points at "the canonical worker version"),
+`QuiltView` is local-only (no `fetch`), and the only outbound telemetry today is
+the separate, opt-in **USCP/Rift** emitter (`src/cns/uscp.js`, off by default).
+So the deterministic-competition + AI-trace-debugging moat is **built, deployed,
+and unplugged.** Wiring it is the highest-leverage integration available — and
+it's a bridge, not an architecture.
+
+**How to wire it safely (proposed):** mirror the existing USCP pattern — an
+**opt-in, off-by-default, fail-soft** tick emitter that POSTs the QuiltSheet
+cell snapshot to `/tick` every ~500 ms while a program runs; render `/ws` deltas
+in the existing QuiltView; offer "race the ghost" via `/predict` and "why did it
+do that?" via `/chat`. Telemetry must never touch gameplay, and for a kids'
+product it must be **opt-in with a clear privacy story** (no PII in the cell
+payload — it's robot pose/sensors, not the child). This is a real feature with
+an outward-facing surface, so it wants a deliberate build + live verification,
+not a rushed POST — but the far end already exists.
+
 ---
 
 ## 2. The moat — what almost nobody else has (verified against the landscape)
@@ -132,11 +169,13 @@ platform's roadmap become the same arc.
 
 ## 6. Concrete next bridges (small, high-leverage)
 
-1. **Read `scrap-quilt`** and either adopt or document it — it's the one repo
-   named for exactly this seam.
+1. **Wire the game to `scrap-quilt`** (see §1b — done reading it; it's deployed
+   and waiting). An opt-in, fail-soft `/tick` emitter + `/ws` render + `/predict`
+   ghost race + `/chat` explainer. This is the single highest-leverage build:
+   the whole networked moat already exists on the far end, unplugged.
 2. **Ship the deterministic competition** (frontier play #1) on top of the
-   Maker-Challenge/star engine already in review — the single highest-leverage
-   move, because it turns the moat into a social loop.
+   Maker-Challenge/star engine already in review — turns the moat into a social
+   loop, and is the local half of the `scrap-quilt` ghost-race.
 3. **Prototype AI deterministic debugging** (#2): feed Spark the VM trace +
    physics state on a failed challenge; it already has the challenge verdict +
    metrics to explain from.
