@@ -10,7 +10,7 @@ import { Avr109Flasher } from './maker/Avr109Flasher.js';
 import { UNO_WIRING } from './maker/PinModel.js';
 import { QuiltSheet } from './maker/QuiltSheet.js';
 import { QuiltView } from './maker/QuiltView.js';
-import { QuiltBridge, snapshotScrapQuiltCells } from './maker/QuiltBridge.js';
+import { activeTileLabel } from './maker/QuiltBridge.js';
 import { BotShelf } from './BotLedger.js';
 import { WebSerialBridge } from './maker/WebSerialBridge.js';
 import { Spark } from './Spark.js';
@@ -382,9 +382,9 @@ export class TileEditor {
     this._quiltOpen = false;
     this._quiltSheet = new QuiltSheet();
     this._quiltView = null;
-    // Opt-in cloud mirror to the scrap-quilt Worker. OFF by default; reads its
-    // flag live from Settings; fail-soft — never affects gameplay.
-    this._quiltBridge = new QuiltBridge();
+    // The opt-in cloud mirror (scrap-quilt) is driven by the game loop, not this
+    // panel, so telemetry follows any run whether or not the Quilt view is open.
+    // See Game._emitQuiltTelemetry.
     this._quiltTimer = null;
     this._quiltBtn?.addEventListener('click', () => this._toggleQuilt());
 
@@ -1604,48 +1604,14 @@ export class TileEditor {
       },
     });
     this._quiltView.render();
-
-    // Opt-in, fail-soft mirror to the scrap-quilt Worker (throttled to ~2 Hz
-    // inside the bridge). Sends only game-derived value cells — no PII.
-    this._quiltBridge?.postTick(snapshotScrapQuiltCells({
-      robot,
-      sensors,
-      program: rt ? {
-        currentTile: this._activeTileLabel(rt),
-        tilesRun:    rt.vm?.steps ?? 0,
-        state:       'running',
-      } : undefined,
-    }));
   }
 
-  _activeTileLabel(rt) {
-    if (!rt?.vm || !rt.sourceMap) return '—';
-    let activeId = null;
-    for (const e of rt.sourceMap) {
-      if (e.pc <= rt.vm.pc) activeId = e.nodeId;
-      else break;
-    }
-    if (!activeId) return '—';
-    const node = this._findNode(this._program?.nodes ?? [], activeId);
-    if (!node) return '—';
-    const bits = [node.type];
-    if (node.prim) bits.push(node.prim);
-    if (node.cond?.sensor) bits.push(`if ${node.cond.sensor}`);
-    if (node.seconds !== undefined) bits.push(`${node.seconds}s`);
-    if (node.type === 'forever') return 'forever ∞';
-    return bits.join(' ');
-  }
-
-  _findNode(nodes, id) {
-    for (const n of nodes) {
-      if (n.id === id) return n;
-      const inBody = n.body ? this._findNode(n.body, id) : null;
-      if (inBody) return inBody;
-      const inElse = n.elseBody ? this._findNode(n.elseBody, id) : null;
-      if (inElse) return inElse;
-    }
-    return null;
-  }
+  // Delegates to the shared, pure label logic (also used by the game-loop cloud
+  // mirror) so the on-screen label and the telemetry cell can never drift apart.
+  // (This previously carried its own `_findNode(nodes, id)` helper, which
+  // silently shadowed the real `_findNode(id, list)` used by node delete/dupe —
+  // that duplicate is gone now that the label logic lives in QuiltBridge.js.)
+  _activeTileLabel(rt) { return activeTileLabel(rt); }
 
   _quiltBeeps(rt) {
     // best-effort: count beep events since view opened

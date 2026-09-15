@@ -27,7 +27,7 @@ export { VirtualRobot } from './VirtualRobot.js';
 export { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG } from './FirmwareGen.js';
 export { SENSORS, ACTUATORS, BRAINS, chipForPrimitive } from './primitives.js';
 export { GameWorldAdapter } from './GameWorldAdapter.js';
-export { QuiltBridge, snapshotScrapQuiltCells, isQuiltBridgeEnabled, setQuiltBridgeEnabled, DEFAULT_QUILT_URL } from './QuiltBridge.js';
+export { QuiltBridge, snapshotScrapQuiltCells, snapshotFromRun, activeTileLabel, isQuiltBridgeEnabled, setQuiltBridgeEnabled, DEFAULT_QUILT_URL } from './QuiltBridge.js';
 export {
   CHIPS, CHIP_IDS, SOCKET_COUNT, SHELF_MS, SHARD_CRACK_THRESHOLD, MAX_SHARDS,
   JITTER_BOUNDS, ECHO_CAP, ECHO_STEP_S,

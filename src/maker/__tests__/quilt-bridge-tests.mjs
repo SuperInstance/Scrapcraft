@@ -5,7 +5,7 @@
  * stripping, throttle, fail-soft, and the state→cell mapping.
  */
 
-import { QuiltBridge, snapshotScrapQuiltCells, SENDABLE_CELLS, DEFAULT_QUILT_URL } from '../QuiltBridge.js';
+import { QuiltBridge, snapshotScrapQuiltCells, snapshotFromRun, activeTileLabel, SENDABLE_CELLS, DEFAULT_QUILT_URL } from '../QuiltBridge.js';
 
 function mockFetch(responder) {
   const calls = [];
@@ -109,5 +109,65 @@ export async function runQuiltBridgeTests(ok, fail) {
     check('maps program + player + race', cells['program.state'] === 'running' && cells['player.scrap'] === 12 && cells['race.lap'] === 2);
     check('emits only sendable ids (no formula cells)', Object.keys(cells).every(id => SENDABLE_CELLS.has(id)));
     check('omits absent groups', !('build.partsCount' in cells) && !('flash.board' in cells));
+  }
+
+  // ── activeTileLabel: source-map + program-counter → human label ─────────────
+  {
+    const rt = {
+      vm: { pc: 5 },
+      sourceMap: [
+        { pc: 0, nodeId: 'a' },
+        { pc: 4, nodeId: 'b' },
+        { pc: 8, nodeId: 'c' },
+      ],
+      program: { nodes: [
+        { id: 'a', type: 'action', prim: 'drive_forward' },
+        { id: 'b', type: 'if', cond: { sensor: 'distance_ahead' } },
+        { id: 'c', type: 'forever' },
+      ] },
+    };
+    check('label picks the tile at/under the pc', activeTileLabel(rt) === 'if if distance_ahead');
+    rt.vm.pc = 1;
+    check('label resolves prim tiles', activeTileLabel(rt) === 'action drive_forward');
+    rt.vm.pc = 9;
+    check('label special-cases forever', activeTileLabel(rt) === 'forever ∞');
+    check('label is — with no runtime', activeTileLabel(null) === '—' && activeTileLabel({}) === '—');
+    check('label is — when pc precedes first entry', activeTileLabel({ vm: { pc: -1 }, sourceMap: rt.sourceMap, program: rt.program }) === '—');
+    // nested nodes (inside a forever body) resolve too
+    const nested = {
+      vm: { pc: 2 }, sourceMap: [{ pc: 0, nodeId: 'root' }, { pc: 2, nodeId: 'inner' }],
+      program: { nodes: [{ id: 'root', type: 'forever', body: [{ id: 'inner', type: 'action', prim: 'beep' }] }] },
+    };
+    check('label finds nested body nodes', activeTileLabel(nested) === 'action beep');
+  }
+
+  // ── snapshotFromRun: runtime + world adapter → cells (the decoupled path) ────
+  {
+    const world = {
+      distanceAhead: () => 0.42,
+      lineUnder: () => true,
+    };
+    const rt = {
+      robot: { x: 2, z: 3, heading: 0, drivePower: 0.5 },
+      vm: { pc: 0, steps: 17 },
+      sourceMap: [{ pc: 0, nodeId: 'a' }],
+      program: { nodes: [{ id: 'a', type: 'action', prim: 'drive_forward' }] },
+      isRunning: true,
+      world,
+    };
+    const cells = snapshotFromRun(rt, world);
+    check('snapshotFromRun maps robot pose', cells['robot.x'] === 2 && cells['robot.drivePower'] === 50);
+    check('snapshotFromRun samples world sensors', cells['robot.sensor.ultrasonic'] === 0.42 && cells['robot.sensor.ir'] === 1);
+    check('snapshotFromRun sets program tilesRun/state/label',
+      cells['program.tilesRun'] === 17 && cells['program.state'] === 'running' && cells['program.currentTile'] === 'action drive_forward');
+    check('snapshotFromRun emits only sendable ids', Object.keys(cells).every(id => SENDABLE_CELLS.has(id)));
+    // stopped runtime, no world → still safe, no sensor cells
+    const stopped = snapshotFromRun({ robot: { x: 1 }, vm: { pc: 0, steps: 0 }, sourceMap: [], program: { nodes: [] }, isRunning: false }, null);
+    check('snapshotFromRun state=stopped when not running', stopped['program.state'] === 'stopped');
+    check('snapshotFromRun without world omits sensors', !('robot.sensor.ultrasonic' in stopped));
+    check('snapshotFromRun with no runtime returns {}', Object.keys(snapshotFromRun(null, world)).length === 0);
+    // extra state groups merge through (e.g. player context from the game loop)
+    const withPlayer = snapshotFromRun(rt, world, { player: { x: 9, z: 8, scrap: 5 } });
+    check('snapshotFromRun merges extra state groups', withPlayer['player.x'] === 9 && withPlayer['player.scrap'] === 5);
   }
 }

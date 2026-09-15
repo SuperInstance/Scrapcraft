@@ -159,6 +159,75 @@ export class QuiltBridge {
 const _pct = (v) => (v == null ? undefined : (Math.abs(v) <= 1 ? Math.round(v * 100) : Math.round(v)));
 const _num = (v) => (typeof v === 'number' && Number.isFinite(v) ? +v.toFixed(3) : undefined);
 
+/** Depth-first find a program node by id (walks body + elseBody). Pure. */
+function _findNodeById(nodes, id) {
+  for (const n of nodes) {
+    if (n.id === id) return n;
+    const inBody = n.body ? _findNodeById(n.body, id) : null;
+    if (inBody) return inBody;
+    const inElse = n.elseBody ? _findNodeById(n.elseBody, id) : null;
+    if (inElse) return inElse;
+  }
+  return null;
+}
+
+/**
+ * Human-readable label for the tile a runtime is currently executing, derived
+ * from its source map + program counter. Mirrors the local Quilt-view label so
+ * the cloud sheet and the on-screen panel agree. Returns '—' when nothing is
+ * resolvable. Pure — reads only the runtime it's handed.
+ *
+ * @param {object} rt  MakerRuntime-shaped { vm:{pc}, sourceMap:[{pc,nodeId}], program:{nodes} }
+ */
+export function activeTileLabel(rt) {
+  if (!rt?.vm || !Array.isArray(rt.sourceMap)) return '—';
+  let activeId = null;
+  for (const e of rt.sourceMap) {
+    if (e.pc <= rt.vm.pc) activeId = e.nodeId;
+    else break;
+  }
+  if (!activeId) return '—';
+  const node = _findNodeById(rt.program?.nodes ?? [], activeId);
+  if (!node) return '—';
+  if (node.type === 'forever') return 'forever ∞';
+  const bits = [node.type];
+  if (node.prim) bits.push(node.prim);
+  if (node.cond?.sensor) bits.push(`if ${node.cond.sensor}`);
+  if (node.seconds !== undefined) bits.push(`${node.seconds}s`);
+  return bits.join(' ');
+}
+
+/**
+ * Build a scrap-quilt cell snapshot straight from a live run (runtime + world
+ * adapter), so any caller with a running bot can mirror it — the Maker Lab
+ * panel, the game loop, a test. Sensors are sampled from the world adapter at
+ * the robot's pose. `extra` is merged onto the state object (e.g. { player })
+ * before mapping. Pure with respect to a mock world.
+ *
+ * @param {object} rt     MakerRuntime (has .robot, .vm, .sourceMap, .program, .isRunning)
+ * @param {object} world  GameWorldAdapter-shaped sensor backing (optional)
+ * @param {object} [extra] additional state groups forwarded to the mapper
+ * @returns {object} scrap-quilt cell id → value
+ */
+export function snapshotFromRun(rt, world, extra = {}) {
+  if (!rt) return {};
+  const robot = rt.robot;
+  const sensors = (world && robot) ? {
+    distance_ahead: world.distanceAhead?.(robot.x, robot.z, robot.heading) ?? 0,
+    line_under:     !!world.lineUnder?.(robot.x, robot.z),
+  } : undefined;
+  return snapshotScrapQuiltCells({
+    robot,
+    sensors,
+    program: {
+      currentTile: activeTileLabel(rt),
+      tilesRun:    rt.vm?.steps ?? 0,
+      state:       rt.isRunning ? 'running' : 'stopped',
+    },
+    ...extra,
+  });
+}
+
 /**
  * Map a live game/run state object to scrap-quilt INPUT cells. Only present
  * fields are emitted (partial payloads are fine — the Worker fills formulas
