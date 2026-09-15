@@ -181,21 +181,13 @@ export function runFirmwareGoldenTests(ok) {
     ok('a non-sole forever keeps an explicit while (true) { ... }', inoNF.includes('while (true) {'));
   }
 
-  // ═══ 6. KNOWN GAP — add_score's implicit "score" variable ═════════════
-  // add_score's firmware templates reference a bare `score` variable that
-  // FirmwareGen never declares: collectAllVarNames() only walks set_var /
-  // change_var / math_var / random_var / print / read_sensor nodes and
-  // `var:` conditions — an `action` node (which is what add_score is) is
-  // invisible to it. The two assertions below pin down the CURRENT (buggy)
-  // output precisely, so this is a regression golden, not an endorsement:
-  //   • Arduino:     `score += 5;` is emitted with no matching
-  //                  `int score = 0;` global → undeclared identifier,
-  //                  will not compile in the Arduino IDE.
-  //   • MicroPython: the emitter template itself contains a raw embedded
-  //                  "\n" (`score += 5\nprint(...)`), and emitPython() only
-  //                  prepends indentation to the FIRST line of a firmware
-  //                  string, so the print() lands at column 0 — outside the
-  //                  while-True loop body it was meant to run inside.
+  // ═══ 6. add_score's implicit "score" variable is declared & well-formed ═══
+  // add_score is an `action` node whose firmware reads/writes a `score` global.
+  // FirmwareGen must (a) declare that global in both targets even though it is
+  // not a var node, and (b) emit the MicroPython as a single indented line (no
+  // embedded newline that would drop print() out of the loop body). These were
+  // real codegen bugs — a generated Arduino sketch referencing an undeclared
+  // `score` will not compile — now fixed and locked down here.
   {
     const prog = new TileProgram({ name: 'ScoreGap', brain: 'tin', nodes: [
       T.action('add_score', { amount: 5 }),
@@ -204,11 +196,11 @@ export function runFirmwareGoldenTests(ok) {
     const py  = toMicroPython(prog);
 
     ok('add_score IS emitted (score += 5;)', ino.includes('score += 5;'));
-    ok('KNOWN GAP: Arduino never declares "int score = 0;" for add_score\'s implicit variable',
-      !ino.includes('int score = 0;'));
-    ok('KNOWN GAP: MicroPython never declares "score = 0" for add_score\'s implicit variable',
-      !py.split('\n').some(line => line.trim() === 'score = 0'));
-    ok('KNOWN GAP: MicroPython\'s embedded literal newline de-indents the print() out of the loop body',
-      py.split('\n').some(line => line === 'print(f"Score: {score}")'));
+    ok('Arduino declares the "score" global (int score = 0;)', ino.includes('int score = 0;'));
+    ok('MicroPython declares the "score" global (score = 0)',
+      py.split('\n').some(line => line.trim() === 'score = 0'));
+    ok('MicroPython keeps add_score on one indented line (no de-indented print at column 0)',
+      !py.split('\n').some(line => line === 'print(f"Score: {score}")')
+      && py.split('\n').some(line => line.startsWith(' ') && line.includes('score += 5; print(f"Score: {score}")')));
   }
 }

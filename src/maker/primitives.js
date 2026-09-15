@@ -622,7 +622,10 @@ export const ACTUATORS = {
     exec: (robot, p) => { robot.emit('score', { delta: Math.max(1, Math.floor(Number(p.amount) || 1)) }); },
     firmware: {
       arduino: (p) => `score += ${Math.max(1, Math.floor(Number(p.amount) || 1))}; Serial.print("Score: "); Serial.println(score);`,
-      micropython: (p) => `score += ${Math.max(1, Math.floor(Number(p.amount) || 1))}\nprint(f"Score: {score}")`,
+      // Single line on purpose: the codegen indents only the first line it is
+      // handed, so a literal newline here would drop print() to column 0 and
+      // break the loop body. A semicolon keeps it one valid indented statement.
+      micropython: (p) => `score += ${Math.max(1, Math.floor(Number(p.amount) || 1))}; print(f"Score: {score}")`,
     },
   },
 
