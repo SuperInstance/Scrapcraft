@@ -10,6 +10,7 @@ import { Avr109Flasher } from './maker/Avr109Flasher.js';
 import { UNO_WIRING } from './maker/PinModel.js';
 import { QuiltSheet } from './maker/QuiltSheet.js';
 import { QuiltView } from './maker/QuiltView.js';
+import { QuiltBridge, snapshotScrapQuiltCells } from './maker/QuiltBridge.js';
 import { BotShelf } from './BotLedger.js';
 import { WebSerialBridge } from './maker/WebSerialBridge.js';
 import { Spark } from './Spark.js';
@@ -381,6 +382,9 @@ export class TileEditor {
     this._quiltOpen = false;
     this._quiltSheet = new QuiltSheet();
     this._quiltView = null;
+    // Opt-in cloud mirror to the scrap-quilt Worker. OFF by default; reads its
+    // flag live from Settings; fail-soft — never affects gameplay.
+    this._quiltBridge = new QuiltBridge();
     this._quiltTimer = null;
     this._quiltBtn?.addEventListener('click', () => this._toggleQuilt());
 
@@ -1600,6 +1604,18 @@ export class TileEditor {
       },
     });
     this._quiltView.render();
+
+    // Opt-in, fail-soft mirror to the scrap-quilt Worker (throttled to ~2 Hz
+    // inside the bridge). Sends only game-derived value cells — no PII.
+    this._quiltBridge?.postTick(snapshotScrapQuiltCells({
+      robot,
+      sensors,
+      program: rt ? {
+        currentTile: this._activeTileLabel(rt),
+        tilesRun:    rt.vm?.steps ?? 0,
+        state:       'running',
+      } : undefined,
+    }));
   }
 
   _activeTileLabel(rt) {

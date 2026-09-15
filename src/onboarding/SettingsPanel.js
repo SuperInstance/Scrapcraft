@@ -12,6 +12,7 @@
 
 import { PROVIDERS } from './ProviderList.js';
 import { loadConfig, saveConfig, hasLiveAI, announceConfigChange } from './config.js';
+import { isQuiltBridgeEnabled, setQuiltBridgeEnabled } from '../maker/QuiltBridge.js';
 
 export class SettingsPanel {
   constructor(game) {
@@ -97,6 +98,18 @@ export class SettingsPanel {
               placeholder="fleet quilt URL (blank = the fleet's public host)" />
           </div>
 
+          <h3 class="set-section">📊 Live Cloud Sheet (optional — off by default)</h3>
+          <div class="set-uscp-wrap">
+            <label class="set-uscp-toggle">
+              <input type="checkbox" id="set-quilt-enabled" ${isQuiltBridgeEnabled() ? 'checked' : ''} />
+              <span>Mirror my robot to the scrap-quilt live sheet</span>
+            </label>
+            <div class="set-hint">📈 When on (and the live-sheet view is open), your robot's cells — pose, motors,
+            sensors, program state — stream to the scrap-quilt cloud sheet so you can watch formulas, race a
+            ghost, and ask why it did that. <b>Nothing personal ever leaves</b> — no name, no chat text, no save
+            data. Off by default; the game plays exactly the same either way.</div>
+          </div>
+
           <div class="set-footer">
             <button class="set-btn set-btn-save" id="set-save">Save</button>
           </div>
@@ -109,6 +122,7 @@ export class SettingsPanel {
     this.el.querySelector('#set-close').addEventListener('click', () => this.close());
     this._bindProviders();
     this._bindCf();
+    this.el.querySelector('#set-quilt-enabled')?.addEventListener('change', (e) => setQuiltBridgeEnabled(!!e.target.checked));
     this.el.querySelector('#set-save').addEventListener('click', () => this._save());
   }
 
