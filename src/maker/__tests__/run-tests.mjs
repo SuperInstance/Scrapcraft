@@ -38,6 +38,7 @@ import { runLearningTests } from '../../learning/__tests__/learning-tests.mjs';
 import { runRadioTests } from '../../radio/__tests__/radio-tests.mjs';
 import { runUscpTests } from '../../cns/__tests__/uscp-tests.mjs';
 import { runQuiltBridgeTests } from './quilt-bridge-tests.mjs';
+import { runExplainTests } from './explain-tests.mjs';
 import { runSaveRoundTripTests } from '../../__tests__/save-roundtrip.mjs';
 import { runJrTests } from '../../jr/__tests__/jr-tests.mjs';
 import { runZoneGateTransitionTests } from '../../__tests__/zonegate-transition.mjs';
@@ -1967,6 +1968,12 @@ runChipsTests(
 
 console.log('\nquilt bridge');
 await runQuiltBridgeTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
+
+console.log('\ntrace-debugger (why did it do that?)');
+await runExplainTests(
   (name) => { pass++; console.log(`  ✓ ${name}`); },
   (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
 );
