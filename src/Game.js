@@ -18,6 +18,8 @@ import { TileEditor } from './TileEditor.js';
 import { JrEditor } from './jr/JrEditor.js';
 import { BuildPanel } from './ui/BuildPanel.js';
 import { ChipForge, CHIPS } from './maker/Chips.js';
+import { QuiltBridge, snapshotFromRun } from './maker/QuiltBridge.js';
+import { RobotMindPanel } from './ui/RobotMindPanel.js';
 import { SpectatorCoach } from './radio/SpectatorCoach.js';
 import { installUscp } from './cns/uscp.js';
 import { SaveSystem } from './SaveSystem.js';
@@ -132,6 +134,22 @@ export class Game {
     this._lastSkillCount = -1;
   }
 
+  /** Install once-only global capture for runtime errors + unhandled rejections.
+   *  Never throws; installs at most once per page; routes to the observer log
+   *  when present. Not a frame-loop concern — pure visibility/telemetry. */
+  _installErrorCapture() {
+    try {
+      if (typeof window === 'undefined' || window.__scrapcraftErrorCapture) return;
+      window.__scrapcraftErrorCapture = true;
+      const record = (label, detail) => {
+        try { console.error(`[Scrapcraft] ${label}:`, detail); } catch { /* console gone */ }
+        try { this.observer?.log?.('runtime_error', `${label}: ${String(detail).slice(0, 300)}`); } catch { /* observer is a garnish */ }
+      };
+      window.addEventListener('error', (e) => record('error', e?.error?.stack || e?.message || e?.type || 'unknown'));
+      window.addEventListener('unhandledrejection', (e) => record('unhandledrejection', e?.reason?.stack || e?.reason || 'unknown'));
+    } catch { /* capture is best-effort — never block init */ }
+  }
+
   init() {
     // ── OBSERVER MODE (?observe=1) — the playtest observer's instrument. ──
     // Fail-soft: returns null without the URL flag → every call site is a
@@ -145,6 +163,14 @@ export class Game {
       // save signals in storage — the same gate the CLOCK IN flow uses.
       sessionType: this._isReturningProfile() ? 'returning' : 'fresh',
     });
+
+    // ── Global runtime-error capture ──────────────────────────────────────
+    // A production browser game must not fail silently. main.js catches boot
+    // failures; this catches errors and unhandled promise rejections that
+    // surface during play — logged to the console and fed to the observer
+    // session log — without disrupting the frame loop. Fully guarded so the
+    // capture can never itself become a source of errors.
+    this._installErrorCapture();
 
     this.world    = new World(128, 128, 10);
     this.world.generate(this.seed);
@@ -256,6 +282,12 @@ export class Game {
     // The forge clock is ticked in update(); growth is game-loop-ticked so
     // the cold shelf keeps running with the panel closed.
     this.chipForge  = new ChipForge();
+    // Opt-in cloud mirror (scrap-quilt). Off by default; the game loop feeds it
+    // whichever bot is actively running, so telemetry follows the run and does
+    // not depend on the Maker Lab / Quilt panel being open. Fail-soft + throttled
+    // internally — a disabled or unreachable bridge is a no-op each frame.
+    this._quiltBridge = new QuiltBridge();
+    this._robotMind = new RobotMindPanel(this);   // "why did it do that?" panel (Y)
     this.botAssembly = { chassis: false, wheels: false, motors: false, battery: false, arduino: false };
     this.buildPanel = new BuildPanel(this);
     // ── Spectator/coach mode (radio) ──
@@ -980,6 +1012,14 @@ export class Game {
           && !document.getElementById('mos-ledger-panel')
           && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName ?? '')) {
         this._openMosLedger();
+      }
+      // "Why did it do that?" — the trace-debugger (press Y). The active bot
+      // explains its most recent decision in plain English, straight from the
+      // VM's decision trace. Deterministic + offline; works whether or not the
+      // opt-in cloud sheet is on.
+      if (e.code === 'KeyY' && !this.ui.isOpen && !this.tileEditor?.isOpen
+          && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName ?? '')) {
+        this._robotMind?.toggle();
       }
       // ── Tutorial: E completes the workshop step ──
       if (e.code === 'KeyE') {
@@ -2949,6 +2989,8 @@ export class Game {
 
     this.scrapBot.tick(dt, this.world);
     if (this.scrapBot2) this.scrapBot2.tick(dt, this.world);
+    this._emitQuiltTelemetry();
+    this._maybeHintWhy();
 
     // Cold-shelf timer: real minutes ticked by the game loop (chips lane).
     // Finished growths announce themselves — crack of dawn, literally.
@@ -3818,6 +3860,32 @@ export class Game {
     }
     this.ui.showBotBadge(true);
     this.ui.updateBotBond(bot.personality.name, bot.personality.bond);
+  }
+
+  /** One-time nudge teaching the Y hotkey, ~4s after a brain first runs. */
+  _maybeHintWhy() {
+    if (this._whyHintShown) return;
+    const running = [this.scrapBot, this.scrapBot2].some(b => b?._brainMode && b?._runtime?.isRunning);
+    if (!running) { this._whyRunSince = 0; return; }
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    if (!this._whyRunSince) { this._whyRunSince = now; return; }
+    if (now - this._whyRunSince > 4000) {
+      this._whyHintShown = true;
+      this.ui?.notify('🤔 Curious what your robot is thinking? Press <b>Y</b> to ask why it just did that.');
+    }
+  }
+
+  /** Mirror the actively-running bot to the opt-in scrap-quilt cloud sheet.
+   *  Called every frame; the bridge is off by default and throttles/fails soft
+   *  internally, so this is a cheap no-op unless a person has opted in AND a bot
+   *  is running a program. Fire-and-forget — telemetry never blocks the loop. */
+  _emitQuiltTelemetry() {
+    const bridge = this._quiltBridge;
+    if (!bridge) return;
+    const bot = [this.scrapBot, this.scrapBot2].find(b => b?._brainMode && b?._runtime);
+    const rt = bot?._runtime;
+    if (!rt) return;
+    bridge.postTick(snapshotFromRun(rt, rt.world));   // Promise ignored on purpose
   }
 
   _updateSpeechBubble(bot, el) {

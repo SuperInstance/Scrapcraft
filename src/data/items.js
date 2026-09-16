@@ -393,13 +393,6 @@ export const ITEMS = {
     category: 'material',
     stackSize: 16,
   },
-  waypoint_flag: {
-    name: 'Waypoint Flag',
-    icon: '🚩',
-    desc: "Drop it, and your bot will know where to go. Earl refuses to use one — he \"knows where he's going.\"",
-    category: 'device',
-    stackSize: 1,
-  },
   scrap_cannon: {
     name: 'Scrap Cannon',
     icon: '💥',

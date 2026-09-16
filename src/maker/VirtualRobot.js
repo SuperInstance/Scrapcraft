@@ -35,6 +35,7 @@ export class VirtualRobot {
     this.gripping = false;
     this.events = [];         // drained by integration layer each frame
     this.led = 'off';
+    this.clock = 0;           // seconds since spawn — backs the "timer" sensor
   }
 
   // ── Actuator interface (called by primitives.exec) ────────────────────────
@@ -55,6 +56,8 @@ export class VirtualRobot {
    *                       collision if absent)
    */
   tick(dt, world) {
+    this.clock += dt;          // advance the elapsed-time clock (timer sensor)
+
     // ECHO chip replay: the ring buffer drives the motors at a fixed cadence
     // — exactly what echoReplay() does in the exported firmware.
     if (this.replayQueue && this.replayQueue.length) {
