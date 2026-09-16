@@ -9,7 +9,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node src/maker/__tests__/run-tests.mjs",
+    "test": "node src/maker/__tests__/run-tests.mjs && node src/maker/__tests__/challenge-tests.mjs && node src/maker/__tests__/content-integrity.mjs && node src/maker/__tests__/chips-tests.mjs && node src/voice/__tests__/voice.test.mjs",
     "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
