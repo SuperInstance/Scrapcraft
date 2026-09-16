@@ -47,7 +47,7 @@
  */
 
 import { getActuator, getSensor, withDefaults, BRAINS, chipForPrimitive } from './primitives.js';
-import { TURN_RATE } from './kinematics.js';
+import { TURN_RATE, DRIVE_SPEED } from './kinematics.js';
 
 const CMP_OPS = new Set(['gt', 'lt', 'gte', 'lte', 'eq', 'neq', 'is']);
 const BRAIN_TIER = { tin: 0, spark: 1, vision: 2 };
@@ -298,7 +298,7 @@ export function expandMacro(node, ctx) {
       const dir = node.params?.dir === 'backward' ? 'backward' : 'forward';
       const blocks = Math.max(0, Number(node.params?.blocks) || 1);
       const speed = 0.6;
-      const seconds = blocks / (3.0 * speed); // DRIVE_SPEED * speed
+      const seconds = blocks / (DRIVE_SPEED * speed); // single source of truth (kinematics.js)
       return [
         { type: 'action', prim: 'drive', params: withDefaults('drive', { dir, speed }) },
         { type: 'wait', seconds },
