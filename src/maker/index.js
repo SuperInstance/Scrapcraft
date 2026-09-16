@@ -44,10 +44,12 @@ export class MakerRuntime {
    * @param {TileProgram} program
    * @param {object} spawn   { x, z, heading }
    * @param {object} world   sensor backing (GameWorldAdapter or a mock)
+   * @param {object} opts    { seed } — set seed for a deterministic run (competitions)
    */
-  constructor(program, spawn = {}, world = {}) {
+  constructor(program, spawn = {}, world = {}, opts = {}) {
     this.program = program;
     this.world = world;
+    this._seed = opts.seed;
     this.robot = new VirtualRobot(spawn);
 
     const result = compile(program);
@@ -55,7 +57,7 @@ export class MakerRuntime {
     this.warnings = result.warnings;
     this.ok = result.ok;
     this.sourceMap = result.sourceMap ?? [];
-    this.vm = new TileVM(result.bytecode, this.robot, world, { traceCap: 48 });
+    this.vm = new TileVM(result.bytecode, this.robot, world, { traceCap: 48, seed: opts.seed });
 
     this.elapsedMs    = 0;
     this.stepsPerSec  = 0;
@@ -86,7 +88,7 @@ export class MakerRuntime {
     this.warnings = result.warnings;
     this.ok = result.ok;
     this.sourceMap = result.sourceMap ?? [];
-    this.vm = new TileVM(result.bytecode, this.robot, this.world, { traceCap: 48 });
+    this.vm = new TileVM(result.bytecode, this.robot, this.world, { traceCap: 48, seed: this._seed });
     this.elapsedMs   = 0;
     this.stepsPerSec = 0;
     this.budgetPct   = 0;

@@ -126,7 +126,8 @@ export function runChallenge(program, challenge, opts = {}) {
   const timeLimit = opts.maxSeconds ?? challenge.timeLimit ?? 20;
   const world = new ChallengeWorld(challenge.world || {});
   const spawn = challenge.spawn || { x: 0, z: 0, heading: 0 };
-  const rt = new MakerRuntime(program, spawn, world);
+  // opts.seed (when provided) makes a run with random tiles fully reproducible.
+  const rt = new MakerRuntime(program, spawn, world, { seed: opts.seed });
 
   const goal = challenge.goal || null;           // { x, z, radius }
   const events = [];

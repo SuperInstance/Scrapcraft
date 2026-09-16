@@ -72,9 +72,12 @@ function _progJSON(program) {
  * @param {TileProgram|object} program
  * @returns {string} an opaque token (base64 of a small JSON envelope)
  */
-export function encodeReplay(challengeId, program) {
+export function encodeReplay(challengeId, program, seed) {
   const prog = _progJSON(program);
   const payload = { cid: String(challengeId), prog };
+  // A seed (optional) captures the RNG stream so a solve that uses random tiles
+  // reproduces exactly — required for a fair competition on such programs.
+  if (seed != null && Number.isFinite(+seed)) payload.seed = +seed >>> 0;
   const body = JSON.stringify(payload);
   const env = { v: REPLAY_VERSION, h: checksum(body), body };
   return b64encode(JSON.stringify(env));
@@ -94,7 +97,7 @@ export function decodeReplay(token) {
     throw new Error('replay: integrity check failed (token was edited or corrupted)');
   }
   const payload = JSON.parse(env.body);
-  return { challengeId: payload.cid, program: TileProgram.fromJSON(payload.prog) };
+  return { challengeId: payload.cid, program: TileProgram.fromJSON(payload.prog), seed: payload.seed };
 }
 
 /**
@@ -111,7 +114,9 @@ export function verifyReplay(token, opts = {}) {
   const challenge = getChallenge(decoded.challengeId);
   if (!challenge) return { ok: false, reason: `replay: unknown challenge "${decoded.challengeId}"` };
 
-  const result = runChallenge(decoded.program, challenge, opts);
+  // Honor the token's captured seed (if any) so random-using solves reproduce.
+  const runOpts = decoded.seed != null ? { ...opts, seed: decoded.seed } : opts;
+  const result = runChallenge(decoded.program, challenge, runOpts);
   return {
     ok: true,
     challengeId: decoded.challengeId,

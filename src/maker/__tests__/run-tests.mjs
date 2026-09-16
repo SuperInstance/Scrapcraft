@@ -52,6 +52,7 @@ import { runChipsTests } from './chips-tests.mjs';
 import { runNudgeTests } from '../../companion/__tests__/nudge-tests.mjs';
 import { runWorldAdapterTests } from './world-adapter-tests.mjs';
 import { runChallengeReplayTests } from './challenge-replay-tests.mjs';
+import { runSeededRngTests } from './seeded-rng-tests.mjs';
 import { runFirmwareGoldenTests } from './firmware-golden-tests.mjs';
 import { runXPSystemTests } from '../../__tests__/xp-system-tests.mjs';
 import { runCraftingSystemTests } from '../../systems/__tests__/crafting-system-tests.mjs';
@@ -1989,6 +1990,12 @@ runWorldAdapterTests(
 
 console.log('\nchallenge replay (reproducible competitions)');
 runChallengeReplayTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
+
+console.log('\nseeded RNG (deterministic random tiles)');
+runSeededRngTests(
   (name) => { pass++; console.log(`  ✓ ${name}`); },
   (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
 );
