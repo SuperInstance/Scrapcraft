@@ -134,6 +134,22 @@ export class Game {
     this._lastSkillCount = -1;
   }
 
+  /** Install once-only global capture for runtime errors + unhandled rejections.
+   *  Never throws; installs at most once per page; routes to the observer log
+   *  when present. Not a frame-loop concern — pure visibility/telemetry. */
+  _installErrorCapture() {
+    try {
+      if (typeof window === 'undefined' || window.__scrapcraftErrorCapture) return;
+      window.__scrapcraftErrorCapture = true;
+      const record = (label, detail) => {
+        try { console.error(`[Scrapcraft] ${label}:`, detail); } catch { /* console gone */ }
+        try { this.observer?.log?.('runtime_error', `${label}: ${String(detail).slice(0, 300)}`); } catch { /* observer is a garnish */ }
+      };
+      window.addEventListener('error', (e) => record('error', e?.error?.stack || e?.message || e?.type || 'unknown'));
+      window.addEventListener('unhandledrejection', (e) => record('unhandledrejection', e?.reason?.stack || e?.reason || 'unknown'));
+    } catch { /* capture is best-effort — never block init */ }
+  }
+
   init() {
     // ── OBSERVER MODE (?observe=1) — the playtest observer's instrument. ──
     // Fail-soft: returns null without the URL flag → every call site is a
@@ -147,6 +163,14 @@ export class Game {
       // save signals in storage — the same gate the CLOCK IN flow uses.
       sessionType: this._isReturningProfile() ? 'returning' : 'fresh',
     });
+
+    // ── Global runtime-error capture ──────────────────────────────────────
+    // A production browser game must not fail silently. main.js catches boot
+    // failures; this catches errors and unhandled promise rejections that
+    // surface during play — logged to the console and fed to the observer
+    // session log — without disrupting the frame loop. Fully guarded so the
+    // capture can never itself become a source of errors.
+    this._installErrorCapture();
 
     this.world    = new World(128, 128, 10);
     this.world.generate(this.seed);

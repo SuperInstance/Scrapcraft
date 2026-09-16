@@ -25,11 +25,13 @@ export { compile } from './TileCompiler.js';
 export { TileVM } from './TileVM.js';
 export { VirtualRobot } from './VirtualRobot.js';
 export { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG } from './FirmwareGen.js';
-export { SENSORS, ACTUATORS, BRAINS, chipForPrimitive } from './primitives.js';
+export { SENSORS, ACTUATORS, BRAINS, chipForPrimitive, validateParams } from './primitives.js';
 export { GameWorldAdapter } from './GameWorldAdapter.js';
 export { QuiltBridge, snapshotScrapQuiltCells, snapshotFromRun, activeTileLabel, isQuiltBridgeEnabled, setQuiltBridgeEnabled, DEFAULT_QUILT_URL } from './QuiltBridge.js';
 export { explainTrace, narrateSnapshot, describeAction } from './explain.js';
 import { explainTrace } from './explain.js';
+export { runChallenge, getChallenge, MAKER_CHALLENGES, ChallengeWorld, countTiles } from './MakerChallenge.js';
+export { ChallengeProgress } from './ChallengeProgress.js';
 export {
   CHIPS, CHIP_IDS, SOCKET_COUNT, SHELF_MS, SHARD_CRACK_THRESHOLD, MAX_SHARDS,
   JITTER_BOUNDS, ECHO_CAP, ECHO_STEP_S,
