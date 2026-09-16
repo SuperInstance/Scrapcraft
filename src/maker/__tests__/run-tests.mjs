@@ -49,6 +49,7 @@ import { runHudLayerTests } from '../../__tests__/hud-layer-tests.mjs';
 import { runObserverTests } from '../../observer/__tests__/observer-tests.mjs';
 import { runAttentionTests } from '../../ui/__tests__/attention-tests.mjs';
 import { runChipsTests } from './chips-tests.mjs';
+import { runNudgeTests } from '../../companion/__tests__/nudge-tests.mjs';
 import { runFirmwareGoldenTests } from './firmware-golden-tests.mjs';
 import { runXPSystemTests } from '../../__tests__/xp-system-tests.mjs';
 import { runCraftingSystemTests } from '../../systems/__tests__/crafting-system-tests.mjs';
@@ -1968,6 +1969,12 @@ await runAttentionTests(ok);
 // ── Inference chips: growth determinism, mask gating, codegen snapshots ───
 console.log('\nInference chips (the crystal form)');
 runChipsTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
+
+console.log('\ncompanion nudges');
+runNudgeTests(
   (name) => { pass++; console.log(`  ✓ ${name}`); },
   (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
 );
