@@ -49,6 +49,11 @@ export class TileVM {
     // (cap 0 ⇒ _trace is a no-op), so the deterministic core and every existing
     // VM test are untouched. The game turns it on via a small ring buffer.
     this.traceCap = Math.max(0, opts.traceCap | 0);
+    // Optional deterministic RNG seed. When set, RAND_VAR draws from a seeded
+    // PRNG instead of Math.random, making a run with random tiles fully
+    // reproducible (the basis for fair, verifiable competitions). Default
+    // (seed omitted) keeps Math.random, so normal play is untouched.
+    this._seed = (opts.seed != null && Number.isFinite(+opts.seed)) ? (+opts.seed >>> 0) : null;
     this.reset();
   }
 
@@ -65,6 +70,8 @@ export class TileVM {
     this.motorActs   = 0;   // drive/turn ACT ops fired
     this.vars = {};          // named variables (set_var / change_var tiles)
     this.trace = [];         // bounded decision trace (see traceCap)
+    // Re-seed on reset so repeated runs from the same seed reproduce exactly.
+    this._rng = this._seed != null ? mulberry32(this._seed) : Math.random;
   }
 
   get isRunning() { return !this.halted; }
@@ -232,7 +239,7 @@ export class TileVM {
 
       case 'RAND_VAR': {
         const lo = instr.min ?? 1, hi = instr.max ?? 10;
-        this.vars[instr.name] = Math.floor(Math.random() * (hi - lo + 1)) + lo;
+        this.vars[instr.name] = Math.floor(this._rng() * (hi - lo + 1)) + lo;
         this.pc++;
         break;
       }
@@ -315,6 +322,18 @@ export class TileVM {
     // conditions read); older two-arg execs simply ignore it.
     def.exec(this.robot, params ?? {}, this.world);
   }
+}
+
+/** Small, fast, well-distributed seeded PRNG (mulberry32). Deterministic:
+ *  the same seed yields the same stream. Returns a function → [0, 1). */
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 function _nodeAt(sourceMap, pc) {
