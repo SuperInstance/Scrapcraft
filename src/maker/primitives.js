@@ -100,6 +100,22 @@ export const SENSORS = {
     firmware: { arduino: () => 'digitalRead(BUMP_PIN) == LOW', micropython: () => '(bump.value() == 0)' },
   },
 
+  timer: {
+    id: 'timer',
+    category: 'sense',
+    kind: 'analog',
+    label: 'timer (seconds)',
+    blurb: 'seconds elapsed since the program started running. Great with wait_until, e.g. "wait until timer > 5".',
+    read: (robot) => robot.clock ?? 0,
+    hw: {
+      platform: ['uno', 'esp32', 'jetson'],
+      peripheral: 'on-chip millisecond clock',
+      pin: 'internal timer',
+      setup: { arduino: '', micropython: '' },
+    },
+    firmware: { arduino: () => '(millis() / 1000.0)', micropython: () => '(ticks_ms() / 1000)' },
+  },
+
   is_dark: {
     id: 'is_dark',
     category: 'sense',
