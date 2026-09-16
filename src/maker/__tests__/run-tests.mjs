@@ -57,6 +57,7 @@ import { runFirmwareGoldenTests } from './firmware-golden-tests.mjs';
 import { runXPSystemTests } from '../../__tests__/xp-system-tests.mjs';
 import { runCraftingSystemTests } from '../../systems/__tests__/crafting-system-tests.mjs';
 import { runDataIntegrityTests } from '../../data/__tests__/data-integrity-tests.mjs';
+import { runVirtualRobotTests } from './virtualrobot-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -2040,6 +2041,9 @@ runCraftingSystemTests(ok);
 // ── Recipes/items data integrity: no dupe keys, valid refs, sane quantities
 console.log('\nRecipes/items data integrity');
 runDataIntegrityTests(ok);
+
+console.log('\nvirtual robot (physics)');
+runVirtualRobotTests((name)=>{pass++;console.log(`  ✓ ${name}`);},(name,extra='')=>{fail++;console.log(`  ✗ ${name}  ${extra}`);});
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
