@@ -50,6 +50,7 @@ import { runObserverTests } from '../../observer/__tests__/observer-tests.mjs';
 import { runAttentionTests } from '../../ui/__tests__/attention-tests.mjs';
 import { runChipsTests } from './chips-tests.mjs';
 import { runNudgeTests } from '../../companion/__tests__/nudge-tests.mjs';
+import { runWorldAdapterTests } from './world-adapter-tests.mjs';
 import { runFirmwareGoldenTests } from './firmware-golden-tests.mjs';
 import { runXPSystemTests } from '../../__tests__/xp-system-tests.mjs';
 import { runCraftingSystemTests } from '../../systems/__tests__/crafting-system-tests.mjs';
@@ -1975,6 +1976,12 @@ runChipsTests(
 
 console.log('\ncompanion nudges');
 runNudgeTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
+
+console.log('\nworld adapter (sensor bridge)');
+runWorldAdapterTests(
   (name) => { pass++; console.log(`  ✓ ${name}`); },
   (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
 );
