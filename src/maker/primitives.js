@@ -100,6 +100,22 @@ export const SENSORS = {
     firmware: { arduino: () => 'digitalRead(BUMP_PIN) == LOW', micropython: () => '(bump.value() == 0)' },
   },
 
+  timer: {
+    id: 'timer',
+    category: 'sense',
+    kind: 'analog',
+    label: 'timer (seconds)',
+    blurb: 'seconds elapsed since the program started running. Great with wait_until, e.g. "wait until timer > 5".',
+    read: (robot) => robot.clock ?? 0,
+    hw: {
+      platform: ['uno', 'esp32', 'jetson'],
+      peripheral: 'on-chip millisecond clock',
+      pin: 'internal timer',
+      setup: { arduino: '', micropython: '' },
+    },
+    firmware: { arduino: () => '(millis() / 1000.0)', micropython: () => '(ticks_ms() / 1000)' },
+  },
+
   is_dark: {
     id: 'is_dark',
     category: 'sense',
@@ -622,7 +638,10 @@ export const ACTUATORS = {
     exec: (robot, p) => { robot.emit('score', { delta: Math.max(1, Math.floor(Number(p.amount) || 1)) }); },
     firmware: {
       arduino: (p) => `score += ${Math.max(1, Math.floor(Number(p.amount) || 1))}; Serial.print("Score: "); Serial.println(score);`,
-      micropython: (p) => `score += ${Math.max(1, Math.floor(Number(p.amount) || 1))}\nprint(f"Score: {score}")`,
+      // Single line on purpose: the codegen indents only the first line it is
+      // handed, so a literal newline here would drop print() to column 0 and
+      // break the loop body. A semicolon keeps it one valid indented statement.
+      micropython: (p) => `score += ${Math.max(1, Math.floor(Number(p.amount) || 1))}; print(f"Score: {score}")`,
     },
   },
 
@@ -897,4 +916,37 @@ export function withDefaults(actuatorId, params = {}) {
     out[key] = coerceParam(schema, params[key] ?? schema.default);
   }
   return out;
+}
+
+/**
+ * Lint an actuator's RAW params against its schema WITHOUT coercing.
+ * `coerceParam`/`withDefaults` deliberately swallow bad input at runtime (the
+ * AI safety rail — a bot must never crash on a stray value), but that silence
+ * also hides authoring mistakes: e.g. `led: 'yellow'` silently becomes 'green'
+ * and the author's intent is lost with no feedback. This surfaces those so
+ * tooling (Spark's AI output check, content tests, a future param editor) can
+ * warn instead of shrug. Returns [] when clean; each issue is a message string.
+ * Runtime behaviour is unchanged — this only reports.
+ * @param {string} actuatorId
+ * @param {object} params   raw, pre-coercion params
+ * @returns {string[]}
+ */
+export function validateParams(actuatorId, params = {}) {
+  const def = getActuator(actuatorId);
+  if (!def) return [`no such actuator "${actuatorId}"`];
+  const issues = [];
+  const schema = def.params ?? {};
+  for (const [key, val] of Object.entries(params)) {
+    const s = schema[key];
+    if (!s) { issues.push(`${actuatorId}: unknown param "${key}"`); continue; }
+    if (s.type === 'enum' && !s.values.includes(val))
+      issues.push(`${actuatorId}.${key}: "${val}" is not one of [${s.values.join(', ')}] (would silently become "${s.default ?? s.values[0]}")`);
+    if (s.type === 'number' && val != null) {
+      const n = Number(val);
+      if (Number.isNaN(n)) issues.push(`${actuatorId}.${key}: "${val}" is not a number`);
+      else if ((s.min != null && n < s.min) || (s.max != null && n > s.max))
+        issues.push(`${actuatorId}.${key}: ${n} is outside [${s.min ?? '-∞'}, ${s.max ?? '∞'}] (would be clamped)`);
+    }
+  }
+  return issues;
 }
