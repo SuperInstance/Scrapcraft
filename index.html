@@ -2177,6 +2177,15 @@
           <button id="te-challenge-check" class="te-btn te-btn-run" style="margin-top:8px;">✓ CHECK MY TILES</button>
           <button id="te-challenge-back"  class="te-btn" style="margin-top:8px;margin-left:6px;">← all challenges</button>
           <div id="te-challenge-verdict" style="display:none;"></div>
+          <button id="te-challenge-share" class="te-btn" style="display:none;margin-top:8px;">📋 Share this result</button>
+          <div id="te-challenge-sharemsg" style="display:none;font-size:10px;color:#7dd3fc;margin-top:5px;line-height:1.5;"></div>
+        </div>
+        <!-- Verify a friend's solve — paste their shared token and re-run it -->
+        <div id="te-challenge-verify" style="border-top:1px solid #2a2f22;margin-top:10px;padding:9px 12px;">
+          <div style="font-size:10px;color:#8a9098;letter-spacing:.5px;margin-bottom:5px;">🔍 VERIFY A FRIEND'S SOLVE</div>
+          <textarea id="te-challenge-token" placeholder="Paste a shared result token…" rows="2" style="width:100%;box-sizing:border-box;background:#14171b;color:#cdd6df;border:1px solid #2b3540;border-radius:6px;font-size:10px;padding:5px;resize:vertical;"></textarea>
+          <button id="te-challenge-verifybtn" class="te-btn" style="margin-top:6px;font-size:10px;">Re-run &amp; verify</button>
+          <div id="te-challenge-verifyout" style="display:none;font-size:11px;margin-top:6px;line-height:1.5;"></div>
         </div>
       </div>
     </div>
