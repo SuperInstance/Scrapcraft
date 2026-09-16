@@ -450,6 +450,10 @@ function collectAllVarNames(nodes) {
   const recur = (list) => {
     for (const n of list) {
       if (n.type === 'set_var' || n.type === 'change_var' || n.type === 'math_var' || n.type === 'random_var' || n.type === 'print' || n.type === 'read_sensor') names.add(n.name || 'count');
+      // The add_score actuator's firmware reads/writes a `score` global, so it
+      // must be declared even though it's an action node, not a var node —
+      // otherwise the emitted sketch references an undeclared identifier.
+      if (n.type === 'action' && n.prim === 'add_score') names.add('score');
       if (n.cond?.sensor?.startsWith('var:')) names.add(n.cond.sensor.slice(4));
       if (Array.isArray(n.body))     recur(n.body);
       if (Array.isArray(n.elseBody)) recur(n.elseBody);
