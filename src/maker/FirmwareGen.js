@@ -281,7 +281,7 @@ export function toMicroPython(program) {
     for (const imp of def?.hw?.pyImports ?? []) pyImports.add(imp);
   }
   for (const imp of pyImports) L.push(imp);
-  L.push('from time import sleep_ms, sleep');
+  L.push('from time import sleep_ms, sleep, ticks_ms');
   L.push('');
   // setup
   for (const id of [...used.actuators, ...used.sensors]) {
