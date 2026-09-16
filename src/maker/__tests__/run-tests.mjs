@@ -55,6 +55,7 @@ import { runWorldAdapterTests } from './world-adapter-tests.mjs';
 import { runChallengeReplayTests } from './challenge-replay-tests.mjs';
 import { runSeededRngTests } from './seeded-rng-tests.mjs';
 import { runFirmwareGoldenTests } from './firmware-golden-tests.mjs';
+import { runFirmwareEquivalenceTests } from './firmware-equivalence-tests.mjs';
 import { runXPSystemTests } from '../../__tests__/xp-system-tests.mjs';
 import { runCraftingSystemTests } from '../../systems/__tests__/crafting-system-tests.mjs';
 import { runDataIntegrityTests } from '../../data/__tests__/data-integrity-tests.mjs';
@@ -2055,6 +2056,9 @@ runVirtualRobotTests((name)=>{pass++;console.log(`  ✓ ${name}`);},(name,extra=
 
 console.log('\nfleet learning (federated tiny-ML)');
 runFleetLearningTests((name)=>{pass++;console.log(`  ✓ ${name}`);},(name,extra='')=>{fail++;console.log(`  ✗ ${name}  ${extra}`);});
+
+console.log('\nfirmware equivalence (tiles = firmware)');
+runFirmwareEquivalenceTests((name)=>{pass++;console.log(`  ✓ ${name}`);},(name,extra='')=>{fail++;console.log(`  ✗ ${name}  ${extra}`);});
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
