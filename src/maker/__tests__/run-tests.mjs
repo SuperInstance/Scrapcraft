@@ -37,6 +37,10 @@ import { runTouchTests } from '../../touch/__tests__/touch-tests.mjs';
 import { runLearningTests } from '../../learning/__tests__/learning-tests.mjs';
 import { runRadioTests } from '../../radio/__tests__/radio-tests.mjs';
 import { runUscpTests } from '../../cns/__tests__/uscp-tests.mjs';
+import { runQuiltBridgeTests } from './quilt-bridge-tests.mjs';
+import { runExplainTests } from './explain-tests.mjs';
+import { runRobotMindTests } from '../../ui/__tests__/robot-mind-tests.mjs';
+import { runParamValidationTests } from './param-validation-tests.mjs';
 import { runSaveRoundTripTests } from '../../__tests__/save-roundtrip.mjs';
 import { runJrTests } from '../../jr/__tests__/jr-tests.mjs';
 import { runZoneGateTransitionTests } from '../../__tests__/zonegate-transition.mjs';
@@ -45,7 +49,12 @@ import { runHudLayerTests } from '../../__tests__/hud-layer-tests.mjs';
 import { runObserverTests } from '../../observer/__tests__/observer-tests.mjs';
 import { runAttentionTests } from '../../ui/__tests__/attention-tests.mjs';
 import { runChipsTests } from './chips-tests.mjs';
+import { runNudgeTests } from '../../companion/__tests__/nudge-tests.mjs';
 import { runWorldAdapterTests } from './world-adapter-tests.mjs';
+import { runFirmwareGoldenTests } from './firmware-golden-tests.mjs';
+import { runXPSystemTests } from '../../__tests__/xp-system-tests.mjs';
+import { runCraftingSystemTests } from '../../systems/__tests__/crafting-system-tests.mjs';
+import { runDataIntegrityTests } from '../../data/__tests__/data-integrity-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -1965,13 +1974,58 @@ runChipsTests(
   (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
 );
 
-// ── GameWorldAdapter: the sensor-backing bridge (headless, mock world) ───────
+console.log('\ncompanion nudges');
+runNudgeTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
+
 console.log('\nworld adapter (sensor bridge)');
 runWorldAdapterTests(
   (name) => { pass++; console.log(`  ✓ ${name}`); },
   (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
 );
 
+console.log('\nquilt bridge');
+await runQuiltBridgeTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
+
+console.log('\ntrace-debugger (why did it do that?)');
+await runExplainTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
+
+console.log('\nrobot mind panel (chat/predict parsers)');
+runRobotMindTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
+
+console.log('\nparam validation');
+runParamValidationTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
+
+// ── FirmwareGen golden/structural coverage: every sensor + actuator × ──────
+// both targets, plus skeleton and control-flow structure ───────────────────
+console.log('\nFirmwareGen golden tests (coverage sweep)');
+runFirmwareGoldenTests(ok);
+
+// ── XP system: level formula, skill gating, one-time bonuses, save round-trip
+console.log('\nXP system');
+runXPSystemTests(ok);
+
+// ── Crafting system: consumption, tool gating, station/unlockAfter filtering
+console.log('\nCrafting system');
+runCraftingSystemTests(ok);
+
+// ── Recipes/items data integrity: no dupe keys, valid refs, sane quantities
+console.log('\nRecipes/items data integrity');
+runDataIntegrityTests(ok);
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

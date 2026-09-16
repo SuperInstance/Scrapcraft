@@ -342,16 +342,17 @@ export const OFFLINE_RECIPES = [
     ]}),
   },
   {
-    keywords: ['collect', 'pickup', 'gather', 'score', 'points', 'item', 'items', 'collection'],
-    reply:    "Scrap collector! It scoops items and counts them. LED blinks blue each pickup, then goes gold at 4. Every scrap yard needs a point system!",
+    keywords: ['collect', 'pickup', 'gather', 'score', 'points', 'item', 'items', 'collection', 'ore'],
+    reply:    "Ore collector! It homes in on nearby ore (Spark Brain's ore sensor), and each time it's right on top of a vein it counts a pickup — LED blinks blue, then goes gold at 4. Every scrap yard needs a point system!",
     program:  new TileProgram({ name: 'Collector Bot', brain: 'spark', nodes: [
       T.setVar('score', 0),
       T.forever([
-        T.ifElse(T.cond('item_nearby', 'gt', 0.5),
+        T.ifElse(T.cond('ore_nearby', 'gt', 0.5),
           [
             T.action('drive', { dir: 'forward', speed: 0.4 }),
-            T.if(T.is('item_collected', true), [
+            T.if(T.cond('ore_nearby', 'gt', 0.85), [
               T.changeVar('score', 1),
+              T.action('add_score', { amount: 1 }),
               T.action('led', { state: 'blue' }),
               T.action('beep', { pitch: 'high' }),
               T.wait(0.2),
@@ -368,7 +369,7 @@ export const OFFLINE_RECIPES = [
         ),
         T.if(T.varCond('score', 'gte', 4), [
           T.action('stop'),
-          T.action('led', { state: 'yellow' }),
+          T.action('led', { state: 'white' }),
           T.action('beep', { pitch: 'high' }), T.wait(0.1),
           T.action('beep', { pitch: 'mid' }), T.wait(0.1),
           T.action('beep', { pitch: 'low' }), T.wait(2),
@@ -513,7 +514,7 @@ export const OFFLINE_RECIPES = [
     keywords: ['wait until', 'pause until', 'hold until', 'stop until', 'dont move until', 'gate'],
     reply:    "Gate bot! It waits until a bumper press before launching. Great for synchronized starts or waiting for a signal before driving. The wait_until tile is a pure pause — no loop body needed!",
     program:  new TileProgram({ name: 'Gate Launcher', brain: 'tin', nodes: [
-      T.action('led', { state: 'yellow' }),
+      T.action('led', { state: 'red' }),
       T.waitUntil(T.is('bumped', true)),
       T.action('led', { state: 'green' }),
       T.action('beep', { pitch: 'high' }),

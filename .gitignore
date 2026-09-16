@@ -3,5 +3,5 @@ dist/
 .env
 .DS_Store
 
-# Agent worktrees / local Claude state
-.claude/
+# Claude Code agent worktrees (ephemeral)
+.claude/worktrees/

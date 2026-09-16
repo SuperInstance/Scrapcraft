@@ -198,7 +198,7 @@ export const RECIPES = [
     station: 'workbench',
     tool: 'wrench',
     tier: 2,
-    unlockAfter: 'r_steel_cable',
+    unlockAfter: 'steel_cable',
     foremanQuip: "Don't swing on it indoors. You WILL knock over the smelter.",
   },
   {
@@ -209,7 +209,7 @@ export const RECIPES = [
     station: 'workbench',
     tool: 'pliers',
     tier: 2,
-    unlockAfter: 'r_battery_pack',
+    unlockAfter: 'battery_pack',
     foremanQuip: "Wirelessly charges your bot. Magic? No. Physics. ...Basically magic.",
   },
   {
@@ -220,7 +220,7 @@ export const RECIPES = [
     station: 'forge',
     tool: 'hammer',
     tier: 2,
-    unlockAfter: 'r_steel_cable',
+    unlockAfter: 'steel_cable',
     foremanQuip: "Heavier than the original. Bouncier though. Everything's a trade-off.",
   },
   {
@@ -231,7 +231,7 @@ export const RECIPES = [
     station: 'forge',
     tool: 'wrench',
     tier: 2,
-    unlockAfter: 'r_generator',
+    unlockAfter: 'generator',
     foremanQuip: "A more elegant build. More gears, fewer profanities during assembly.",
   },
 
@@ -244,7 +244,7 @@ export const RECIPES = [
     station: 'smelter',
     tool: 'blowtorch',
     tier: 3,
-    unlockAfter: 'r_battery_pack',
+    unlockAfter: 'battery_pack',
     foremanQuip: "Four times the power. Zero times the respect from health and safety.",
   },
   {
@@ -274,7 +274,7 @@ export const RECIPES = [
     station: 'workbench',
     tool: 'pliers',
     tier: 2,
-    unlockAfter: 'r_tin_brain',
+    unlockAfter: 'tin_brain',
     foremanQuip: "Sees everything. Hears everything. Beeps at everything. Just like Earl.",
   },
 
@@ -339,7 +339,7 @@ export const RECIPES = [
     station: 'smelter',
     tool: 'blowtorch',
     tier: 2,
-    unlockAfter: 'r_tin_brain',
+    unlockAfter: 'tin_brain',
     foremanQuip: "WiFi. Bluetooth. More sensors. I'm choosing to be impressed rather than threatened.",
   },
   {
@@ -349,7 +349,7 @@ export const RECIPES = [
     ingredients: { circuit_board: 1, rubber_chunk: 1 },
     station: 'workbench',
     tier: 2,
-    unlockAfter: 'r_spark_brain',
+    unlockAfter: 'spark_brain',
   },
   {
     id: 'r_servo_module',
@@ -358,7 +358,7 @@ export const RECIPES = [
     ingredients: { gear_small: 2, copper_wire: 2 },
     station: 'workbench',
     tier: 2,
-    unlockAfter: 'r_spark_brain',
+    unlockAfter: 'spark_brain',
   },
 
   // ── Maker Lab — Tier 3 (Vision Brain / Jetson) ──
@@ -370,7 +370,7 @@ export const RECIPES = [
     station: 'smelter',
     tool: 'blowtorch',
     tier: 3,
-    unlockAfter: 'r_spark_brain',
+    unlockAfter: 'spark_brain',
     foremanQuip: "It can SEE? Like, with actual computer vision? ...I need a moment.",
   },
   {
@@ -380,7 +380,7 @@ export const RECIPES = [
     ingredients: { glass_shard: 2, circuit_board: 2 },
     station: 'workbench',
     tier: 3,
-    unlockAfter: 'r_vision_brain',
+    unlockAfter: 'vision_brain',
   },
   {
     id: 'r_track_strip',
@@ -508,7 +508,7 @@ export const RECIPES = [
     ingredients: { ir_module: 2, circuit_board: 1, copper_wire: 2 },
     station: 'workbench',
     tier: 2,
-    unlockAfter: 'r_ir_module',
+    unlockAfter: 'ir_module',
     foremanQuip: "Magnetometer. Detects ferromagnetic anomalies. Real geophysicists fly them over mountains to find ore from the air. You'll carry yours. Less glamorous. Same physics.",
   },
   {
@@ -518,7 +518,7 @@ export const RECIPES = [
     ingredients: { pir_module: 1, copper_wire: 3, antenna: 1 },
     station: 'workbench',
     tier: 2,
-    unlockAfter: 'r_pir_module',
+    unlockAfter: 'pir_module',
     foremanQuip: "433 MHz pulse detector. Buried caches emit a low-power RF beacon — emergency locator tech, same as an EPIRB on a life raft. Triangulate from the signal strength. Should've buried those caches deeper.",
   },
 
@@ -531,7 +531,7 @@ export const RECIPES = [
     station: 'forge',
     tier: 3,
     tool: 'blowtorch',
-    unlockAfter: 'r_scrap_magnet',
+    unlockAfter: 'scrap_magnet',
     foremanQuip: "Magnet gloves. You built FIELDS of electromagnetic attraction into a pair of work gloves. That's not craftsman — that's ENGI-wait, don't point them at my toolbox.",
   },
   {
@@ -552,7 +552,7 @@ export const RECIPES = [
     station: 'forge',
     tier: 3,
     tool: 'blowtorch',
-    unlockAfter: 'r_generator',
+    unlockAfter: 'generator',
     foremanQuip: "Steam boiler. Pressurized heat exchangers and PIDs in a scrapyard. You're automating things now. I genuinely cannot keep up.",
   },
   {
@@ -563,7 +563,7 @@ export const RECIPES = [
     station: 'forge',
     tier: 3,
     tool: 'wrench',
-    unlockAfter: 'r_steam_boiler',
+    unlockAfter: 'steam_boiler',
     foremanQuip: "Pneumatic drill. Compressed air at 90 PSI through a rotary hammer mechanism. Three times the speed on metal. You'll carve through the Deep Yard like butter. Don't carve through anything structural.",
   },
   {
@@ -574,7 +574,7 @@ export const RECIPES = [
     station: 'workbench',
     tier: 3,
     tool: 'pliers',
-    unlockAfter: 'r_antenna',
+    unlockAfter: 'antenna',
     foremanQuip: "Radar dish. Synthetic aperture in miniature — same tech aircraft use for ground mapping. Your minimap just leveled up. I'd ask how you figured this out, but I'm afraid of the answer.",
   },
   {
@@ -585,7 +585,7 @@ export const RECIPES = [
     station: 'workbench',
     tool: 'pliers',
     tier: 2,
-    unlockAfter: 'r_signal_radio',
+    unlockAfter: 'signal_radio',
     foremanQuip: "A comm relay. You patched through to my frequency. I'm choosing to be impressed, not annoyed. For now.",
   },
   {

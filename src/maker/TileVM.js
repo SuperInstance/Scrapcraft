@@ -41,10 +41,14 @@ export class TileVM {
    * @param {object} robot     VirtualRobot (or any object with setDrive/setTurn/emit + x,z,heading)
    * @param {object} world     sensor backing: lightAt/distanceAhead/playerDistance/...
    */
-  constructor(bytecode, robot, world) {
+  constructor(bytecode, robot, world, opts = {}) {
     this.code = bytecode ?? [{ op: 'HALT' }];
     this.robot = robot;
     this.world = world;
+    // Decision trace (for the "why did it do that?" explainer). OFF by default
+    // (cap 0 ⇒ _trace is a no-op), so the deterministic core and every existing
+    // VM test are untouched. The game turns it on via a small ring buffer.
+    this.traceCap = Math.max(0, opts.traceCap | 0);
     this.reset();
   }
 
@@ -60,9 +64,24 @@ export class TileVM {
     this.sensorReads = 0;   // SENSE ops fired
     this.motorActs   = 0;   // drive/turn ACT ops fired
     this.vars = {};          // named variables (set_var / change_var tiles)
+    this.trace = [];         // bounded decision trace (see traceCap)
   }
 
   get isRunning() { return !this.halted; }
+
+  /** Turn the decision trace on (or resize it). cap ≤ 0 disables + clears it. */
+  enableTrace(cap = 48) { this.traceCap = Math.max(0, cap | 0); if (this.traceCap === 0) this.trace = []; return this; }
+  /** Wipe accumulated trace entries (e.g. on program restart). */
+  clearTrace() { this.trace = []; return this; }
+
+  /** Append one trace entry, stamped with the instruction counter, keeping the
+   *  buffer bounded. A no-op when tracing is disabled — cheap on the hot path. */
+  _trace(entry) {
+    if (this.traceCap <= 0) return;
+    entry.t = this.steps;
+    this.trace.push(entry);
+    if (this.trace.length > this.traceCap) this.trace.shift();
+  }
 
   /**
    * Advance to the next source-mapped node boundary for the step debugger.
@@ -115,16 +134,21 @@ export class TileVM {
         this.pc++;
         break;
 
-      case 'SENSE':
-        this.stack.push(this._read(instr.sensor));
+      case 'SENSE': {
+        const v = this._read(instr.sensor);
+        this.stack.push(v);
         this.sensorReads++;
+        this._trace({ op: 'sense', sensor: instr.sensor, value: v });
         this.pc++;
         break;
+      }
 
       case 'CMP': {
         const b = this.stack.pop();
         const a = this.stack.pop();
-        this.stack.push(compare(a, b, instr.cmp) ? 1 : 0);
+        const r = compare(a, b, instr.cmp) ? 1 : 0;
+        this.stack.push(r);
+        this._trace({ op: 'cmp', cmp: instr.cmp, a, b, result: r });
         this.pc++;
         break;
       }
@@ -136,6 +160,7 @@ export class TileVM {
 
       case 'JZ': {
         const v = this.stack.pop();
+        this._trace({ op: 'branch', taken: v !== 0 });
         if (v === 0) this.pc = instr.target;
         else this.pc++;
         break;
@@ -148,11 +173,13 @@ export class TileVM {
       case 'ACT':
         this._act(instr.action, instr.params);
         if (instr.action === 'drive' || instr.action === 'turn') this.motorActs++;
+        this._trace({ op: 'act', action: instr.action, params: instr.params });
         this.pc++;
         break;
 
       case 'WAIT':
         this.waitRemaining = instr.seconds;
+        this._trace({ op: 'wait', seconds: instr.seconds });
         this.pc++;          // resume AT the instruction after WAIT next time
         this._yield = true; // give the frame back
         break;
@@ -213,6 +240,7 @@ export class TileVM {
       case 'READ_SENSOR':
         this.vars[instr.name] = this._read(instr.sensor);
         this.sensorReads++;
+        this._trace({ op: 'sense', sensor: instr.sensor, value: this.vars[instr.name], into: instr.name });
         this.pc++;
         break;
 
@@ -259,6 +287,7 @@ export class TileVM {
 
       case 'HALT':
         this.halted = true;
+        this._trace({ op: 'halt' });
         // Safety: cut motors when a (non-forever) program ends.
         this.robot?.setDrive?.(0);
         this.robot?.setTurn?.(0);
