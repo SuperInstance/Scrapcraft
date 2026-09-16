@@ -41,6 +41,7 @@ import { runQuiltBridgeTests } from './quilt-bridge-tests.mjs';
 import { runExplainTests } from './explain-tests.mjs';
 import { runRobotMindTests } from '../../ui/__tests__/robot-mind-tests.mjs';
 import { runParamValidationTests } from './param-validation-tests.mjs';
+import { runKinematicsTests } from './kinematics-tests.mjs';
 import { runSaveRoundTripTests } from '../../__tests__/save-roundtrip.mjs';
 import { runJrTests } from '../../jr/__tests__/jr-tests.mjs';
 import { runZoneGateTransitionTests } from '../../__tests__/zonegate-transition.mjs';
@@ -2040,6 +2041,9 @@ runCraftingSystemTests(ok);
 // ── Recipes/items data integrity: no dupe keys, valid refs, sane quantities
 console.log('\nRecipes/items data integrity');
 runDataIntegrityTests(ok);
+
+console.log('\nkinematics (compiler/sim shared constants)');
+runKinematicsTests((name)=>{pass++;console.log(`  ✓ ${name}`);},(name,extra='')=>{fail++;console.log(`  ✗ ${name}  ${extra}`);});
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
