@@ -46,6 +46,9 @@ import { runObserverTests } from '../../observer/__tests__/observer-tests.mjs';
 import { runAttentionTests } from '../../ui/__tests__/attention-tests.mjs';
 import { runChipsTests } from './chips-tests.mjs';
 import { runFirmwareGoldenTests } from './firmware-golden-tests.mjs';
+import { runXPSystemTests } from '../../__tests__/xp-system-tests.mjs';
+import { runCraftingSystemTests } from '../../systems/__tests__/crafting-system-tests.mjs';
+import { runDataIntegrityTests } from '../../data/__tests__/data-integrity-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -1969,6 +1972,18 @@ runChipsTests(
 // both targets, plus skeleton and control-flow structure ───────────────────
 console.log('\nFirmwareGen golden tests (coverage sweep)');
 runFirmwareGoldenTests(ok);
+
+// ── XP system: level formula, skill gating, one-time bonuses, save round-trip
+console.log('\nXP system');
+runXPSystemTests(ok);
+
+// ── Crafting system: consumption, tool gating, station/unlockAfter filtering
+console.log('\nCrafting system');
+runCraftingSystemTests(ok);
+
+// ── Recipes/items data integrity: no dupe keys, valid refs, sane quantities
+console.log('\nRecipes/items data integrity');
+runDataIntegrityTests(ok);
 
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
