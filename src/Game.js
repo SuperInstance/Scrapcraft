@@ -19,6 +19,7 @@ import { JrEditor } from './jr/JrEditor.js';
 import { BuildPanel } from './ui/BuildPanel.js';
 import { ChipForge, CHIPS } from './maker/Chips.js';
 import { QuiltBridge, snapshotFromRun } from './maker/QuiltBridge.js';
+import { RobotMindPanel } from './ui/RobotMindPanel.js';
 import { SpectatorCoach } from './radio/SpectatorCoach.js';
 import { installUscp } from './cns/uscp.js';
 import { SaveSystem } from './SaveSystem.js';
@@ -262,6 +263,7 @@ export class Game {
     // not depend on the Maker Lab / Quilt panel being open. Fail-soft + throttled
     // internally — a disabled or unreachable bridge is a no-op each frame.
     this._quiltBridge = new QuiltBridge();
+    this._robotMind = new RobotMindPanel(this);   // "why did it do that?" panel (Y)
     this.botAssembly = { chassis: false, wheels: false, motors: false, battery: false, arduino: false };
     this.buildPanel = new BuildPanel(this);
     // ── Spectator/coach mode (radio) ──
@@ -993,7 +995,7 @@ export class Game {
       // opt-in cloud sheet is on.
       if (e.code === 'KeyY' && !this.ui.isOpen && !this.tileEditor?.isOpen
           && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName ?? '')) {
-        this._explainActiveBot();
+        this._robotMind?.toggle();
       }
       // ── Tutorial: E completes the workshop step ──
       if (e.code === 'KeyE') {
@@ -3847,21 +3849,6 @@ export class Game {
       this._whyHintShown = true;
       this.ui?.notify('🤔 Curious what your robot is thinking? Press <b>Y</b> to ask why it just did that.');
     }
-  }
-
-  /** "Why did it do that?" — narrate the active bot's most recent decision from
-   *  the VM decision trace, through the normal notify UI. Deterministic/offline. */
-  _explainActiveBot() {
-    const bot = [this.scrapBot, this.scrapBot2].find(b => b?._brainMode && b?._runtime) ?? this.scrapBot;
-    const rt = bot?._runtime;
-    if (!rt?.explain) {
-      this.ui?.notify('🤖 No robot is running a brain yet — hit RUN in the Maker Lab, then press Y.');
-      return;
-    }
-    const ex = rt.explain();
-    const name = bot?.personality?.name ?? 'Your bot';
-    const reason = ex.reason ? `<br><span style="opacity:.8;font-size:.9em">${ex.reason}</span>` : '';
-    this.ui?.notify(`🤔 <b>${name}:</b> ${ex.headline}${reason}`);
   }
 
   /** Mirror the actively-running bot to the opt-in scrap-quilt cloud sheet.
