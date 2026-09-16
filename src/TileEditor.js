@@ -8,6 +8,7 @@ import { SENSORS, ACTUATORS, BRAINS, withDefaults } from './maker/primitives.js'
 import { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG, compile, TileVM, VirtualRobot, CHIPS } from './maker/index.js';
 import { runChallenge, MAKER_CHALLENGES, getChallenge } from './maker/MakerChallenge.js';
 import { ChallengeProgress } from './maker/ChallengeProgress.js';
+import { encodeReplay, verifyReplay } from './maker/ChallengeReplay.js';
 import { Avr109Flasher } from './maker/Avr109Flasher.js';
 import { UNO_WIRING } from './maker/PinModel.js';
 import { QuiltSheet } from './maker/QuiltSheet.js';
@@ -316,6 +317,8 @@ export class TileEditor {
     this._panel.querySelector('#te-challenge-close')?.addEventListener('click', () => this._toggleChallenge(false));
     this._panel.querySelector('#te-challenge-back')?.addEventListener('click', () => this._openChallenge(null));
     this._panel.querySelector('#te-challenge-check')?.addEventListener('click', () => this._checkChallenge());
+    this._panel.querySelector('#te-challenge-share')?.addEventListener('click', () => this._shareChallengeResult());
+    this._panel.querySelector('#te-challenge-verifybtn')?.addEventListener('click', () => this._verifyChallengeToken());
 
     this._undoBtn = this._panel.querySelector('#te-undo-btn');
     this._redoBtn = this._panel.querySelector('#te-redo-btn');
@@ -2226,6 +2229,7 @@ export class TileEditor {
     list.style.display = 'none';
     detail.style.display = '';
     if (verdict) verdict.style.display = 'none';
+    this._hideShare();
     const best = this._progress().best(c.id);
     this._panel.querySelector('#te-challenge-title').innerHTML =
       `🎯 ${_esc(c.title)} <span class="tc-detail-stars">${this._starStr(best)}</span>`;
@@ -2257,8 +2261,75 @@ export class TileEditor {
       this._panel.querySelector('#te-challenge-title').innerHTML =
         `🎯 ${_esc(c.title)} <span class="tc-detail-stars">${this._starStr(this._progress().best(c.id))}</span>`;
       this._game?.saveSystem?.markDirty?.();
+      // Passing unlocks sharing a verifiable result token.
+      this._lastPassedStars = result.stars;
+      const shareBtn = this._panel.querySelector('#te-challenge-share');
+      if (shareBtn) shareBtn.style.display = '';
+      const shareMsg = this._panel.querySelector('#te-challenge-sharemsg');
+      if (shareMsg) shareMsg.style.display = 'none';
     } else {
       verdictEl.innerHTML = `<strong>✗ NOT YET</strong><br>${_esc(result.reason)}`;
+      this._hideShare();
+    }
+  }
+
+  /** Hide the Share button + message (on fail / when switching challenges). */
+  _hideShare() {
+    const b = this._panel?.querySelector('#te-challenge-share');
+    const m = this._panel?.querySelector('#te-challenge-sharemsg');
+    if (b) b.style.display = 'none';
+    if (m) m.style.display = 'none';
+  }
+
+  /** Encode the current passing solve into a shareable, verifiable token and
+   *  copy it to the clipboard. Anyone can paste it into "Verify" to reproduce
+   *  the exact star result — the basis for fair, un-fakeable competition. */
+  _shareChallengeResult() {
+    const c = this._activeChallenge;
+    const msg = this._panel.querySelector('#te-challenge-sharemsg');
+    if (!c || !msg) return;
+    let token;
+    try {
+      token = encodeReplay(c.id, this._program);
+    } catch (e) {
+      msg.style.display = ''; msg.style.color = '#f0a0a0';
+      msg.textContent = 'Could not make a share token: ' + e.message;
+      return;
+    }
+    const stars = this._starStr(this._lastPassedStars ?? this._progress().best(c.id));
+    msg.style.display = ''; msg.style.color = '#7dd3fc';
+    const shown = token.length > 60 ? token.slice(0, 57) + '…' : token;
+    msg.innerHTML = `Result token (${stars}) — copied! Send it to a friend; they paste it in “Verify” to prove it:<br><code style="word-break:break-all;color:#9fb0bd;">${_esc(shown)}</code>`;
+    try {
+      navigator.clipboard?.writeText(token);
+    } catch { /* clipboard blocked — the token is still shown above to copy by hand */ }
+    // Also stash the full token on the element so a manual copy can grab it.
+    msg.dataset.token = token;
+  }
+
+  /** Verify a pasted result token by re-running its program against the named
+   *  challenge — proof, not a claim. Fail-soft. */
+  _verifyChallengeToken() {
+    const input = this._panel.querySelector('#te-challenge-token');
+    const out = this._panel.querySelector('#te-challenge-verifyout');
+    if (!input || !out) return;
+    const token = (input.value || '').trim();
+    out.style.display = '';
+    if (!token) { out.style.color = '#8a9098'; out.textContent = 'Paste a token first.'; return; }
+    const v = verifyReplay(token);
+    if (!v.ok) {
+      out.style.color = '#f0a0a0';
+      out.textContent = '✗ ' + (v.reason || 'Could not verify this token.');
+      return;
+    }
+    const ch = getChallenge(v.challengeId);
+    const name = ch ? ch.title : v.challengeId;
+    if (v.passed) {
+      out.style.color = '#8fe388';
+      out.innerHTML = `✓ Verified on <strong>${_esc(name)}</strong>: <span class="tc-verdict-stars">${this._starStr(v.stars)}</span> — reproduced exactly.`;
+    } else {
+      out.style.color = '#f0c040';
+      out.innerHTML = `⚠ This token runs, but does <strong>not</strong> pass <strong>${_esc(name)}</strong> (${_esc(v.reason || 'no pass')}).`;
     }
   }
 
