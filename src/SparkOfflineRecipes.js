@@ -369,7 +369,7 @@ export const OFFLINE_RECIPES = [
         ),
         T.if(T.varCond('score', 'gte', 4), [
           T.action('stop'),
-          T.action('led', { state: 'yellow' }),
+          T.action('led', { state: 'white' }),
           T.action('beep', { pitch: 'high' }), T.wait(0.1),
           T.action('beep', { pitch: 'mid' }), T.wait(0.1),
           T.action('beep', { pitch: 'low' }), T.wait(2),
@@ -514,7 +514,7 @@ export const OFFLINE_RECIPES = [
     keywords: ['wait until', 'pause until', 'hold until', 'stop until', 'dont move until', 'gate'],
     reply:    "Gate bot! It waits until a bumper press before launching. Great for synchronized starts or waiting for a signal before driving. The wait_until tile is a pure pause — no loop body needed!",
     program:  new TileProgram({ name: 'Gate Launcher', brain: 'tin', nodes: [
-      T.action('led', { state: 'yellow' }),
+      T.action('led', { state: 'red' }),
       T.waitUntil(T.is('bumped', true)),
       T.action('led', { state: 'green' }),
       T.action('beep', { pitch: 'high' }),

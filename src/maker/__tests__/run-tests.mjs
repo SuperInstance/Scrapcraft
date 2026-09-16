@@ -37,6 +37,7 @@ import { runTouchTests } from '../../touch/__tests__/touch-tests.mjs';
 import { runLearningTests } from '../../learning/__tests__/learning-tests.mjs';
 import { runRadioTests } from '../../radio/__tests__/radio-tests.mjs';
 import { runUscpTests } from '../../cns/__tests__/uscp-tests.mjs';
+import { runParamValidationTests } from './param-validation-tests.mjs';
 import { runSaveRoundTripTests } from '../../__tests__/save-roundtrip.mjs';
 import { runJrTests } from '../../jr/__tests__/jr-tests.mjs';
 import { runZoneGateTransitionTests } from '../../__tests__/zonegate-transition.mjs';
@@ -1964,6 +1965,12 @@ await runAttentionTests(ok);
 // ── Inference chips: growth determinism, mask gating, codegen snapshots ───
 console.log('\nInference chips (the crystal form)');
 runChipsTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
+
+console.log('\nparam validation');
+runParamValidationTests(
   (name) => { pass++; console.log(`  ✓ ${name}`); },
   (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
 );
