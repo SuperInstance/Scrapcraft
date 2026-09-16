@@ -101,6 +101,13 @@ export class ParticleSystem {
   }
 
   tick(dt) {
+    // Idle fast-path: with no live particles the buffers are unchanged since
+    // the last upload (the final dying particle's parked position was flushed
+    // on the frame it died, while length was still > 0). Skipping the
+    // needsUpdate flag avoids re-uploading 2400 idle floats to the GPU every
+    // frame — a real saving on weak Chromebook GPUs in the common no-FX state.
+    if (this._particles.length === 0) return;
+
     let i = 0;
     while (i < this._particles.length) {
       const p = this._particles[i];
