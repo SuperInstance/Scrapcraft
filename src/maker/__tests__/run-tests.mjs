@@ -41,7 +41,6 @@ import { runQuiltBridgeTests } from './quilt-bridge-tests.mjs';
 import { runExplainTests } from './explain-tests.mjs';
 import { runRobotMindTests } from '../../ui/__tests__/robot-mind-tests.mjs';
 import { runParamValidationTests } from './param-validation-tests.mjs';
-import { runKinematicsTests } from './kinematics-tests.mjs';
 import { runSaveRoundTripTests } from '../../__tests__/save-roundtrip.mjs';
 import { runJrTests } from '../../jr/__tests__/jr-tests.mjs';
 import { runZoneGateTransitionTests } from '../../__tests__/zonegate-transition.mjs';
@@ -50,6 +49,7 @@ import { runHudLayerTests } from '../../__tests__/hud-layer-tests.mjs';
 import { runObserverTests } from '../../observer/__tests__/observer-tests.mjs';
 import { runAttentionTests } from '../../ui/__tests__/attention-tests.mjs';
 import { runChipsTests } from './chips-tests.mjs';
+import { runKinematicsTests } from './kinematics-tests.mjs';
 import { runNudgeTests } from '../../companion/__tests__/nudge-tests.mjs';
 import { runWorldAdapterTests } from './world-adapter-tests.mjs';
 import { runChallengeReplayTests } from './challenge-replay-tests.mjs';
@@ -58,6 +58,7 @@ import { runFirmwareGoldenTests } from './firmware-golden-tests.mjs';
 import { runXPSystemTests } from '../../__tests__/xp-system-tests.mjs';
 import { runCraftingSystemTests } from '../../systems/__tests__/crafting-system-tests.mjs';
 import { runDataIntegrityTests } from '../../data/__tests__/data-integrity-tests.mjs';
+import { runVirtualRobotTests } from './virtualrobot-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -1977,6 +1978,12 @@ runChipsTests(
   (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
 );
 
+console.log('\nkinematics (single source of truth)');
+runKinematicsTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
+
 console.log('\ncompanion nudges');
 runNudgeTests(
   (name) => { pass++; console.log(`  ✓ ${name}`); },
@@ -2042,8 +2049,8 @@ runCraftingSystemTests(ok);
 console.log('\nRecipes/items data integrity');
 runDataIntegrityTests(ok);
 
-console.log('\nkinematics (compiler/sim shared constants)');
-runKinematicsTests((name)=>{pass++;console.log(`  ✓ ${name}`);},(name,extra='')=>{fail++;console.log(`  ✗ ${name}  ${extra}`);});
+console.log('\nvirtual robot (physics)');
+runVirtualRobotTests((name)=>{pass++;console.log(`  ✓ ${name}`);},(name,extra='')=>{fail++;console.log(`  ✗ ${name}  ${extra}`);});
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
