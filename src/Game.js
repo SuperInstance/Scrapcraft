@@ -18,6 +18,7 @@ import { TileEditor } from './TileEditor.js';
 import { JrEditor } from './jr/JrEditor.js';
 import { BuildPanel } from './ui/BuildPanel.js';
 import { ChipForge, CHIPS } from './maker/Chips.js';
+import { QuiltBridge, snapshotFromRun } from './maker/QuiltBridge.js';
 import { SpectatorCoach } from './radio/SpectatorCoach.js';
 import { installUscp } from './cns/uscp.js';
 import { SaveSystem } from './SaveSystem.js';
@@ -280,6 +281,11 @@ export class Game {
     // The forge clock is ticked in update(); growth is game-loop-ticked so
     // the cold shelf keeps running with the panel closed.
     this.chipForge  = new ChipForge();
+    // Opt-in cloud mirror (scrap-quilt). Off by default; the game loop feeds it
+    // whichever bot is actively running, so telemetry follows the run and does
+    // not depend on the Maker Lab / Quilt panel being open. Fail-soft + throttled
+    // internally — a disabled or unreachable bridge is a no-op each frame.
+    this._quiltBridge = new QuiltBridge();
     this.botAssembly = { chassis: false, wheels: false, motors: false, battery: false, arduino: false };
     this.buildPanel = new BuildPanel(this);
     // ── Spectator/coach mode (radio) ──
@@ -2973,6 +2979,7 @@ export class Game {
 
     this.scrapBot.tick(dt, this.world);
     if (this.scrapBot2) this.scrapBot2.tick(dt, this.world);
+    this._emitQuiltTelemetry();
 
     // Cold-shelf timer: real minutes ticked by the game loop (chips lane).
     // Finished growths announce themselves — crack of dawn, literally.
@@ -3842,6 +3849,19 @@ export class Game {
     }
     this.ui.showBotBadge(true);
     this.ui.updateBotBond(bot.personality.name, bot.personality.bond);
+  }
+
+  /** Mirror the actively-running bot to the opt-in scrap-quilt cloud sheet.
+   *  Called every frame; the bridge is off by default and throttles/fails soft
+   *  internally, so this is a cheap no-op unless a person has opted in AND a bot
+   *  is running a program. Fire-and-forget — telemetry never blocks the loop. */
+  _emitQuiltTelemetry() {
+    const bridge = this._quiltBridge;
+    if (!bridge) return;
+    const bot = [this.scrapBot, this.scrapBot2].find(b => b?._brainMode && b?._runtime);
+    const rt = bot?._runtime;
+    if (!rt) return;
+    bridge.postTick(snapshotFromRun(rt, rt.world));   // Promise ignored on purpose
   }
 
   _updateSpeechBubble(bot, el) {
