@@ -2,4 +2,6 @@ node_modules
 dist/
 .env
 .DS_Store
+
+# Claude Code agent worktrees (ephemeral)
 .claude/worktrees/
