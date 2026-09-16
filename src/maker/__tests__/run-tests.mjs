@@ -39,6 +39,7 @@ import { runRadioTests } from '../../radio/__tests__/radio-tests.mjs';
 import { runUscpTests } from '../../cns/__tests__/uscp-tests.mjs';
 import { runQuiltBridgeTests } from './quilt-bridge-tests.mjs';
 import { runExplainTests } from './explain-tests.mjs';
+import { runRobotMindTests } from '../../ui/__tests__/robot-mind-tests.mjs';
 import { runParamValidationTests } from './param-validation-tests.mjs';
 import { runSaveRoundTripTests } from '../../__tests__/save-roundtrip.mjs';
 import { runJrTests } from '../../jr/__tests__/jr-tests.mjs';
@@ -1983,6 +1984,12 @@ await runExplainTests(
   (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
 );
 
+console.log('\nrobot mind panel (chat/predict parsers)');
+runRobotMindTests(
+  (name) => { pass++; console.log(`  ✓ ${name}`); },
+  (name, extra = '') => { fail++; console.log(`  ✗ ${name}  ${extra}`); },
+);
+
 console.log('\nparam validation');
 runParamValidationTests(
   (name) => { pass++; console.log(`  ✓ ${name}`); },
@@ -2005,7 +2012,6 @@ runCraftingSystemTests(ok);
 // ── Recipes/items data integrity: no dupe keys, valid refs, sane quantities
 console.log('\nRecipes/items data integrity');
 runDataIntegrityTests(ok);
-
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
