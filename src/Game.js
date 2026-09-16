@@ -1011,6 +1011,14 @@ export class Game {
           && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName ?? '')) {
         this._openMosLedger();
       }
+      // "Why did it do that?" — the trace-debugger (press Y). The active bot
+      // explains its most recent decision in plain English, straight from the
+      // VM's decision trace. Deterministic + offline; works whether or not the
+      // opt-in cloud sheet is on.
+      if (e.code === 'KeyY' && !this.ui.isOpen && !this.tileEditor?.isOpen
+          && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName ?? '')) {
+        this._explainActiveBot();
+      }
       // ── Tutorial: E completes the workshop step ──
       if (e.code === 'KeyE') {
         if (this._tutorialActive) this._tutorialEvent('open_bench');
@@ -2980,6 +2988,7 @@ export class Game {
     this.scrapBot.tick(dt, this.world);
     if (this.scrapBot2) this.scrapBot2.tick(dt, this.world);
     this._emitQuiltTelemetry();
+    this._maybeHintWhy();
 
     // Cold-shelf timer: real minutes ticked by the game loop (chips lane).
     // Finished growths announce themselves — crack of dawn, literally.
@@ -3849,6 +3858,34 @@ export class Game {
     }
     this.ui.showBotBadge(true);
     this.ui.updateBotBond(bot.personality.name, bot.personality.bond);
+  }
+
+  /** One-time nudge teaching the Y hotkey, ~4s after a brain first runs. */
+  _maybeHintWhy() {
+    if (this._whyHintShown) return;
+    const running = [this.scrapBot, this.scrapBot2].some(b => b?._brainMode && b?._runtime?.isRunning);
+    if (!running) { this._whyRunSince = 0; return; }
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    if (!this._whyRunSince) { this._whyRunSince = now; return; }
+    if (now - this._whyRunSince > 4000) {
+      this._whyHintShown = true;
+      this.ui?.notify('🤔 Curious what your robot is thinking? Press <b>Y</b> to ask why it just did that.');
+    }
+  }
+
+  /** "Why did it do that?" — narrate the active bot's most recent decision from
+   *  the VM decision trace, through the normal notify UI. Deterministic/offline. */
+  _explainActiveBot() {
+    const bot = [this.scrapBot, this.scrapBot2].find(b => b?._brainMode && b?._runtime) ?? this.scrapBot;
+    const rt = bot?._runtime;
+    if (!rt?.explain) {
+      this.ui?.notify('🤖 No robot is running a brain yet — hit RUN in the Maker Lab, then press Y.');
+      return;
+    }
+    const ex = rt.explain();
+    const name = bot?.personality?.name ?? 'Your bot';
+    const reason = ex.reason ? `<br><span style="opacity:.8;font-size:.9em">${ex.reason}</span>` : '';
+    this.ui?.notify(`🤔 <b>${name}:</b> ${ex.headline}${reason}`);
   }
 
   /** Mirror the actively-running bot to the opt-in scrap-quilt cloud sheet.

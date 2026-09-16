@@ -28,6 +28,8 @@ export { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG } from './Firmwar
 export { SENSORS, ACTUATORS, BRAINS, chipForPrimitive, validateParams } from './primitives.js';
 export { GameWorldAdapter } from './GameWorldAdapter.js';
 export { QuiltBridge, snapshotScrapQuiltCells, snapshotFromRun, activeTileLabel, isQuiltBridgeEnabled, setQuiltBridgeEnabled, DEFAULT_QUILT_URL } from './QuiltBridge.js';
+export { explainTrace, narrateSnapshot, describeAction } from './explain.js';
+import { explainTrace } from './explain.js';
 export { runChallenge, getChallenge, MAKER_CHALLENGES, ChallengeWorld, countTiles } from './MakerChallenge.js';
 export { ChallengeProgress } from './ChallengeProgress.js';
 export {
@@ -52,7 +54,7 @@ export class MakerRuntime {
     this.warnings = result.warnings;
     this.ok = result.ok;
     this.sourceMap = result.sourceMap ?? [];
-    this.vm = new TileVM(result.bytecode, this.robot, world);
+    this.vm = new TileVM(result.bytecode, this.robot, world, { traceCap: 48 });
 
     this.elapsedMs    = 0;
     this.stepsPerSec  = 0;
@@ -83,7 +85,7 @@ export class MakerRuntime {
     this.warnings = result.warnings;
     this.ok = result.ok;
     this.sourceMap = result.sourceMap ?? [];
-    this.vm = new TileVM(result.bytecode, this.robot, this.world);
+    this.vm = new TileVM(result.bytecode, this.robot, this.world, { traceCap: 48 });
     this.elapsedMs   = 0;
     this.stepsPerSec = 0;
     this.budgetPct   = 0;
@@ -92,4 +94,8 @@ export class MakerRuntime {
 
   drainEvents() { return this.robot.drainEvents(); }
   get isRunning() { return this.vm.isRunning; }
+
+  /** Plain-English "why did it do that?" narration of the live decision trace.
+   *  Deterministic and offline — see explain.js. */
+  explain() { return explainTrace(this.vm?.trace ?? []); }
 }
