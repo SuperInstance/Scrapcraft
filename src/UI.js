@@ -2,6 +2,7 @@ import { getItem } from './data/items.js';
 import { BLOCK_DEF } from './data/blocks.js';
 import { ACHIEVEMENT_LIST } from './Achievements.js';
 import { RaceBoard } from './RaceBoard.js';
+import { injectA11yStyles, makeKeyboardActivatable, trapFocus, markLiveRegion } from './a11y.js';
 
 // ── Engineering Codex entries (teaches real science, middle-school tone) ──
 const CODEX = [
@@ -171,9 +172,11 @@ const CODEX = [
 
 export class UI {
   constructor(game) {
+    injectA11yStyles();
     this.game = game;
     this._hotbar          = document.getElementById('hotbar');
     this._overlay         = document.getElementById('overlay');
+    this._invPanel        = document.getElementById('inv-panel');
     this._invGrid         = document.getElementById('inv-grid');
     this._recipeList      = document.getElementById('recipe-list');
     this._craftBtn        = document.getElementById('craft-btn');
@@ -228,6 +231,13 @@ export class UI {
     this._blockLabelLast  = undefined;
     this._activeLabelTxt  = null;
     this._hotbarSlots     = [];   // cached {el, icon, count} refs + last-written strings
+
+    // Dynamic HUD text (toasts, notifications) gets announced to screen
+    // readers as it changes — additive, no visual effect.
+    markLiveRegion(this._notifContainer);
+    markLiveRegion(this._achieveToast);
+    markLiveRegion(this._zoneToast);
+    markLiveRegion(this._levelupToast);
 
     this._buildHotbar();
     this._buildCodex();
@@ -548,6 +558,12 @@ export class UI {
     this._renderInventory();
     this._renderRecipes();
     document.exitPointerLock();
+
+    // Keyboard a11y: move focus into the panel and trap Tab/Shift+Tab
+    // inside it while the workshop is open.
+    this._invUntrapFocus?.();
+    this._invUntrapFocus = trapFocus(this._invPanel);
+    document.querySelector('.tab-btn')?.focus?.();
   }
 
   closeInventory() {
@@ -557,6 +573,9 @@ export class UI {
     this._selectedRecipe = null;
     this._craftBtn.style.display = 'none';
     this._craftBtnX5.style.display = 'none';
+    // Keyboard a11y: release the Tab trap now that the panel is closed.
+    this._invUntrapFocus?.();
+    this._invUntrapFocus = null;
     // Guarded: unguarded requestPointerLock() here froze tabs when the browser
     // denies the lock (no user gesture / headless) — rig v2 P1.
     try { document.getElementById('game-canvas')?.requestPointerLock?.(); } catch { /* lock denied — fine */ }
@@ -674,16 +693,21 @@ export class UI {
   _renderAchievements() {
     const list = document.getElementById('ach-list');
     if (!list) return;
+    if (!list.hasAttribute('role')) list.setAttribute('role', 'list');
+    const escAttr = s => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const all = this.game.achievements.getAll();
-    list.innerHTML = all.map(a => `
-      <div class="ach-item ${a.done ? 'done' : 'locked'}">
-        <span class="ach-icon">${a.icon}</span>
+    list.innerHTML = all.map(a => {
+      const status = a.done ? `${a.desc} — unlocked` : 'locked';
+      return `
+      <div class="ach-item ${a.done ? 'done' : 'locked'}" role="listitem" aria-label="${escAttr(a.name)}: ${escAttr(status)}">
+        <span class="ach-icon" aria-hidden="true">${a.icon}</span>
         <div class="ach-info">
           <div class="ach-name">${a.name}</div>
           <div class="ach-desc">${a.done ? a.desc : '???'}</div>
         </div>
-        ${a.done ? '<span class="ach-check">✓</span>' : ''}
-      </div>`).join('');
+        ${a.done ? '<span class="ach-check" aria-hidden="true">✓</span>' : ''}
+      </div>`;
+    }).join('');
   }
 
   onAchievement(id) {
@@ -715,10 +739,10 @@ export class UI {
     if (!this._codexList) return;
     this._codexList.innerHTML = CODEX.map(e => `
       <div class="codex-entry" data-id="${e.id}">
-        <span>${e.icon}</span> ${e.title}
+        <span aria-hidden="true">${e.icon}</span> ${e.title}
       </div>`).join('');
     this._codexList.querySelectorAll('.codex-entry').forEach(el => {
-      el.addEventListener('click', () => this._showCodexEntry(el.dataset.id));
+      makeKeyboardActivatable(el, () => this._showCodexEntry(el.dataset.id));
     });
   }
 
@@ -1311,6 +1335,12 @@ export class UI {
     panel.querySelectorAll('.bup-install').forEach(btn => {
       btn.addEventListener('click', () => onPurchase?.(btn.dataset.id));
     });
+    // Keyboard a11y: Esc closes this ad-hoc panel too, and it takes focus
+    // on open so Tab reaches its buttons immediately (matches LogbookPanel /
+    // BackRoomPanel's existing pattern).
+    panel.addEventListener('keydown', e => { if (e.code === 'Escape') panel.remove(); });
+    panel.tabIndex = 0;
+    panel.focus();
 
     return panel;
   }
@@ -1359,6 +1389,11 @@ export class UI {
     `;
     document.getElementById('hud').appendChild(panel);
     panel.querySelector('#rb-close').addEventListener('click', () => panel.remove());
+    // Keyboard a11y: same Esc-to-close + initial-focus pattern as the other
+    // ad-hoc HUD panels.
+    panel.addEventListener('keydown', e => { if (e.code === 'Escape') panel.remove(); });
+    panel.tabIndex = 0;
+    panel.focus();
     return panel;
   }
 
@@ -1369,8 +1404,23 @@ export class UI {
     const isOpen = panel.classList.toggle('open');
     // OBSERVER: field guide surface open/close (C key + codex button)
     try { isOpen ? this.game?.observer?.menuOpen?.('codex') : this.game?.observer?.menuClose?.('codex'); } catch { /* observer is a garnish */ }
-    if (!isOpen) return;
+    if (!isOpen) {
+      // Keyboard a11y: release the Tab trap and hand focus back to whatever
+      // had it before the panel opened (e.g. the game canvas).
+      this._codexUntrapFocus?.();
+      this._codexUntrapFocus = null;
+      this._codexReturnFocus?.focus?.();
+      this._codexReturnFocus = null;
+      return;
+    }
     this._renderCodex(codex, 'all');
+    // Keyboard a11y: remember what had focus, move focus into the panel, and
+    // trap Tab/Shift+Tab inside it while it's open.
+    this._codexReturnFocus = document.activeElement;
+    if (!panel.hasAttribute('tabindex')) panel.tabIndex = -1;
+    panel.focus();
+    this._codexUntrapFocus?.();
+    this._codexUntrapFocus = trapFocus(panel);
     if (!panel.dataset.listenersAttached) {
       panel.dataset.listenersAttached = '1';
       panel.querySelectorAll('.cx-filter-btn').forEach(btn => {
@@ -1381,10 +1431,17 @@ export class UI {
         });
       });
       // Close button bypasses toggleCodex — log the surface close here too.
-      panel.querySelector('#codex-close').onclick = () => {
+      const closeCodex = () => {
         panel.classList.remove('open');
+        this._codexUntrapFocus?.();
+        this._codexUntrapFocus = null;
         try { this.game?.observer?.menuClose?.('codex'); } catch { /* observer is a garnish */ }
+        this._codexReturnFocus?.focus?.();
+        this._codexReturnFocus = null;
       };
+      makeKeyboardActivatable(panel.querySelector('#codex-close'), closeCodex);
+      // Escape closes the panel too, matching the other HUD drawers.
+      panel.addEventListener('keydown', e => { if (e.code === 'Escape') closeCodex(); });
     }
   }
 
@@ -1412,7 +1469,7 @@ export class UI {
     detail.innerHTML = `<div id="codex-detail-empty">Select an item to see details</div>`;
 
     grid.querySelectorAll('.cx-card:not(.unknown)').forEach(card => {
-      card.addEventListener('click', () => {
+      makeKeyboardActivatable(card, () => {
         grid.querySelectorAll('.cx-card').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
         const item = all.find(i => i.id === card.dataset.id);

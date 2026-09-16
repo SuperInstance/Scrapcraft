@@ -4,4 +4,4 @@ dist/
 .DS_Store
 
 # Claude Code agent worktrees (ephemeral)
-.claude/
+.claude/worktrees/

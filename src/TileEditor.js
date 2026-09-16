@@ -6,6 +6,8 @@
 import { TileProgram, EXAMPLE_WALL_AVOIDER, EXAMPLE_LIGHT_RUNNER, EXAMPLE_SQUARE, EXAMPLE_LINE_FOLLOWER, EXAMPLE_WAYPOINT_NAV, EXAMPLE_ORE_HUNTER, EXAMPLE_BATTERY_SAVER, EXAMPLE_BUMP_COUNTER } from './maker/TileProgram.js';
 import { SENSORS, ACTUATORS, BRAINS, withDefaults } from './maker/primitives.js';
 import { toArduino, toMicroPython, toWokwiDiagram, toWiringSVG, compile, TileVM, VirtualRobot, CHIPS } from './maker/index.js';
+import { runChallenge, MAKER_CHALLENGES, getChallenge } from './maker/MakerChallenge.js';
+import { ChallengeProgress } from './maker/ChallengeProgress.js';
 import { Avr109Flasher } from './maker/Avr109Flasher.js';
 import { UNO_WIRING } from './maker/PinModel.js';
 import { QuiltSheet } from './maker/QuiltSheet.js';
@@ -309,6 +311,10 @@ export class TileEditor {
     this._panel.querySelector('#te-share-btn')?.addEventListener('click', () => this._shareProgram());
     this._panel.querySelector('#te-receipt-btn')?.addEventListener('click', () => this._showFlashReceipt());
     this._panel.querySelector('#te-gallery-btn')?.addEventListener('click', () => this._gallery?.open());
+    this._panel.querySelector('#te-challenge-btn')?.addEventListener('click', () => this._toggleChallenge());
+    this._panel.querySelector('#te-challenge-close')?.addEventListener('click', () => this._toggleChallenge(false));
+    this._panel.querySelector('#te-challenge-back')?.addEventListener('click', () => this._openChallenge(null));
+    this._panel.querySelector('#te-challenge-check')?.addEventListener('click', () => this._checkChallenge());
 
     this._undoBtn = this._panel.querySelector('#te-undo-btn');
     this._redoBtn = this._panel.querySelector('#te-redo-btn');
@@ -2174,6 +2180,103 @@ export class TileEditor {
         this._sparkFirstOpen = false;
         this._playSparkGreeting();
       }
+    }
+  }
+
+  // ── Maker Challenges ──────────────────────────────────────────────────────
+  /** Lazily-created progress store (best stars per challenge, persisted). */
+  _progress() {
+    if (!this._challengeProgress) this._challengeProgress = new ChallengeProgress();
+    return this._challengeProgress;
+  }
+
+  /** Render 0..3 stars, filled up to `n`. */
+  _starStr(n, max = 3) {
+    return '★'.repeat(Math.max(0, n)) + '☆'.repeat(Math.max(0, max - n));
+  }
+
+  /** Show/hide the challenge panel. Pass false to force-close. */
+  _toggleChallenge(force) {
+    const panel = this._panel.querySelector('#te-challenge-panel');
+    if (!panel) return;
+    this._challengeOpen = force === false ? false : !this._challengeOpen;
+    panel.style.display = this._challengeOpen ? 'flex' : 'none';
+    const btn = this._panel.querySelector('#te-challenge-btn');
+    if (btn) { btn.style.borderColor = this._challengeOpen ? '#f0b429' : ''; btn.style.color = this._challengeOpen ? '#f0b429' : ''; }
+    if (this._challengeOpen) { this._renderChallengeList(); this._openChallenge(this._activeChallenge?.id ?? null); }
+  }
+
+  /** Update the "★ 7/24 · 3/8 solved" progress line in the panel header. */
+  _renderChallengeProgress() {
+    const el = this._panel.querySelector('#te-challenge-progress');
+    if (!el) return;
+    const s = this._progress().summary(MAKER_CHALLENGES);
+    el.textContent = `★ ${s.stars}/${s.maxStars} · ${s.solved}/${s.total} solved` + (s.complete ? '  🏆' : '');
+  }
+
+  _renderChallengeList() {
+    const list = this._panel.querySelector('#te-challenge-list');
+    if (!list) return;
+    this._renderChallengeProgress();
+    list.innerHTML = '';
+    const prog = this._progress();
+    for (const c of MAKER_CHALLENGES) {
+      const best = prog.best(c.id);
+      const item = document.createElement('div');
+      item.className = 'tc-item' + (best >= 1 ? ' tc-solved' : '');
+      const badge = best >= 1 ? `<span class="tc-item-stars">${this._starStr(best)}</span>` : '';
+      item.innerHTML = `<div class="tc-item-row"><span class="tc-item-title">${best >= 1 ? '✓ ' : ''}${_esc(c.title)}</span>${badge}</div>`
+        + `<div class="tc-item-skill">${_esc(c.skill || '')}</div>`;
+      item.addEventListener('click', () => this._openChallenge(c.id));
+      list.appendChild(item);
+    }
+  }
+
+  /** Show one challenge's brief (id), or return to the list (null). */
+  _openChallenge(id) {
+    const list   = this._panel.querySelector('#te-challenge-list');
+    const detail = this._panel.querySelector('#te-challenge-detail');
+    const verdict = this._panel.querySelector('#te-challenge-verdict');
+    if (!list || !detail) return;
+    const c = id ? getChallenge(id) : null;
+    this._activeChallenge = c;
+    if (!c) { list.style.display = ''; detail.style.display = 'none'; this._renderChallengeList(); return; }
+    list.style.display = 'none';
+    detail.style.display = '';
+    if (verdict) verdict.style.display = 'none';
+    const best = this._progress().best(c.id);
+    this._panel.querySelector('#te-challenge-title').innerHTML =
+      `🎯 ${_esc(c.title)} <span class="tc-detail-stars">${this._starStr(best)}</span>`;
+    this._panel.querySelector('#te-challenge-brief').textContent = c.brief;
+  }
+
+  /** Run the current tiles against the active challenge and show the verdict. */
+  _checkChallenge() {
+    const c = this._activeChallenge;
+    const verdictEl = this._panel.querySelector('#te-challenge-verdict');
+    if (!c || !verdictEl) return;
+    let result;
+    try {
+      result = runChallenge(this._program, c);
+    } catch (e) {
+      result = { passed: false, stars: 0, reason: 'Something went wrong running the check: ' + e.message };
+    }
+    verdictEl.style.display = '';
+    verdictEl.className = result.passed ? 'tc-pass' : 'tc-fail';
+    if (result.passed) {
+      const improved = this._progress().record(c.id, result.stars);
+      const stars = `<span class="tc-verdict-stars">${this._starStr(result.stars)}</span>`;
+      const extra = result.stars < 3
+        ? `<div class="tc-hint">${result.stars === 1 ? 'Solved! Fewer tiles earns ★★.' : 'Nice — master it for ★★★.'}</div>`
+        : `<div class="tc-hint">Perfect — three stars! 🏆</div>`;
+      verdictEl.innerHTML = `<strong>✓ PASSED</strong> ${stars}<br>${_esc(result.reason)}${extra}`
+        + (improved ? '<div class="tc-hint">New best!</div>' : '');
+      this._renderChallengeProgress();
+      this._panel.querySelector('#te-challenge-title').innerHTML =
+        `🎯 ${_esc(c.title)} <span class="tc-detail-stars">${this._starStr(this._progress().best(c.id))}</span>`;
+      this._game?.saveSystem?.markDirty?.();
+    } else {
+      verdictEl.innerHTML = `<strong>✗ NOT YET</strong><br>${_esc(result.reason)}`;
     }
   }
 

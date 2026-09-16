@@ -100,6 +100,22 @@ export const SENSORS = {
     firmware: { arduino: () => 'digitalRead(BUMP_PIN) == LOW', micropython: () => '(bump.value() == 0)' },
   },
 
+  timer: {
+    id: 'timer',
+    category: 'sense',
+    kind: 'analog',
+    label: 'timer (seconds)',
+    blurb: 'seconds elapsed since the program started running. Great with wait_until, e.g. "wait until timer > 5".',
+    read: (robot) => robot.clock ?? 0,
+    hw: {
+      platform: ['uno', 'esp32', 'jetson'],
+      peripheral: 'on-chip millisecond clock',
+      pin: 'internal timer',
+      setup: { arduino: '', micropython: '' },
+    },
+    firmware: { arduino: () => '(millis() / 1000.0)', micropython: () => '(ticks_ms() / 1000)' },
+  },
+
   is_dark: {
     id: 'is_dark',
     category: 'sense',
@@ -622,7 +638,10 @@ export const ACTUATORS = {
     exec: (robot, p) => { robot.emit('score', { delta: Math.max(1, Math.floor(Number(p.amount) || 1)) }); },
     firmware: {
       arduino: (p) => `score += ${Math.max(1, Math.floor(Number(p.amount) || 1))}; Serial.print("Score: "); Serial.println(score);`,
-      micropython: (p) => `score += ${Math.max(1, Math.floor(Number(p.amount) || 1))}\nprint(f"Score: {score}")`,
+      // Single line on purpose: the codegen indents only the first line it is
+      // handed, so a literal newline here would drop print() to column 0 and
+      // break the loop body. A semicolon keeps it one valid indented statement.
+      micropython: (p) => `score += ${Math.max(1, Math.floor(Number(p.amount) || 1))}; print(f"Score: {score}")`,
     },
   },
 

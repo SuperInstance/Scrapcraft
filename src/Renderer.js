@@ -104,11 +104,21 @@ export class Renderer {
     this._headlamp.target.position.set(0, 0, -10);
     this.scene.add(this.camera);
 
+    // Resize is bursty — a window drag, an orientation flip, or the Chromebook
+    // on-screen keyboard fires it many times in one frame. Each setSize()
+    // reallocates the WebGL framebuffer, so coalesce the burst into a single
+    // resize on the next animation frame: only the final size matters.
+    this._resizePending = false;
     window.addEventListener('resize', () => {
-      const w = window.innerWidth, h = window.innerHeight;
-      this.camera.aspect = w / h;
-      this.camera.updateProjectionMatrix();
-      this.renderer.setSize(w, h);
+      if (this._resizePending) return;
+      this._resizePending = true;
+      requestAnimationFrame(() => {
+        this._resizePending = false;
+        const w = window.innerWidth, h = window.innerHeight;
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(w, h);
+      });
     });
 
     this.raycaster = new THREE.Raycaster();
