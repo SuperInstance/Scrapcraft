@@ -38,6 +38,10 @@ export {
   JITTER_BOUNDS, ECHO_CAP, ECHO_STEP_S,
   sha256Hex, rngFromSeed, growthSeed, growOutcome, makeChip, ChipForge,
 } from './Chips.js';
+// Fleet Learning: deterministic federated-tiny-ML ENGINE (frozen backbone +
+// tiny trainable head + FedAvg). Headless core only — a classroom tile/UI is
+// a follow-up. See FleetLearning.js's docstring for the design.
+export { makeFeatures, trainHead, predict, fedAvg, fedRound, RAW_DIM, FEATURE_DIM } from './FleetLearning.js';
 
 export class MakerRuntime {
   /**

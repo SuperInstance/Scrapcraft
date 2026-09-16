@@ -59,6 +59,7 @@ import { runXPSystemTests } from '../../__tests__/xp-system-tests.mjs';
 import { runCraftingSystemTests } from '../../systems/__tests__/crafting-system-tests.mjs';
 import { runDataIntegrityTests } from '../../data/__tests__/data-integrity-tests.mjs';
 import { runVirtualRobotTests } from './virtualrobot-tests.mjs';
+import { runFleetLearningTests } from './fleet-learning-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -2051,6 +2052,9 @@ runDataIntegrityTests(ok);
 
 console.log('\nvirtual robot (physics)');
 runVirtualRobotTests((name)=>{pass++;console.log(`  ✓ ${name}`);},(name,extra='')=>{fail++;console.log(`  ✗ ${name}  ${extra}`);});
+
+console.log('\nfleet learning (federated tiny-ML)');
+runFleetLearningTests((name)=>{pass++;console.log(`  ✓ ${name}`);},(name,extra='')=>{fail++;console.log(`  ✗ ${name}  ${extra}`);});
 // ── summary ────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);
