@@ -1,0 +1,29 @@
+{
+  "canon": "1",
+  "name": "Scrapcraft",
+  "mission": "Browser-based 3D voxel game in an industrial scrapyard — middle schoolers build robots, program them with AI, and learn embedded engineering.",
+  "state": "active",
+  "family": "applications",
+  "vessel": "fleet",
+  "born_from": [],
+  "feeds": [],
+  "owed_by": [],
+  "canonical_docs": [
+    "README.md"
+  ],
+  "ledger": "git-log",
+  "verified": "2026-09-20",
+  "schema": "fleet-canon/1",
+  "generated": "2026-09-20",
+  "generator": "canon-lint --emit-json (CCC)",
+  "agent_facing": {
+    "test_contract": {
+      "cmd": null,
+      "probe": "look for package.json / Cargo.toml / Makefile / CI workflow"
+    },
+    "key_paths": [],
+    "onboarding": [
+      "Read CANON.md, then the first canonical_doc, then run the test contract before touching anything."
+    ]
+  }
+}
