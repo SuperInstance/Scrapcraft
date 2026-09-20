@@ -61,6 +61,7 @@ import { runCraftingSystemTests } from '../../systems/__tests__/crafting-system-
 import { runDataIntegrityTests } from '../../data/__tests__/data-integrity-tests.mjs';
 import { runVirtualRobotTests } from './virtualrobot-tests.mjs';
 import { runFleetLearningTests } from './fleet-learning-tests.mjs';
+import { runDriveGestureTests } from './drive-gesture-tests.mjs';
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -2056,6 +2057,9 @@ runVirtualRobotTests((name)=>{pass++;console.log(`  ✓ ${name}`);},(name,extra=
 
 console.log('\nfleet learning (federated tiny-ML)');
 runFleetLearningTests((name)=>{pass++;console.log(`  ✓ ${name}`);},(name,extra='')=>{fail++;console.log(`  ✗ ${name}  ${extra}`);});
+
+console.log('\ndrive gesture (shape of the drive)');
+runDriveGestureTests(ok);
 
 console.log('\nfirmware equivalence (tiles = firmware)');
 runFirmwareEquivalenceTests((name)=>{pass++;console.log(`  ✓ ${name}`);},(name,extra='')=>{fail++;console.log(`  ✗ ${name}  ${extra}`);});
