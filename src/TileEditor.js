@@ -2249,6 +2249,7 @@ export class TileEditor {
     }
     verdictEl.style.display = '';
     verdictEl.className = result.passed ? 'tc-pass' : 'tc-fail';
+    const drive = this._driveReadout(result);
     if (result.passed) {
       const improved = this._progress().record(c.id, result.stars);
       const stars = `<span class="tc-verdict-stars">${this._starStr(result.stars)}</span>`;
@@ -2256,7 +2257,7 @@ export class TileEditor {
         ? `<div class="tc-hint">${result.stars === 1 ? 'Solved! Fewer tiles earns ★★.' : 'Nice — master it for ★★★.'}</div>`
         : `<div class="tc-hint">Perfect — three stars! 🏆</div>`;
       verdictEl.innerHTML = `<strong>✓ PASSED</strong> ${stars}<br>${_esc(result.reason)}${extra}`
-        + (improved ? '<div class="tc-hint">New best!</div>' : '');
+        + (improved ? '<div class="tc-hint">New best!</div>' : '') + drive;
       this._renderChallengeProgress();
       this._panel.querySelector('#te-challenge-title').innerHTML =
         `🎯 ${_esc(c.title)} <span class="tc-detail-stars">${this._starStr(this._progress().best(c.id))}</span>`;
@@ -2268,9 +2269,28 @@ export class TileEditor {
       const shareMsg = this._panel.querySelector('#te-challenge-sharemsg');
       if (shareMsg) shareMsg.style.display = 'none';
     } else {
-      verdictEl.innerHTML = `<strong>✗ NOT YET</strong><br>${_esc(result.reason)}`;
+      verdictEl.innerHTML = `<strong>✗ NOT YET</strong><br>${_esc(result.reason)}${drive}`;
       this._hideShare();
     }
+  }
+
+  /**
+   * A tiny, kid-facing readout of the SHAPE of the drive the program produced —
+   * the fleet's "abstraction as gesture" reading (see maker/DriveGesture.js),
+   * shown whether the run passed or not so the shape teaches on every attempt.
+   * Analysis only: it never changes the verdict. Returns '' if unavailable.
+   */
+  _driveReadout(result) {
+    const g = result?.metrics?.driveGesture;
+    if (!g || !g.readings || !Number.isFinite(g.smoothness)) return '';
+    const pct = (v) => Math.round(Math.max(0, Math.min(1, v)) * 100);
+    const smooth = pct(g.smoothness);
+    const flow = pct(g.arcFlow);
+    const smoothWord = smooth >= 80 ? 'glided' : smooth >= 55 ? 'fairly smooth' : 'jerky';
+    const flowWord = flow >= 40 ? 'flowing arcs' : flow >= 12 ? 'some arcs' : 'stop-and-turn';
+    return `<div class="tc-hint tc-drive" title="The shape of your bot's path — smoothness from how much it changed direction, flow from turning while moving.">`
+      + `🛞 drive: <strong>${smoothWord}</strong> (${smooth}% smooth) · ${flowWord} (${flow}% flow)`
+      + `</div>`;
   }
 
   /** Hide the Share button + message (on fail / when switching challenges). */

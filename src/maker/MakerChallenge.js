@@ -31,6 +31,7 @@
 import { MakerRuntime } from './index.js';
 import { compile } from './TileCompiler.js';
 import { SONAR_RANGE, BOT_RADIUS } from './kinematics.js';
+import { driveGesture } from './DriveGesture.js';
 
 // ── ChallengeWorld ──────────────────────────────────────────────────────────
 // A tiny, fully-scripted sensor backing. Implements the world interface the
@@ -145,6 +146,10 @@ export function runChallenge(program, challenge, opts = {}) {
   let ticks = 0;
   let prevX = rt.robot.x, prevZ = rt.robot.z;
   const maxTicks = Math.ceil(timeLimit / dt);
+  // Record the robot's pose each tick so we can read the SHAPE of the drive
+  // afterwards (arc / bending = jerkiness / twist = steering coherence). Pure
+  // provenance — see DriveGesture.js; never feeds back into the verdict here.
+  const poses = [{ x: rt.robot.x, z: rt.robot.z, heading: rt.robot.heading }];
 
   for (ticks = 0; ticks < maxTicks; ticks++) {
     rt.tick(dt);
@@ -155,6 +160,7 @@ export function runChallenge(program, challenge, opts = {}) {
     const b = rt.robot;
     metrics.distanceTravelled += Math.hypot(b.x - prevX, b.z - prevZ);
     prevX = b.x; prevZ = b.z;
+    poses.push({ x: b.x, z: b.z, heading: b.heading });
 
     // crash proximity: same threshold the `bumped` sensor fires at
     if (world.distanceAhead(b.x, b.z, b.heading) < 0.08) metrics.bumpTicks++;
@@ -179,6 +185,10 @@ export function runChallenge(program, challenge, opts = {}) {
   if (metrics.minGoalDist === Infinity) metrics.minGoalDist = null;
 
   metrics.tileCount = countTiles(program.nodes);
+  // The shape of the drive: how far, how smoothly, how coherently it steered.
+  // Analysis only — challenge.check may read it, but no built-in challenge does,
+  // so this changes no existing verdict. Deterministic like the rest of the run.
+  metrics.driveGesture = driveGesture(poses);
 
   const verdict = challenge.check(metrics, { events, robot: b, world, runtime: rt });
   const passed = verdict === true || (verdict && verdict.passed === true);
