@@ -5,3 +5,6 @@ dist/
 
 # Claude Code agent worktrees (ephemeral)
 .claude/worktrees/
+
+# wrangler local cache/state (build artifact)
+.wrangler/
