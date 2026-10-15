@@ -1,0 +1,88 @@
+{"t":1,"kind":"session","mode":"mission-6","gameUrl":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1"}
+{"t":173,"kind":"note","text":"touch emulation on"}
+{"t":919,"kind":"nav","url":"https://play.superinstance.dev/login"}
+{"t":6173,"kind":"login","result":"submitted"}
+{"t":9304,"kind":"nav","url":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1"}
+{"t":9828,"kind":"state","tag":"boot","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN Loading challenge… 0 / ? 📜 DAILY CONTRACT 🔥 … 0 / ? 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE 0.0 TURN 0.0 The Yard Gate · Morning 🔧 EARL'S MISSION ✕ Lv.0 ❤ HP 100 [ E ] WORKSHOP · [ T ] MAKER ","obsEvents":null,"gate":false,"canvas":true,"menu":true,"veteran":false,"gateText":null,"obsText":null,"label":""}
+{"t":9830,"kind":"booted","ok":true}
+{"t":10784,"kind":"shot","name":"00-booted"}
+{"t":10815,"kind":"state","tag":"title","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN Loading challenge… 0 / ? 📜 DAILY CONTRACT 🔥 … 0 / ? 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE 0.0 TURN 0.0 The Yard Gate · Morning 🔧 EARL'S MISSION ✕ Lv.0 ❤ HP 100 [ E ] WORKSHOP · [ T ] MAKER ","obsEvents":null,"gate":false,"canvas":true,"menu":true,"veteran":false,"gateText":null,"obsText":null,"label":""}
+{"t":10839,"kind":"dialog","action":"clock-in-rect","rect":{"x":639.5,"y":293.71875}}
+{"t":10844,"kind":"touch","type":"touchStart","points":[{"x":640,"y":294,"id":1}]}
+{"t":11158,"kind":"touch","type":"touchEnd","points":[]}
+{"t":11341,"kind":"state","tag":"clock-in-settle","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN Loading challenge… 0 / ? 📜 DAILY CONTRACT 🔥 … 0 / ? 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE 0.0 TURN 0.0 The Yard Gate · Morning 🔧 EARL'S MISSION ✕ Lv.0 ❤ HP 100 [ E ] WORKSHOP · [ T ] MAKER ","obsEvents":null,"gate":false,"canvas":true,"menu":true,"veteran":false,"gateText":null,"obsText":null,"label":""}
+{"t":19896,"kind":"state","tag":"clock-in-settle","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN Earl’s mission first — this opens when it’s done. 📜 DAILY CONTRACT 🔥 🛡️ Earl’s mission first — this opens when it’s done. 📓 QUESTS [L] logbook ➜ NEXT: Mine 5 iron scrap (0/5) ↳ hold left-click on th","obsEvents":null,"gate":false,"canvas":true,"menu":true,"veteran":false,"gateText":null,"obsText":"[00:00] session_start · observer armed (seed 1337, fresh session) [00:01] companion · Rivet: The shiny piles. That one, over there. I'll wait — hold left-click and dig.","label":""}
+{"t":26213,"kind":"state","tag":"clock-in-settle","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN 📜 DAILY CONTRACT 🔥 🛡️ 📓 QUESTS [L] logbook 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE 0.0 TURN 0.0 The Yard Gate · ☀️ Morning 🔩 <b>Rivet:</b> Earl said mine five iron off that rust heap — hold","obsEvents":null,"gate":true,"canvas":true,"menu":false,"veteran":false,"gateText":" 🚪 THE YARD GATE Earl leans on the gate. \"First day at a junkyard, rookie. What pulls your eye first?\" The engines. Anything with wheels an","obsText":"r armed (seed 1337, fresh session) [00:01] companion · Rivet: The shiny piles. That one, over there. I'll wait — hold left-click and dig. [00:09] companion · Rivet: Earl said mine five iron off that rust heap — hold left-click and I'll keep count. First one's free. They're all free. It's a junkyard.","label":""}
+{"t":29960,"kind":"entry","i":0,"st":{"step":"gate:engines"}}
+{"t":33060,"kind":"entry","i":1,"st":{"step":"gate:explore"}}
+{"t":35412,"kind":"entry","i":2,"st":{"step":"card-btn:Skip →"}}
+{"t":37683,"kind":"entry","i":3,"st":{"step":"veteran:keep-fresh"}}
+{"t":39619,"kind":"entry","i":4,"st":{"step":"clear"}}
+{"t":40501,"kind":"state","tag":"entry-check","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN 📜 DAILY CONTRACT 🔥 🛡️ 📓 QUESTS [L] logbook ➜ NEXT: Mine 5 iron scrap (0/5) ↳ hold left-click on the scrap heaps ☕ Scrap Hunt ☐ Mine 5 iron scrap (0/5) 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE","obsEvents":null,"gate":false,"canvas":true,"menu":false,"veteran":false,"gateText":null,"obsText":"me_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock. [00:25] input_failure · pointer-lock request denied by browser [00:25] runtime_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock. [00:25] resume · resumed","label":""}
+{"t":40501,"kind":"entry","cleared":true}
+{"t":41715,"kind":"state","tag":"in-world","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN 📜 DAILY CONTRACT 🔥 🛡️ 📓 QUESTS [L] logbook ➜ NEXT: Mine 5 iron scrap (0/5) ↳ hold left-click on the scrap heaps ☕ Scrap Hunt ☐ Mine 5 iron scrap (0/5) 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE","obsEvents":null,"gate":false,"canvas":true,"menu":false,"veteran":false,"gateText":null,"obsText":"me_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock. [00:25] input_failure · pointer-lock request denied by browser [00:25] runtime_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock. [00:25] resume · resumed","label":""}
+{"t":45049,"kind":"shot","name":"00-in-world"}
+{"t":45049,"kind":"note","text":"lateral: aim 5 drags"}
+{"t":45049,"kind":"touch","type":"touchStart","points":[{"x":900,"y":330,"id":1}]}
+{"t":46246,"kind":"touch","type":"touchMove","points":[{"x":900,"y":339,"id":1}]}
+{"t":47656,"kind":"touch","type":"touchMove","points":[{"x":900,"y":347,"id":1}]}
+{"t":49138,"kind":"touch","type":"touchMove","points":[{"x":900,"y":356,"id":1}]}
+{"t":50252,"kind":"touch","type":"touchEnd","points":[]}
+{"t":51902,"kind":"touch","type":"touchStart","points":[{"x":900,"y":330,"id":1}]}
+{"t":54395,"kind":"touch","type":"touchMove","points":[{"x":900,"y":339,"id":1}]}
+{"t":55693,"kind":"touch","type":"touchMove","points":[{"x":900,"y":347,"id":1}]}
+{"t":57496,"kind":"touch","type":"touchMove","points":[{"x":900,"y":356,"id":1}]}
+{"t":59249,"kind":"touch","type":"touchEnd","points":[]}
+{"t":60632,"kind":"touch","type":"touchStart","points":[{"x":900,"y":330,"id":1}]}
+{"t":62549,"kind":"touch","type":"touchMove","points":[{"x":900,"y":339,"id":1}]}
+{"t":64524,"kind":"touch","type":"touchMove","points":[{"x":900,"y":347,"id":1}]}
+{"t":65432,"kind":"touch","type":"touchMove","points":[{"x":900,"y":356,"id":1}]}
+{"t":66372,"kind":"touch","type":"touchEnd","points":[]}
+{"t":67768,"kind":"touch","type":"touchStart","points":[{"x":900,"y":330,"id":1}]}
+{"t":69039,"kind":"touch","type":"touchMove","points":[{"x":900,"y":339,"id":1}]}
+{"t":70746,"kind":"touch","type":"touchMove","points":[{"x":900,"y":347,"id":1}]}
+{"t":72007,"kind":"touch","type":"touchMove","points":[{"x":900,"y":356,"id":1}]}
+{"t":74184,"kind":"touch","type":"touchEnd","points":[]}
+{"t":75927,"kind":"touch","type":"touchStart","points":[{"x":900,"y":330,"id":1}]}
+{"t":78332,"kind":"touch","type":"touchMove","points":[{"x":900,"y":339,"id":1}]}
+{"t":79700,"kind":"touch","type":"touchMove","points":[{"x":900,"y":347,"id":1}]}
+{"t":80747,"kind":"touch","type":"touchMove","points":[{"x":900,"y":356,"id":1}]}
+{"t":82145,"kind":"touch","type":"touchEnd","points":[]}
+{"t":85117,"kind":"touch","type":"touchStart","points":[{"x":900,"y":330,"id":1}]}
+{"t":111358,"kind":"touch","type":"touchEnd","points":[]}
+{"t":114415,"kind":"touch","type":"touchStart","points":[{"x":320,"y":300,"id":1}]}
+{"t":115746,"kind":"touch","type":"touchMove","points":[{"x":332,"y":300,"id":1}]}
+{"t":117379,"kind":"touch","type":"touchMove","points":[{"x":344,"y":300,"id":1}]}
+{"t":118755,"kind":"touch","type":"touchMove","points":[{"x":356,"y":300,"id":1}]}
+{"t":119905,"kind":"touch","type":"touchMove","points":[{"x":368,"y":300,"id":1}]}
+{"t":121043,"kind":"touch","type":"touchMove","points":[{"x":380,"y":300,"id":1}]}
+{"t":122309,"kind":"touch","type":"touchMove","points":[{"x":392,"y":300,"id":1}]}
+{"t":125666,"kind":"touch","type":"touchEnd","points":[]}
+{"t":127264,"kind":"touch","type":"touchStart","points":[{"x":900,"y":330,"id":1}]}
+{"t":153904,"kind":"touch","type":"touchEnd","points":[]}
+{"t":156631,"kind":"state","tag":"mid","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN 📜 DAILY CONTRACT 🔥 🛡️ 📓 QUESTS [L] logbook ➜ NEXT: Mine 5 iron scrap (0/5) ↳ hold left-click on the scrap heaps ☕ Scrap Hunt ☐ Mine 5 iron scrap (0/5) 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE","obsEvents":null,"gate":false,"canvas":true,"menu":false,"veteran":false,"gateText":null,"obsText":"uired to request Pointer Lock. [00:25] resume · resumed [01:17] first_mine · first block mined [01:17] companion · Bolt: Decent pull. Race-grade, if you squint. I squint professionally. [01:17] companion · Bolt: Huh. Buried treasure on day one. I've seen slower starts end in trophies. Don't lose it.","label":"[ SCRAP PILE ]"}
+{"t":156632,"kind":"note","text":"mid: counter 0, label [ SCRAP PILE ]"}
+{"t":156632,"kind":"touch","type":"touchStart","points":[{"x":320,"y":300,"id":1}]}
+{"t":158676,"kind":"touch","type":"touchMove","points":[{"x":332,"y":300,"id":1}]}
+{"t":160471,"kind":"touch","type":"touchMove","points":[{"x":344,"y":300,"id":1}]}
+{"t":161552,"kind":"touch","type":"touchMove","points":[{"x":356,"y":300,"id":1}]}
+{"t":162604,"kind":"touch","type":"touchMove","points":[{"x":368,"y":300,"id":1}]}
+{"t":163952,"kind":"touch","type":"touchMove","points":[{"x":380,"y":300,"id":1}]}
+{"t":165009,"kind":"touch","type":"touchMove","points":[{"x":392,"y":300,"id":1}]}
+{"t":167101,"kind":"touch","type":"touchEnd","points":[]}
+{"t":168564,"kind":"touch","type":"touchStart","points":[{"x":900,"y":330,"id":1}]}
+{"t":196967,"kind":"touch","type":"touchEnd","points":[]}
+{"t":200043,"kind":"touch","type":"touchStart","points":[{"x":320,"y":300,"id":1}]}
+{"t":202155,"kind":"touch","type":"touchMove","points":[{"x":332,"y":300,"id":1}]}
+{"t":204571,"kind":"touch","type":"touchMove","points":[{"x":344,"y":300,"id":1}]}
+{"t":205679,"kind":"touch","type":"touchMove","points":[{"x":356,"y":300,"id":1}]}
+{"t":207078,"kind":"touch","type":"touchMove","points":[{"x":368,"y":300,"id":1}]}
+{"t":210416,"kind":"touch","type":"touchMove","points":[{"x":380,"y":300,"id":1}]}
+{"t":211799,"kind":"touch","type":"touchMove","points":[{"x":392,"y":300,"id":1}]}
+{"t":214067,"kind":"touch","type":"touchEnd","points":[]}
+{"t":215317,"kind":"touch","type":"touchStart","points":[{"x":900,"y":330,"id":1}]}
+{"t":245055,"kind":"touch","type":"touchEnd","points":[]}
+{"t":249638,"kind":"state","tag":"mission-end","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN 📜 DAILY CONTRACT 🔥 🛡️ 📓 QUESTS [L] logbook ➜ NEXT: Mine 5 iron scrap (0/5) ↳ hold left-click on the scrap heaps ☕ Scrap Hunt ☐ Mine 5 iron scrap (0/5) 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE","obsEvents":null,"gate":false,"canvas":true,"menu":false,"veteran":false,"gateText":null,"obsText":"uired to request Pointer Lock. [00:25] resume · resumed [01:17] first_mine · first block mined [01:17] companion · Bolt: Decent pull. Race-grade, if you squint. I squint professionally. [01:17] companion · Bolt: Huh. Buried treasure on day one. I've seen slower starts end in trophies. Don't lose it.","label":"[ SCRAP PILE ]"}
+{"t":249639,"kind":"note","text":"final counter: 0"}
+{"t":252703,"kind":"shot","name":"mission-end"}
+{"t":252704,"kind":"done","consoleErrors":["[Scrapcraft] unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock.","[Scrapcraft] unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock."]}

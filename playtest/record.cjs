@@ -22,7 +22,7 @@ const MODE = process.argv[2] || 'record';
 const LOG_PATH = process.argv[3] || 'actions.jsonl';
 const SHOTS = process.argv[4] || 'shots';
 const CDP_PORT = 9223;
-const BASE = 'https://play.superinstance.dev';
+const BASE = process.env.SC_BASE || 'https://play.superinstance.dev';
 const PASS = process.env.SC_PASS || '';
 const GAME_URL = BASE + '/?observe=1&seed=playtest-1&lite=1';
 
@@ -39,13 +39,13 @@ function getJson(p) {
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 (async () => {
-  const OUT_PATH = MODE === 'record' ? LOG_PATH : LOG_PATH.replace(/\.jsonl$/, '') + '.replay.jsonl';
+  const OUT_PATH = MODE === 'replay' ? LOG_PATH.replace(/\.jsonl$/, '') + '.replay.jsonl' : LOG_PATH;
   fs.writeFileSync(OUT_PATH, '');
   const out = { write: (s) => fs.appendFileSync(OUT_PATH, s) };
   const t0 = Date.now();
   const now = () => Date.now() - t0;
   const log = (kind, data = {}) => out.write(JSON.stringify({ t: now(), kind, ...data }) + '\n');
-  const watchdog = setTimeout(() => { log('fatal', { error: 'watchdog' }); process.exit(2); }, 560000);
+  const watchdog = setTimeout(() => { log('fatal', { error: 'watchdog' }); process.exit(2); }, MODE === 'record' ? 560000 : 1500000);
   log('session', { mode: MODE, gameUrl: GAME_URL });
 
   // ── CDP plumbing (same proven pattern as the cinema rig + proxy auth) ──
@@ -122,26 +122,29 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
         veteran: !![...document.querySelectorAll('button')].find(x => /Keep fresh/i.test(x.textContent || '')),
         gateText: document.getElementById('companion-gate') ? (document.getElementById('companion-gate').textContent || '').replace(/\\s+/g, ' ').slice(0, 140) : null,
         obsText: (() => { try { const o = window.__scrapcraftObserver; const el = o && (o._listEl || o.listEl); return el ? el.innerText.replace(/\\s+/g, ' ').slice(-300) : null; } catch { return null; } })(),
+        label: (() => { try { const el = document.getElementById('block-label'); return el ? el.textContent.trim().slice(0, 40) : null; } catch { return null; } })(),
       };
     })()`);
     log('state', { tag, ...(s && !s.timeout ? s : { sampleTimeout: true }) });
     return s;
   };
 
-  // ── shared preamble: login, then into the game ──
-  await send('Page.navigate', { url: BASE + '/login' });
-  log('nav', { url: BASE + '/login' });
-  await sleep(5000);
-  const loginRes = await evalJs(`(() => {
-    const u = document.querySelector('input[name="user"]');
-    const p = document.querySelector('input[name="pass"]');
-    if (!u || !p) return 'no-form';
-    u.value = 'casey'; p.value = ${JSON.stringify(PASS)};
-    document.querySelector('form').requestSubmit();
-    return 'submitted';
-  })()`);
-  log('login', { result: loginRes });
-  await sleep(3000);
+  // ── shared preamble: login (unless SC_NOLOGIN), then into the game ──
+  if (!process.env.SC_NOLOGIN) {
+    await send('Page.navigate', { url: BASE + '/login' });
+    log('nav', { url: BASE + '/login' });
+    await sleep(5000);
+    const loginRes = await evalJs(`(() => {
+      const u = document.querySelector('input[name="user"]');
+      const p = document.querySelector('input[name="pass"]');
+      if (!u || !p) return 'no-form';
+      u.value = 'casey'; p.value = ${JSON.stringify(PASS)};
+      document.querySelector('form').requestSubmit();
+      return 'submitted';
+    })()`);
+    log('login', { result: loginRes });
+    await sleep(3000);
+  }
   await send('Page.navigate', { url: GAME_URL });
   log('nav', { url: GAME_URL });
 
@@ -188,7 +191,14 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
       if (TOUCH) await tap(ciRect.x, ciRect.y);
       else { await mouse('mousePressed', ciRect.x, ciRect.y); await mouse('mouseReleased', ciRect.x, ciRect.y); }
     }
-    await sleep(3000);
+    // Settle: a fast CDN can serve the shell before the engine finishes
+    // init — wait until the title menu actually dismisses (or give up).
+    for (let i = 0; i < 12; i++) {
+      const s = await sampleState('clock-in-settle');
+      if (s && !s.menu) break;
+      await sleep(2500);
+    }
+    await sleep(2000);
   };
   const entryAct = () => evalJs(`(() => {
     const vis = (el) => { if (!el) return false; const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.display !== 'none' && cs.visibility !== 'hidden'; };
@@ -270,6 +280,131 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   await runEntry();
   await sampleState('in-world');
   await shot('00-in-world');
+
+  if (MODE === 'mission' || MODE === 'mission-final' || MODE === 'mission-6') {
+    // ── Earl's first mission: mine 5 iron scrap. Spawn faces the heap but
+    // the crosshair sits ABOVE its top face (mission-1: 14 blind holds, all
+    // sky). So: aim with the game's own block label as feedback — pitch
+    // down in small drags until the label names a heap block — then hold
+    // on the look zone (x=900, safely inside it; x=640 may be the seam).
+    // Mining is hold-to-dig; progress resets if the target block changes,
+    // so re-aim between bursts.
+    const counter = (s) => {
+      const m = /Mine 5 iron scrap \((\d)\/5\)/.exec((s && s.hud) || '');
+      return m ? Number(m[1]) : null;
+    };
+    const isHeap = (s) => /SCRAP PILE|RUSTED METAL/i.test((s && s.label) || '');
+    const dragLook = async (dx, dy) => {
+      await touch('touchStart', [{ x: 900, y: 330, id: 1 }]);
+      for (let i = 1; i <= 3; i++) { await touch('touchMove', [{ x: 900 + dx * i / 3, y: 330 + dy * i / 3, id: 1 }]); await sleep(120); }
+      await touch('touchEnd', []);
+      await sleep(500);
+    };
+    const aim = async () => {
+      // Coarse steps: each state sample costs seconds on this rig, so move
+      // two drag-steps between samples and lean on the burst-end labels.
+      for (let step = 0; step < 9; step++) {
+        const s = await sampleState('aim-' + step);
+        if (isHeap(s)) { log('note', { text: `aimed at step ${step}: ${s.label}` }); return true; }
+        if (step === 5) await dragLook(0, -120);   // overshot below the heap — come back up
+        else { await dragLook(0, 26); await dragLook(0, 26); }
+      }
+      const s = await sampleState('aim-final');
+      log('note', { text: 'aim failed; label: ' + (s && s.label) });
+      return isHeap(s);
+    };
+    const stepIn = async () => {
+      await touch('touchStart', [{ x: 320, y: 300, id: 1 }]);
+      for (let i = 1; i <= 6; i++) { await touch('touchMove', [{ x: 320, y: 300 - 16 * i, id: 1 }]); await sleep(140); }
+      await sleep(1200);
+      await touch('touchEnd', []);
+      await sleep(400);
+    };
+    const hold = async (ms) => { await touch('touchStart', [{ x: 900, y: 330, id: 1 }]); await sleep(ms); await touch('touchEnd', []); };
+    if (MODE === 'mission-6') {
+      // Lateral choreography: the spawn column is exactly 2 iron deep —
+      // behind it is the structure ([ CRACKED CONCRETE ]). The pile is
+      // wide, so work ALONG its face: dig a column, strafe one block,
+      // dig the next.
+      const strafe = async (dx) => {
+        await touch('touchStart', [{ x: 320, y: 300, id: 1 }]);
+        for (let i = 1; i <= 6; i++) { await touch('touchMove', [{ x: 320 + dx * i / 6, y: 300, id: 1 }]); await sleep(140); }
+        await sleep(1000);
+        await touch('touchEnd', []);
+        await sleep(400);
+      };
+      log('note', { text: 'lateral: aim 5 drags' });
+      for (let i = 0; i < 5; i++) await dragLook(0, 26);
+      await hold(25000);
+      await strafe(72);
+      await hold(25000);
+      const mid = await sampleState('mid');
+      log('note', { text: `mid: counter ${counter(mid)}, label ${mid && mid.label}` });
+      await strafe(72);
+      await hold(25000);
+      await strafe(72);
+      await hold(25000);
+      const end = await sampleState('mission-end');
+      log('note', { text: 'final counter: ' + counter(end) });
+      await shot('mission-end');
+      log('done', { consoleErrors: consoleErrors.slice(0, 6) });
+      clearTimeout(watchdog);
+      process.exit(0);
+    }
+    if (MODE === 'mission-final') {
+      // Open-loop choreography (mission-5): state samples cost 15-60 s
+      // each on this saturated rig, so spend almost none. The offsets are
+      // the proven ones: 5 pitch drags from spawn land on [ SCRAP PILE ]
+      // (missions 2+3); long holds chain through the face; step-ins close
+      // on the receding heap. Two samples total: mid + end.
+      const hold = async (ms) => { await touch('touchStart', [{ x: 900, y: 330, id: 1 }]); await sleep(ms); await touch('touchEnd', []); };
+      log('note', { text: 'open-loop: aim 5 drags' });
+      for (let i = 0; i < 5; i++) await dragLook(0, 26);
+      await hold(25000);
+      await stepIn();
+      await hold(25000);
+      const mid = await sampleState('mid');
+      log('note', { text: `mid: counter ${counter(mid)}, label ${mid && mid.label}` });
+      if (mid && /CONCRETE|GRAVEL/i.test(mid.label || '')) { await dragLook(0, -26); await dragLook(0, -26); }
+      await stepIn();
+      await hold(25000);
+      await dragLook(0, 26); await dragLook(0, 26);
+      await hold(25000);
+      const end = await sampleState('mission-end');
+      log('note', { text: 'final counter: ' + counter(end) });
+      await shot('mission-end');
+      log('done', { consoleErrors: consoleErrors.slice(0, 6) });
+      clearTimeout(watchdog);
+      process.exit(0);
+    }
+    let last = counter(await sampleState('mine-start'));
+    log('note', { text: 'mine-start counter: ' + last });
+    await aim();
+    let stalls = 0;
+    for (let burst = 0; burst < 16 && last !== 5; burst++) {
+      await touch('touchStart', [{ x: 900, y: 330, id: 1 }]);
+      await sleep(9000);
+      await touch('touchEnd', []);
+      const s = await sampleState('mine-burst-' + burst);
+      const c = counter(s);
+      log('note', { text: `burst ${burst}: counter ${c}, label ${s && s.label}` });
+      if (c !== null && c > (last ?? 0)) {
+        last = c; stalls = 0;
+        // The face receded by one block: close up and re-aim.
+        if (last !== 5) { await stepIn(); await aim(); }
+      } else {
+        stalls++;
+        if (stalls >= 2 && last !== 5) { log('note', { text: 'stalled — stepping in' }); await stepIn(); await aim(); stalls = 0; }
+        else if (!isHeap(s)) await aim();
+      }
+    }
+    const end = await sampleState('mission-end');
+    log('note', { text: 'final counter: ' + counter(end) });
+    await shot('mission-end');
+    log('done', { consoleErrors: consoleErrors.slice(0, 6) });
+    clearTimeout(watchdog);
+    process.exit(0);
+  }
 
   // ── Play: joystick forward (left-thumb anchor, drag up = forward).
   // Anchor mid-left: bottom-left is the OBSERVER PANEL's ground (it eats
