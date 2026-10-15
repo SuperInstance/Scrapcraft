@@ -4,6 +4,12 @@ const canvas = document.getElementById('game-canvas');
 const startScreen = document.getElementById('start-screen');
 const startBtn = document.getElementById('start-btn');
 
+// ── Level 2 cinema mode ─────────────────────────────────────────────────────
+// cinema.html sets window.__CINEMA__ = true before this module loads. In
+// cinema mode the boot skips onboarding/pointer-lock and hands the session
+// to the Level 2 director (src/level2/director.js) after game.start().
+const CINEMA = (typeof window !== 'undefined' && window.__CINEMA__ === true);
+
 // ── Workshop OOM hardening ─────────────────────────────────────────────────
 // The heavy path (WebGL renderer, textures, 128×128 world mesh) used to build
 // at page load, behind the start screen. On memory-fragile environments that
@@ -112,6 +118,12 @@ async function boot() {
   booted = true;
   startBtn.disabled = true;
 
+  // Cinema mode: the film owns the session — no onboarding wizard, no
+  // spectator choice. Set before game.start() reads it (firstRun gate).
+  if (CINEMA) {
+    try { localStorage.setItem('scrapcraft_onboarding_done', 'true'); } catch { /* next visit re-asks */ }
+  }
+
   const progress = bootProgress();
   progress.textContent = 'LOADING THE YARD…';
   await nextPaint();
@@ -143,10 +155,23 @@ async function boot() {
     }
 
     game.start();
+
+    // ── Level 2 cinema: hand the session to the director. ──
+    const CINEMA_MOBILE = (typeof window !== 'undefined' && window.__CINEMA_MOBILE__ === true);
+    if (CINEMA) {
+      if (CINEMA_MOBILE) {
+        const { startMobileCinema } = await import('./level2/mobile.js');
+        startMobileCinema(game);
+      } else {
+        const { startCinema } = await import('./level2/director.js');
+        startCinema(game);
+      }
+    }
     // Pointer lock is a desktop affordance — touch devices run the virtual
     // joystick layer instead (game._touchMode), where requestPointerLock
-    // would only throw/reject.
-    if (!game._touchMode && !game.openingPending) {
+    // would only throw/reject. Cinema mode never takes the lock either:
+    // the director owns the camera.
+    if (!game._touchMode && !game.openingPending && !CINEMA) {
       // Chrome returns a Promise that can reject if the click's user-gesture
       // activation expired during the dynamic import — the pause overlay's
       // click-to-resume is the safety net, so just swallow it.
@@ -175,6 +200,13 @@ async function boot() {
 }
 
 startBtn.addEventListener('click', () => { boot(); });
+
+// ── Level 2 cinema: autoplay. The film starts itself on page load — no
+// BEGIN button. boot() is idempotent (the `booted` guard), so the hidden
+// button's listener above stays as a harmless fallback.
+if (CINEMA) {
+  boot();
+}
 
 // Codex button → open Workshop overlay on the codex tab (post-boot only)
 document.getElementById('codex-btn')?.addEventListener('click', () => {

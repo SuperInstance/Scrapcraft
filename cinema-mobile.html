@@ -1,0 +1,2470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SCRAPCRAFT — Junk Never Looked So Good</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🔩</text></svg>">
+
+  <!-- PWA manifest + icons -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="theme-color" content="#f0b429">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Scrapcraft">
+
+  <!-- SEO -->
+  <meta name="description" content="A voxel scrapyard game where middle schoolers build robots, program them with AI, and learn embedded engineering.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="SCRAPCRAFT — Junk Never Looked So Good">
+  <meta property="og:description" content="A voxel scrapyard game where middle schoolers build robots, program them with AI, and learn embedded engineering.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://superinstance.ai">
+  <meta property="og:image" content="og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:site_name" content="SCRAPCRAFT">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SCRAPCRAFT — Junk Never Looked So Good">
+  <meta name="twitter:description" content="A voxel scrapyard game where middle schoolers build robots, program them with AI, and learn embedded engineering.">
+  <meta name="twitter:image" content="og-image.png">
+
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#111; overflow:hidden; font-family:'Courier New',monospace; }
+    #canvas-container { position:fixed; inset:0; }
+    canvas { display:block; width:100%; height:100%; }
+
+    /* ══ HUD ══════════════════════════════════════════════════════════════ */
+    /* z-index:90 — the HUD layer: above the dialogue scrims (z:50, world-
+       dimming only), below the dialogue cards (z:100) and true modals. */
+    #hud { position:fixed; inset:0; pointer-events:none; user-select:none; z-index:90; }
+
+    /* ── Crosshair ── */
+    #crosshair {
+      position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      width:0; height:0; /* invisible anchor */
+    }
+    .ch {
+      position:absolute;
+      background:rgba(255,255,255,0.88);
+      box-shadow: 0 0 3px rgba(0,0,0,0.9);
+      border-radius:1px;
+      transition: all 0.08s ease;
+    }
+    /* vertical bars */
+    .ch-t { width:2px; height:8px; left:-1px; top:-13px; }
+    .ch-b { width:2px; height:8px; left:-1px; top:5px; }
+    /* horizontal bars */
+    .ch-l { height:2px; width:8px; top:-1px; left:-13px; }
+    .ch-r { height:2px; width:8px; top:-1px; left:5px; }
+    /* center dot */
+    .ch-dot {
+      width:3px; height:3px; border-radius:50%;
+      background:rgba(255,255,255,0.9); box-shadow:0 0 2px rgba(0,0,0,0.9);
+      position:absolute; top:-1.5px; left:-1.5px;
+    }
+
+    /* Spread when moving */
+    #crosshair.ch-spread .ch-t { top:-17px; }
+    #crosshair.ch-spread .ch-b { top:9px; }
+    #crosshair.ch-spread .ch-l { left:-17px; }
+    #crosshair.ch-spread .ch-r { left:9px; }
+
+    /* Gold when targeting interactive block */
+    #crosshair.ch-interactive .ch { background:#f0b429; box-shadow:0 0 4px #f0b42966; }
+    #crosshair.ch-interactive .ch-dot { background:#f0b429; }
+
+    /* Contracted during mining */
+    #crosshair.ch-mining .ch-t { top:-10px; }
+    #crosshair.ch-mining .ch-b { top:8px; }
+    #crosshair.ch-mining .ch-l { left:-10px; }
+    #crosshair.ch-mining .ch-r { left:8px; }
+
+    /* Mining ring SVG */
+    #mine-ring {
+      position:absolute; top:-25px; left:-25px;
+      pointer-events:none;
+    }
+    #mine-arc {
+      stroke-dasharray:106.8;
+      stroke-dashoffset:106.8;
+      opacity:0;
+      transition: stroke-dashoffset 0.05s linear;
+    }
+
+    /* ── Zone / time label ── */
+    #zone-label {
+      position:absolute; top:16px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.52); padding:4px 16px; border-radius:20px;
+      font-size:11px; color:#bbb; letter-spacing:2px;
+      transition:opacity 0.3s;
+    }
+
+    /* Zone entry toast */
+    #zone-toast {
+      position:absolute; top:48px; left:50%; transform:translateX(-50%) translateY(-8px);
+      background:rgba(0,0,0,0.82); border:1px solid #f0b429;
+      padding:6px 20px; border-radius:20px;
+      font-size:12px; color:#f0b429; letter-spacing:3px;
+      opacity:0; pointer-events:none; visibility:hidden;
+      transition: opacity 0.3s, transform 0.3s, visibility 0.3s;
+    }
+    #zone-toast.show { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+
+    /* Block label — just above crosshair */
+    #block-label {
+      position:absolute; top:calc(50% + 28px); left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.58); padding:3px 12px; border-radius:4px;
+      font-size:11px; color:#ccc; display:none; letter-spacing:1px;
+      white-space:nowrap;
+    }
+
+    /* ── Health bar (bottom-left) — contrast floor: opaque backdrop + shadow ── */
+    #hud-health {
+      position:absolute; bottom:90px; left:16px;
+      display:flex; align-items:center; gap:6px;
+      background:rgba(0,0,0,0.75); padding:4px 8px;
+      border-radius:6px; border:1px solid rgba(255,80,80,0.3);
+    }
+    #hud-health-label { font-size:9px; color:#ff6666; letter-spacing:1px; text-shadow:0 1px 3px rgba(0,0,0,0.9); }
+    #hud-health-bar {
+      width:80px; height:7px; background:#1a0000; border-radius:4px; overflow:hidden;
+    }
+    #hud-health-fill {
+      height:100%; width:100%; background:#cc2222;
+      border-radius:4px; transition:width 0.2s, background-color 0.3s;
+    }
+    #hud-health-fill.warn { background:#cc7700; }
+    #hud-health-fill.crit { background:#ff0000; animation:hp-pulse 0.5s ease-in-out infinite alternate; }
+    @keyframes hp-pulse { from { opacity:0.6; } to { opacity:1; } }
+    #hud-health-num { font-size:10px; font-weight:bold; color:#ff9999; min-width:24px; text-align:right; text-shadow:0 1px 3px rgba(0,0,0,0.9); }
+
+    /* ── Damage vignette ── */
+    #damage-vignette {
+      position:fixed; inset:0; pointer-events:none;
+      background:radial-gradient(transparent 50%, rgba(180,0,0,0.7) 100%);
+      opacity:0; transition:opacity 0.08s ease-in;
+    }
+    #damage-vignette.flash { opacity:1; }
+
+    /* Active item label — just above hotbar */
+    #active-item-label {
+      position:absolute; bottom:90px; left:50%; transform:translateX(-50%);
+      font-size:13px; color:rgba(255,255,255,0.85);
+      text-shadow:0 1px 4px rgba(0,0,0,0.9);
+      transition:opacity 0.2s;
+      white-space:nowrap;
+    }
+
+    /* ── Hotbar ── */
+    #hotbar {
+      position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
+      display:flex; gap:4px; pointer-events:auto;
+    }
+    .hotbar-slot {
+      width:56px; height:56px;
+      border:2px solid #333; background:rgba(0,0,0,0.7);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      position:relative; border-radius:5px;
+      transition:border-color 0.1s, box-shadow 0.1s;
+    }
+    .hotbar-slot.active {
+      border-color:#f0b429;
+      box-shadow:0 0 10px #f0b42944, inset 0 0 8px rgba(240,180,41,0.08);
+    }
+    .hotbar-slot .item-icon  { font-size:22px; line-height:1; }
+    .hotbar-slot .item-count { position:absolute; bottom:2px; right:5px; font-size:10px; color:#fff; text-shadow:1px 1px 0 #000; }
+    .hotbar-slot .slot-num   { position:absolute; top:2px; left:4px; font-size:9px; color:#444; }
+
+    #toolbar-hint {
+      position:absolute; bottom:88px; left:50%; transform:translateX(-50%);
+      color:#444; font-size:10px; letter-spacing:1px;
+    }
+
+    /* ── Minimap ── */
+    #minimap-wrap {
+      position:absolute; bottom:24px; right:16px;
+      background:rgba(0,0,0,0.7); border:2px solid #333; border-radius:6px;
+      padding:4px; pointer-events:none;
+    }
+    #minimap { display:block; border-radius:3px; }
+    #minimap-label {
+      text-align:center; font-size:9px; color:#555; letter-spacing:1px; padding-top:2px;
+    }
+
+    /* ── Lap Timer ── */
+    #lap-timer {
+      position:absolute; bottom:140px; right:16px;
+      background:rgba(0,0,0,0.82); border:2px solid #f0b429; border-radius:6px;
+      padding:6px 12px; font-size:13px; color:#f0b429; font-weight:bold;
+      pointer-events:none; opacity:0; transition:opacity 0.3s; text-align:center;
+      line-height:1.4;
+    }
+    #lap-timer.show { opacity:1; }
+
+    /* ── Ghost lap indicator ── */
+    #ghost-indicator {
+      position:absolute; bottom:186px; right:16px;
+      background:rgba(0,180,140,0.12); border:1px solid rgba(0,255,200,0.35);
+      border-radius:4px; padding:2px 8px; font-size:10px; letter-spacing:1px;
+      color:rgba(0,255,200,0.75); pointer-events:none;
+      opacity:0; transition:opacity 0.4s;
+    }
+    #ghost-indicator.show { opacity:1; }
+
+    /* ── Bot name badge (4th member of the top-right stacking column) ── */
+    #bot-name-badge {
+      display:none;
+      background:rgba(0,12,8,0.88); border:1px solid #1a4a2a;
+      border-radius:6px; padding:5px 10px; width:130px;
+      font-family:'Courier New',monospace; font-size:8px;
+      pointer-events:none;
+    }
+    #bot-badge-name {
+      color:#00ff99; font-size:11px; font-weight:bold; letter-spacing:1px;
+      display:block; margin-bottom:3px;
+    }
+    #bot-badge-pct { color:#448855; font-size:8px; float:right; }
+    #bot-badge-bond-wrap {
+      height:3px; background:#0a2016; border-radius:2px; margin-top:4px; overflow:hidden;
+    }
+    #bot-badge-bar {
+      height:100%; background:linear-gradient(90deg,#00aa55,#00ff99);
+      transition:width 2s ease; border-radius:2px;
+    }
+
+    /* ── Bot speech card (lower-left, above serial monitor) ── */
+    #bot-speech-card {
+      position:absolute; bottom:290px; left:16px; width:220px;
+      background:rgba(0,10,5,0.93); border:1px solid #1a5a2a;
+      border-radius:6px; padding:8px 10px;
+      font-family:'Courier New',monospace; font-size:9px;
+      opacity:0; visibility:hidden; transition:opacity 0.35s ease, visibility 0.35s ease; pointer-events:none;
+    }
+    #bot-speech-card.show { opacity:1; visibility:visible; }
+    #bsc-name {
+      color:#00ff99; font-size:10px; font-weight:bold;
+      letter-spacing:1px; margin-bottom:4px;
+    }
+    #bsc-text {
+      color:#88ddbb; line-height:1.45; word-break:break-word;
+    }
+
+    /* ── Bot sensor dashboard (bottom-left, above XP bar) ── */
+    /* ── Bot serial monitor (above sensor HUD) ── */
+    #bot-serial-log {
+      position:absolute; bottom:286px; left:16px;
+      background:rgba(0,10,5,0.90); border:1px solid #0a3016;
+      border-radius:5px; padding:6px 8px; width:172px;
+      font-family:'Courier New',monospace; font-size:8.5px;
+      pointer-events:none; opacity:0; transition:opacity 0.3s ease;
+      max-height:90px; overflow:hidden;
+    }
+    #bot-serial-log.active { opacity:1; }
+    #bsl-title {
+      color:#005522; letter-spacing:1.5px; font-size:7.5px; margin-bottom:4px;
+    }
+    .bsl-line {
+      color:#00aa55; line-height:1.5; white-space:nowrap;
+      overflow:hidden; text-overflow:ellipsis;
+      animation:bsl-fade 0.3s ease;
+    }
+    .bsl-line.new { color:#00ff88; }
+    @keyframes bsl-fade { from { opacity:0; } to { opacity:1; } }
+
+    /* ── Codex (Field Guide) panel [C] ── */
+    /* z-index:92 — body-level sibling drawer that overlaps the top-right HUD
+       column region; without the bump the HUD layer (#hud z:90) would paint
+       over the open drawer. */
+    #codex-panel {
+      position:absolute; top:0; right:0; width:340px; height:100%;
+      background:rgba(2,8,5,0.97); border-left:1px solid #0a2014;
+      display:none; flex-direction:column;
+      font-family:'Courier New',monospace;
+      color:#88aa88; z-index:92; overflow:hidden;
+    }
+    #codex-panel.open { display:flex; }
+    #codex-header {
+      padding:12px 14px 8px; border-bottom:1px solid #0a2014;
+      background:#010a04; flex-shrink:0;
+    }
+    #codex-title {
+      font-size:12px; letter-spacing:4px; color:#00cc66;
+      margin-bottom:4px;
+    }
+    #codex-progress-row {
+      display:flex; align-items:center; gap:8px; margin-bottom:6px;
+    }
+    #codex-count { font-size:10px; color:#3a8a50; }
+    #codex-bar-wrap { flex:1; height:4px; background:#0a1a0a; border-radius:2px; overflow:hidden; }
+    #codex-bar     { height:100%; background:#00cc66; border-radius:2px; transition:width 0.3s; }
+    #codex-filter  {
+      display:flex; gap:4px; flex-wrap:wrap;
+    }
+    .cx-filter-btn {
+      font-size:9px; padding:2px 7px; background:#060f08;
+      border:1px solid #0a1a0a; color:#3a6a40; cursor:pointer;
+      letter-spacing:0.5px; border-radius:2px;
+    }
+    .cx-filter-btn.active { border-color:#00cc66; color:#00cc66; background:#021508; }
+    #codex-grid {
+      flex:1; overflow-y:auto; padding:8px;
+      display:flex; flex-wrap:wrap; gap:4px; align-content:flex-start;
+    }
+    .cx-card {
+      width:60px; height:60px; background:#050e07;
+      border:1px solid #0a1a0a; border-radius:4px;
+      display:flex; flex-direction:column; align-items:center;
+      justify-content:center; cursor:pointer;
+      transition:border-color 0.15s;
+      position:relative;
+    }
+    .cx-card:hover { border-color:#00cc66; }
+    .cx-card.active { border-color:#00cc66; background:#021508; }
+    .cx-card.unknown { opacity:0.28; cursor:default; }
+    .cx-card.unknown:hover { border-color:#0a1a0a; }
+    .cx-icon  { font-size:22px; line-height:1; }
+    .cx-label { font-size:7px; color:#3a6a40; text-align:center; margin-top:3px;
+                max-width:56px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .cx-new   { position:absolute; top:2px; right:3px; width:5px; height:5px;
+                background:#00ff88; border-radius:50%; }
+    #codex-detail {
+      flex-shrink:0; padding:10px 14px; border-top:1px solid #0a2014;
+      background:#010a04; min-height:88px;
+    }
+    #codex-detail-empty { font-size:10px; color:#2a4a2a; text-align:center; padding:16px 0; }
+    #codex-detail-icon  { font-size:28px; line-height:1; float:left; margin-right:10px; }
+    #codex-detail-name  { font-size:11px; color:#00cc66; letter-spacing:1px; margin-bottom:2px; }
+    #codex-detail-cat   { font-size:9px; color:#3a6a40; letter-spacing:0.5px; margin-bottom:5px; }
+    #codex-detail-desc  { font-size:10px; color:#88aa88; line-height:1.5; clear:both; }
+    #codex-close {
+      font-size:9px; color:#2a5a2a; text-align:center; padding:6px;
+      border-top:1px solid #0a2014; cursor:pointer; flex-shrink:0;
+    }
+    #codex-close:hover { color:#00cc66; }
+
+    #bot-sensor-hud {
+      position:absolute; bottom:66px; left:16px;
+      background:rgba(0,18,10,0.90); border:1px solid #0a3016;
+      border-radius:5px; padding:7px 10px; width:172px;
+      font-size:10px; font-family:'Courier New',monospace;
+      pointer-events:none;
+      opacity:0; transition:opacity 0.3s ease;
+    }
+    #bot-sensor-hud.active { opacity:1; }
+    .bsh-title {
+      color:#00cc66; letter-spacing:2px; font-size:9px;
+      margin-bottom:5px; padding-bottom:4px; border-bottom:1px solid #0a2814;
+      text-shadow:0 1px 2px rgba(0,0,0,0.8);
+    }
+    .bsh-row { display:flex; align-items:center; gap:4px; margin:3px 0; }
+    .bsh-key  { color:#2a6040; min-width:62px; font-size:10px; letter-spacing:0.4px; flex-shrink:0; font-weight:500; text-shadow:0 1px 2px rgba(0,0,0,0.8); }
+    .bsh-val  { color:#00ff88; font-weight:bold; min-width:30px; font-size:10px; text-align:right; text-shadow:0 1px 2px rgba(0,0,0,0.8); }
+    .bsh-bar-wrap  { flex:1; height:4px; background:#0a1a10; border-radius:2px; overflow:hidden; }
+    .bsh-bar-fill  { height:100%; background:#00cc66; border-radius:2px; transition:width 0.1s; }
+    .bsh-bar-fill.warn  { background:#f0b429; }
+    .bsh-bar-fill.alert { background:#ff4444; }
+    .bsh-motors { margin-top:5px; padding-top:4px; border-top:1px solid #0a2814; }
+    .bsh-motor-row { display:flex; align-items:center; gap:4px; margin:2px 0; }
+    .bsh-motor-key { color:#1e4a30; min-width:34px; font-size:10px; flex-shrink:0; text-shadow:0 1px 2px rgba(0,0,0,0.8); }
+    .bsh-motor-bar-wrap {
+      flex:1; height:4px; background:#0a1a10; border-radius:2px;
+      position:relative; overflow:hidden;
+    }
+    .bsh-motor-bar {
+      height:100%; position:absolute; top:0; border-radius:2px;
+      transition:left 0.08s ease, width 0.08s ease;
+    }
+    .bsh-motor-val { color:#007744; min-width:26px; font-size:10px; text-align:right; text-shadow:0 1px 2px rgba(0,0,0,0.8); }
+
+    /* ── Weather HUD (top-left corner icon) ── */
+    #weather-hud {
+      position:absolute; top:16px; left:16px;
+      font-size:22px; line-height:1;
+      opacity:0.5; transition:opacity 0.6s ease;
+      filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));
+      pointer-events:none;
+    }
+    #storm-shelter-warn {
+      position:absolute; top:44px; left:12px;
+      font-size:9px; font-weight:bold; letter-spacing:0.06em;
+      color:#ffdd00; text-shadow:0 0 6px #ffaa00, 0 1px 3px #000;
+      display:none; pointer-events:none;
+      animation:shelter-pulse 0.8s ease-in-out infinite alternate;
+    }
+    @keyframes shelter-pulse {
+      from { opacity:1; }
+      to   { opacity:0.35; }
+    }
+
+    /* ── Challenge HUD (top-right stacking column member) ── */
+    #challenge-hud {
+      background:rgba(0,0,0,0.72); border:1px solid #446644;
+      border-radius:7px; padding:7px 10px; min-width:170px; max-width:200px;
+      font-size:10px; color:#aaa; pointer-events:none;
+      transition: border-color 0.4s ease;
+    }
+    #challenge-hud.complete { border-color:#44ff44; }
+    #ch-title { color:#f0b429; font-weight:bold; letter-spacing:0.5px; margin-bottom:3px; font-size:9px; }
+    #ch-label { color:#ddd; line-height:1.35; margin-bottom:5px; }
+    #ch-bar-wrap { background:rgba(255,255,255,0.08); border-radius:3px; height:5px; overflow:hidden; }
+    #ch-bar-fill { height:100%; width:0%; background:#44cc44; border-radius:3px; transition:width 0.3s ease, background 0.3s; }
+    #ch-counter { text-align:right; color:#44cc44; margin-top:3px; font-size:9px; }
+
+    /* ── Daily Contract HUD (top-right stacking column member) ── */
+    #daily-hud {
+      background:rgba(0,0,0,0.72); border:1px solid #8a6a1a;
+      border-radius:7px; padding:7px 10px; min-width:170px; max-width:200px;
+      font-size:10px; color:#aaa; pointer-events:none;
+      transition: border-color 0.4s ease;
+    }
+    #daily-hud.complete { border-color:#f0b429; }
+    #dc-title { color:#c8a04a; font-weight:bold; letter-spacing:0.5px; margin-bottom:3px; font-size:9px;
+                display:flex; justify-content:space-between; }
+    #dc-streak { color:#ff8844; }
+    #dc-label { color:#ddd; line-height:1.35; margin-bottom:5px; }
+    #dc-bar-wrap { background:rgba(255,255,255,0.08); border-radius:3px; height:5px; overflow:hidden; }
+    #dc-bar-fill { height:100%; width:0%; background:#c88a2a; border-radius:3px; transition:width 0.3s ease, background 0.3s; }
+    #dc-counter { text-align:right; color:#c88a2a; margin-top:3px; font-size:9px; }
+    #dc-streak.shield-burned { opacity:0.6; }
+    /* Night-shift payout notice — transient member of the comeback cluster */
+    #dc-night {
+      display:none; margin-top:5px; padding-top:5px;
+      border-top:1px dashed rgba(240,180,41,0.25);
+      color:#cbb98f; font-size:9px; line-height:1.4; letter-spacing:0.3px;
+    }
+    #dc-night.show { display:block; }
+
+    /* ── Top-right stacking column — one flex parent instead of magic
+       top:NNpx offsets (heights vary with content → guaranteed overlap) ── */
+    #hud-stack-top-right {
+      position:absolute; top:16px; right:16px;
+      display:flex; flex-direction:column; gap:10px;
+      max-height:calc(100vh - 140px); overflow-y:auto;
+      pointer-events:auto; width:max-content; max-width:270px;
+    }
+    /* Reading order (amendment #2): QUESTS (the "what next" answer) first,
+       then the session challenge, then daily meta, then the bot badge. CSS
+       order on the flex children — DOM insertion order doesn't matter. */
+    #quest-log-hud   { order:-1; }
+    #challenge-hud   { order:0; }
+    #daily-hud       { order:1; }
+    #bot-name-badge  { order:3; }
+
+    /* Collapsible panel chrome — shared by all three trackers. Headers are
+       the click surface (pointer-events:auto); bodies stay inert except in
+       the quest panel, which sets pointer-events:auto on itself. */
+    .hud-panel-header {
+      display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+      pointer-events:auto; cursor:pointer;
+    }
+    .hud-panel-header > * { margin-bottom:0; }
+    .hud-panel-header > *:first-child { flex:1 1 auto; }
+    .collapse-toggle { color:#777; font-size:10px; flex-shrink:0; }
+    .collapse-toggle::before { content:'−'; }
+    .hud-panel.collapsed .collapse-toggle::before { content:'+'; }
+    .hud-panel.collapsed .hud-panel-body { display:none; }
+    .hud-panel.collapsed { overflow:hidden; }
+
+    /* Attention discipline (playtest finding #1) — one voice per moment.
+       .deferred = secondary chip dimmed + collapsed to a slim header with
+       the "Earl's mission first" cue line; .unfold = the one-time fanfare
+       when the first quest completes. Additive: panels without these classes
+       render exactly as before. */
+    .hud-defer-note {
+      flex-basis:100%; font-size:9px; font-style:italic;
+      color:#b0a060; line-height:1.35; letter-spacing:0.2px; opacity:0.9;
+    }
+    .hud-defer-note:empty { display:none; }   /* empty cue → no extra row */
+    .hud-panel.deferred { border-color:#4a442a; opacity:0.8; }
+    .hud-panel.deferred .collapse-toggle { display:none; }
+    .hud-panel.unfold { animation:hud-unfold 0.9s ease; }
+    @keyframes hud-unfold {
+      0%   { transform:translateY(-3px); border-color:#8a6d2f; box-shadow:0 0 0 rgba(240,180,41,0); }
+      40%  { border-color:#f0b429; box-shadow:0 0 16px rgba(240,180,41,0.5); }
+      100% { transform:translateY(0); border-color:#8a6d2f; box-shadow:0 0 0 rgba(240,180,41,0); }
+    }
+
+    /* ── Welcome Back card (center, returning sessions) ── */
+    #welcome-back {
+      position:absolute; top:50%; left:50%;
+      transform:translate(-50%, -46%) scale(0.96);
+      width:min(420px, 88vw);
+      background:rgba(10,12,16,0.94); border:1px solid #6a5a2a; border-radius:12px;
+      padding:22px 26px 18px; z-index:600;
+      opacity:0; pointer-events:none; visibility:hidden;
+      transition:opacity 0.35s ease, transform 0.35s ease, visibility 0.35s ease;
+      box-shadow:0 10px 40px rgba(0,0,0,0.6);
+    }
+    #welcome-back.show { opacity:1; visibility:visible; pointer-events:auto; transform:translate(-50%, -50%) scale(1); }
+    #wb-title {
+      font-size:20px; font-weight:bold; letter-spacing:2px; color:#f0b429;
+      text-align:center; margin-bottom:2px;
+    }
+    #wb-subtitle { text-align:center; font-size:10px; color:#887755; letter-spacing:1px;
+                   text-transform:uppercase; margin-bottom:14px; }
+    .wb-row { display:flex; gap:10px; align-items:flex-start; padding:7px 0;
+              border-top:1px solid rgba(255,255,255,0.06); font-size:12px; color:#ccc; line-height:1.45; }
+    .wb-row:first-of-type { border-top:none; }
+    .wb-icon { font-size:16px; flex-shrink:0; width:20px; text-align:center; }
+    .wb-text b { color:#f0b429; }
+    #wb-close {
+      margin-top:14px; width:100%; padding:8px; font-size:11px; letter-spacing:1px;
+      background:#2a2416; color:#f0b429; border:1px solid #6a5a2a; border-radius:7px;
+      cursor:pointer; font-family:inherit;
+    }
+    #wb-close:hover { background:#3a3220; }
+
+    /* ── Ore Scanner HUD (center, above hotbar) ── */
+    #ore-scanner-hud {
+      position:absolute; bottom:100px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.75); border:1px solid #5577aa;
+      border-radius:8px; padding:6px 14px;
+      display:none; align-items:center; gap:10px;
+      font-size:11px; color:#99bbff; pointer-events:none; user-select:none;
+    }
+    #ore-scanner-hud.active { display:flex; }
+
+    /* ── Signal Radio HUD (center, above ore scanner) ── */
+    #signal-radio-hud {
+      position:absolute; bottom:136px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.8); border:1px solid rgba(0,200,160,0.5);
+      border-radius:8px; padding:5px 14px;
+      display:none; align-items:center; gap:10px;
+      font-size:11px; color:#00ccaa; pointer-events:none; user-select:none;
+    }
+    #signal-radio-hud.active { display:flex; }
+    #sr-arrow { font-size:22px; transition:transform 0.2s ease; display:inline-block; }
+    #sr-bars  { display:flex; gap:3px; align-items:flex-end; height:18px; }
+    .sr-bar   {
+      width:5px; background:#1a3330; border-radius:1px;
+      transition:background 0.15s;
+    }
+    .sr-bar:nth-child(1) { height:6px; }
+    .sr-bar:nth-child(2) { height:9px; }
+    .sr-bar:nth-child(3) { height:12px; }
+    .sr-bar:nth-child(4) { height:15px; }
+    .sr-bar:nth-child(5) { height:18px; }
+    .sr-bar.lit { background:#00ccaa; box-shadow:0 0 4px #00ffcc; }
+    #sr-label { font-size:9px; color:#008866; letter-spacing:1px; line-height:1.4; }
+    #ors-arrow {
+      font-size:22px; transition:transform 0.25s ease;
+      display:inline-block;
+    }
+    #ors-label { line-height:1.3; }
+    #ors-dist  { font-weight:bold; color:#aaddff; }
+
+    /* ── First-mine Heap Beacon (point the stuck kid at a rust heap) ──
+       Reuses the Ore Scanner arrow pattern: screen-relative ↑ that rotates to
+       the nearest heap while the FIRST mine objective is the active next step.
+       Gentle pulse on the whole chip + an animated ring marker on the arrow. */
+    #heap-beacon-hud {
+      position:absolute; bottom:172px; left:50%; transform:translateX(-50%);
+      background:rgba(20,14,4,0.82); border:1px solid #f0b429; border-radius:9px;
+      padding:7px 16px;
+      display:none; align-items:center; gap:11px;
+      font-size:12px; color:#ffd97a;
+      pointer-events:none; user-select:none;
+      animation:heapPulse 2.2s ease-in-out infinite;
+    }
+    #heap-beacon-hud.active { display:flex; }
+    @keyframes heapPulse {
+      0%,100% { box-shadow:0 0 0 rgba(240,180,41,0.0); }
+      50%     { box-shadow:0 0 18px rgba(240,180,41,0.45); }
+    }
+    #heap-arrow {
+      font-size:24px; display:inline-block; color:#ffd97a;
+      text-shadow:0 0 8px rgba(255,217,122,0.8);
+      transition:transform 0.22s ease;
+    }
+    #heap-arrow::after {
+      content:''; position:absolute; inset:-6px; border-radius:50%;
+      border:2px solid rgba(255,217,122,0.5);
+      animation:heapRing 1.6s ease-out infinite;
+    }
+    @keyframes heapRing { 0%{transform:scale(0.6);opacity:1} 100%{transform:scale(1.5);opacity:0} }
+    #heap-label { line-height:1.4; }
+    #heap-dist { font-weight:bold; color:#ffd97a; }
+
+    /* ── Item flash (center-bottom, above hotbar) ── */
+    #item-flash {
+      position:absolute; bottom:98px; left:50%; transform:translateX(-50%) translateY(6px);
+      background:rgba(0,0,0,0.84); border:1px solid #444; border-radius:7px;
+      padding:8px 18px; display:flex; align-items:center; gap:10px;
+      opacity:0; pointer-events:none; visibility:hidden;
+      transition:opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+      white-space:nowrap; max-width:340px;
+    }
+    #item-flash.show {
+      opacity:1; visibility:visible; transform:translateX(-50%) translateY(0);
+    }
+    .if-icon { font-size:26px; flex-shrink:0; }
+    .if-text { display:flex; flex-direction:column; gap:2px; }
+    .if-name { font-size:14px; color:#f0f0f0; font-weight:bold; letter-spacing:0.5px; }
+    .if-desc { font-size:11px; color:#777; line-height:1.35; }
+
+    /* ── Hotbar tooltip ── */
+    #hotbar-tip {
+      position:absolute; bottom:90px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.85); border:1px solid #555; border-radius:4px;
+      padding:4px 10px; font-size:11px; color:#ddd; white-space:nowrap;
+      pointer-events:none; opacity:0; visibility:hidden; transition:opacity 0.1s, visibility 0.1s;
+    }
+    #hotbar-tip.show { opacity:1; visibility:visible; }
+
+    /* ── Notifications ── */
+    #notifications {
+      position:absolute; top:56px; left:16px;
+      display:flex; flex-direction:column; gap:4px; max-width:260px;
+      pointer-events:none;
+    }
+    .notif {
+      background:rgba(0,0,0,0.85); border-left:3px solid #f0b429;
+      padding:6px 12px; border-radius:0 4px 4px 0; font-size:12px; color:#ddd;
+      animation:notifIn 0.2s ease, notifOut 0.4s ease 3.6s forwards;
+    }
+    @keyframes notifIn  { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:none} }
+    @keyframes notifOut { to{opacity:0;transform:translateX(-8px)} }
+
+    /* ── Tutorial hint overlay ── */
+    #tutorial-hint {
+      position:absolute; bottom:90px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.88); border:2px solid #f0b429;
+      border-radius:8px; padding:10px 18px;
+      font-size:14px; color:#f0f0f0; white-space:nowrap;
+      pointer-events:none; z-index:80;
+      opacity:0; transition:opacity 0.3s ease;
+      text-shadow:0 1px 4px rgba(0,0,0,0.6);
+      box-shadow:0 0 16px rgba(240,180,41,0.15);
+    }
+    #tutorial-hint.show { opacity:1; }
+    #tutorial-hint b { color:#f0b429; }
+
+    /* ── Mission Card (Phase A cold-open tutorial) ── */
+    #mission-card {
+      position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
+      background:rgba(4,8,4,0.97); border:2px solid #2a5a2a;
+      border-radius:10px; padding:0; width:440px; max-width:96vw;
+      pointer-events:auto; z-index:82;
+      box-shadow:0 0 32px rgba(0,180,80,0.18), 0 4px 24px rgba(0,0,0,0.7);
+      opacity:0; transform:translateX(-50%) translateY(12px);
+      transition:opacity 0.3s ease, transform 0.3s ease;
+    }
+    #mission-card.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    .mc-header {
+      display:flex; align-items:center; gap:10px;
+      padding:10px 14px 8px; border-bottom:1px solid #1a3a1a;
+    }
+    .mc-earl { font-size:22px; flex-shrink:0; }
+    .mc-meta { flex:1; min-width:0; }
+    .mc-label { font-size:9px; letter-spacing:2px; color:#44aa44; margin-bottom:2px; }
+    .mc-step-dots { display:flex; gap:4px; }
+    .mc-dot {
+      width:7px; height:7px; border-radius:50%;
+      background:#1a3a1a; border:1px solid #2a5a2a; transition:background 0.2s;
+    }
+    .mc-dot.done { background:#226622; }
+    .mc-dot.active { background:#44dd44; box-shadow:0 0 5px #44dd44; }
+    .mc-dismiss {
+      background:none; border:none; color:#2a5a2a; cursor:pointer;
+      font-size:14px; padding:2px 6px; border-radius:4px;
+      font-family:inherit; transition:color 0.15s;
+    }
+    .mc-dismiss:hover { color:#44dd44; }
+    .mc-body { padding:12px 16px 14px; }
+    .mc-title { font-size:13px; font-weight:bold; color:#ccffcc; margin-bottom:5px; }
+    .mc-desc { font-size:11px; color:#88aa88; line-height:1.55; }
+    .mc-desc b { color:#f0b429; }
+    .mc-desc code { background:#0a1a0a; border:1px solid #1a3a1a; padding:1px 5px; border-radius:3px; color:#44ee88; font-size:10px; }
+    .mc-cta {
+      display:inline-block; margin-top:8px;
+      background:#0c2c0c; border:1px solid #44aa44; color:#44ee88;
+      padding:5px 14px; border-radius:4px; font-size:11px;
+      font-family:inherit; cursor:pointer; letter-spacing:1px;
+      transition:background 0.15s, border-color 0.15s;
+    }
+    .mc-cta:hover { background:#142c14; border-color:#66cc66; }
+    /* Mission card content (renderMissionCard): step hint + brief + medals */
+    .mc-step-hint { font-size:11.5px; color:#a8d8a8; }
+    .mc-mission-brief { margin-top:6px; font-size:10.5px; color:#5a7a5a; font-style:italic; }
+    .mc-medals { margin-top:6px; font-size:11px; color:#f0b429; letter-spacing:1px; }
+
+    /* ── Cinema (cutscene director creates these; CSS stages them) ── */
+    #cs-bar-top, #cs-bar-bot {
+      position:fixed; left:0; right:0; height:11%;
+      background:#000; pointer-events:none;
+      transform:translateY(-100%);        /* parked off-screen */
+      transition:transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+      z-index:88;                          /* just under the pause overlay (90) */
+    }
+    #cs-bar-top { top:0; }
+    #cs-bar-bot { bottom:0; transform:translateY(100%); }
+
+    /* Cinema subtitle — bottom band, above the lower bar */
+    #cs-subtitle {
+      position:fixed; bottom:14vh; left:50%; transform:translateX(-50%);
+      width:max-content; max-width:720px; text-align:center;
+      font-size:15px; color:#e8e8e8; line-height:1.5;
+      text-shadow:0 2px 6px rgba(0,0,0,0.95), 0 0 14px rgba(0,0,0,0.6);
+      pointer-events:none; opacity:0; transition:opacity 0.3s ease;
+      z-index:89;
+    }
+    #cs-subtitle strong {                 /* the speaker name */
+      letter-spacing:2px; color:#f0b429; margin-right:6px;
+    }
+
+    /* Skip hint — dim, top-right, non-interactive */
+    #cs-skip-hint {
+      position:fixed; top:16px; right:18px;
+      font-size:10px; color:#666; letter-spacing:2px;
+      pointer-events:none; opacity:0; transition:opacity 0.4s ease;
+      z-index:89;
+    }
+
+    /* Veteran Ride buttons (pause menu + card) — house button look */
+    .veteran-ride-btn {
+      background:rgba(0,0,0,0.7); border:1px solid #444; color:#888;
+      padding:5px 12px; border-radius:4px; font-family:inherit; font-size:10px;
+      cursor:pointer; letter-spacing:1px; transition:all 0.15s;
+    }
+    .veteran-ride-btn:hover { border-color:#f0b429; color:#f0b429; }
+    #pause-inner .pause-veteran {
+      margin-top:18px; display:flex; gap:10px; justify-content:center;
+    }
+
+    /* ── Flash Receipt modal ── */
+    #flash-receipt {
+      position:fixed; inset:0; background:rgba(0,0,0,0.75);
+      display:flex; align-items:center; justify-content:center;
+      z-index:200; opacity:0; pointer-events:none; visibility:hidden;
+      transition:opacity 0.25s ease, visibility 0.25s ease;
+    }
+    #flash-receipt.show { opacity:1; pointer-events:auto; visibility:visible; }
+    .fr-card {
+      background:#040c04; border:2px solid #226622;
+      border-radius:12px; width:560px; max-width:95vw; max-height:90vh;
+      overflow-y:auto; box-shadow:0 0 48px rgba(0,200,80,0.2), 0 8px 40px rgba(0,0,0,0.8);
+    }
+    .fr-head {
+      display:flex; align-items:center; gap:10px;
+      padding:14px 16px 12px; border-bottom:1px solid #1a3a1a;
+      background:#061006;
+    }
+    .fr-icon { font-size:22px; }
+    .fr-headline { flex:1; }
+    .fr-headline h3 { font-size:14px; color:#44ee88; letter-spacing:2px; margin:0; }
+    .fr-headline small { font-size:9px; color:#447744; letter-spacing:1px; }
+    .fr-close-btn {
+      background:none; border:none; color:#336633; cursor:pointer;
+      font-size:16px; padding:2px 8px; font-family:inherit;
+    }
+    .fr-close-btn:hover { color:#44ee88; }
+    .fr-body { padding:16px; }
+    .fr-prog-row {
+      display:flex; align-items:center; gap:10px; margin-bottom:12px;
+    }
+    .fr-prog-name { font-size:16px; color:#ccffcc; font-weight:bold; }
+    .fr-brain-badge {
+      background:#0a200a; border:1px solid #226622; color:#44aa44;
+      padding:2px 8px; border-radius:3px; font-size:9px; letter-spacing:2px;
+    }
+    .fr-grade-badge {
+      margin-left:auto; font-size:18px; font-weight:bold;
+      padding:2px 10px; border-radius:4px; letter-spacing:1px;
+    }
+    .fr-stats-row {
+      display:flex; gap:0; border:1px solid #1a3a1a; border-radius:6px;
+      overflow:hidden; margin-bottom:14px;
+    }
+    .fr-stat {
+      flex:1; padding:8px 10px; text-align:center;
+      border-right:1px solid #1a3a1a;
+    }
+    .fr-stat:last-child { border-right:none; }
+    .fr-stat-val { font-size:18px; color:#88ffaa; font-weight:bold; }
+    .fr-stat-lbl { font-size:8px; color:#336633; letter-spacing:2px; margin-top:2px; }
+    .fr-section-lbl {
+      font-size:9px; color:#336633; letter-spacing:2px;
+      margin-bottom:6px; margin-top:12px;
+    }
+    .fr-code {
+      background:#020802; border:1px solid #1a3a1a; border-radius:6px;
+      padding:10px 12px; font-size:9.5px; line-height:1.6;
+      color:#5a9a5a; overflow-x:auto; max-height:180px;
+      overflow-y:auto; white-space:pre; font-family:'Courier New',monospace;
+    }
+    .fr-code .fr-comment { color:#2a5a2a; }
+    .fr-wokwi-box {
+      background:#020c10; border:1px solid #0a3a4a; border-radius:6px;
+      padding:12px 14px; margin-top:12px;
+    }
+    .fr-wokwi-title { font-size:10px; color:#44aacc; letter-spacing:1px; margin-bottom:6px; }
+    .fr-wokwi-steps { font-size:10px; color:#447788; line-height:1.8; }
+    .fr-wokwi-steps b { color:#66ccdd; }
+    .fr-actions {
+      display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;
+    }
+    .fr-btn {
+      flex:1; min-width:120px; padding:9px 12px; border-radius:5px;
+      font-family:inherit; font-size:10px; letter-spacing:1px;
+      cursor:pointer; text-align:center; text-decoration:none;
+      display:flex; align-items:center; justify-content:center; gap:5px;
+      transition:filter 0.15s;
+    }
+    .fr-btn:hover { filter:brightness(1.2); }
+    .fr-btn-share { background:#1a1a08; border:1px solid #8a7a00; color:#f0d040; }
+    .fr-btn-wokwi { background:#08101a; border:1px solid #0a4a6a; color:#44aacc; }
+    .fr-btn-real  { background:#081808; border:1px solid #1a5a1a; color:#44ee44; }
+    .fr-btn-dim   { background:#0a0a0a; border:1px solid #222; color:#445; }
+
+    /* ── Foreman panel ── */
+    #foreman-panel { position:absolute; top:16px; right:16px; width:300px; pointer-events:auto; }
+    #foreman-bubble {
+      background:rgba(8,8,8,0.92); border:2px solid #f0b429;
+      border-radius:8px; padding:12px 14px; color:#f0f0f0;
+      font-size:13px; line-height:1.55; display:none;
+      animation:bubbleIn 0.2s ease;
+    }
+    @keyframes bubbleIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:none} }
+    #foreman-bubble .name { color:#f0b429; font-weight:bold; font-size:14px; margin-bottom:5px; }
+    #foreman-bubble .dismiss { margin-top:8px; font-size:10px; color:#555; cursor:pointer; text-align:right; letter-spacing:1px; }
+    #foreman-bubble .dismiss:hover { color:#f0b429; }
+    #quest-box {
+      margin-top:8px; background:rgba(8,8,8,0.8); border:1px solid #333;
+      border-radius:6px; padding:10px 12px; font-size:12px; color:#bbb; display:none;
+    }
+    #quest-box .quest-title { color:#f0b429; font-size:13px; font-weight:bold; margin-bottom:6px; }
+    .quest-step { margin:3px 0; opacity:0.8; }
+    .quest-step.done { color:#4caf50; text-decoration:line-through; opacity:0.6; }
+
+    /* ── Codex shortcut ── */
+    #codex-btn {
+      position:absolute; bottom:88px; right:16px; pointer-events:auto;
+      background:rgba(0,0,0,0.7); border:1px solid #444; color:#888;
+      padding:5px 12px; border-radius:4px; font-family:inherit; font-size:10px;
+      cursor:pointer; letter-spacing:1px; transition:all 0.15s;
+    }
+    #codex-btn:hover { border-color:#f0b429; color:#f0b429; }
+
+    /* ── XP bar (bottom-left) ── */
+    #xp-bar {
+      position:absolute; bottom:24px; left:16px;
+      width:130px; pointer-events:none;
+    }
+    #xp-label {
+      font-size:10px; color:#f0b429; letter-spacing:1px;
+      margin-bottom:3px; display:flex; justify-content:space-between;
+    }
+    #xp-label .xp-skill-badge {
+      font-size:10px; color:#888;
+    }
+    #xp-track {
+      height:4px; background:rgba(255,255,255,0.1); border-radius:2px;
+      overflow:hidden;
+    }
+    #xp-fill {
+      height:100%; width:0%; background:#f0b429; border-radius:2px;
+      transition: width 0.5s ease;
+    }
+
+    /* Level-up flash (center screen) */
+    #levelup-toast {
+      position:absolute; top:38%; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.92); border:2px solid #f0b429;
+      border-radius:10px; padding:18px 36px; text-align:center;
+      pointer-events:none; visibility:hidden;
+      opacity:0; transition:opacity 0.25s ease, visibility 0.25s ease;
+    }
+    #levelup-toast.show { opacity:1; visibility:visible; }
+    #levelup-toast .lu-title { color:#f0b429; font-size:20px; font-weight:bold; letter-spacing:2px; }
+    #levelup-toast .lu-skill { color:#ddd; font-size:13px; margin-top:6px; }
+    #levelup-toast .lu-icon  { font-size:28px; margin-bottom:4px; }
+
+    /* ── Bot speech bubbles (screen-projected world-space) ── */
+    .bot-speech {
+      position:fixed; pointer-events:none;
+      background:rgba(0,0,0,0.88); border:1px solid #00ddff;
+      border-radius:10px 10px 10px 0; padding:5px 11px;
+      font-size:12px; color:#eee; white-space:nowrap;
+      transform:translate(-50%, -110%);
+      opacity:0; visibility:hidden; transition:opacity 0.2s, visibility 0.2s;
+      z-index:200;
+    }
+    .bot-speech::after {
+      content:''; position:absolute; bottom:-7px; left:12px;
+      border:4px solid transparent; border-top-color:#00ddff;
+    }
+    .bot-speech.bot-speech-2 { border-color:#ff8c00; }
+    .bot-speech.bot-speech-2::after { border-top-color:#ff8c00; }
+    .bot-speech.show { opacity:1; visibility:visible; }
+
+    /* ── Help overlay (H key) ── */
+    #help-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.84);
+      display:none; align-items:center; justify-content:center;
+      z-index:800; pointer-events:auto;
+    }
+    #help-overlay.show { display:flex; }
+    #help-inner {
+      background:rgba(12,12,12,0.98); border:2px solid #333;
+      border-radius:10px; padding:28px 36px; color:#ccc;
+      max-width:520px; width:100%;
+      animation:pauseIn 0.2s ease;
+    }
+    #help-inner h2 { color:#f0b429; letter-spacing:4px; font-size:16px; margin-bottom:18px; }
+    .help-section { margin-bottom:14px; }
+    .help-section h3 { color:#f0b429; font-size:11px; letter-spacing:2px; margin-bottom:6px; }
+    .help-row { display:flex; gap:12px; align-items:baseline; margin:4px 0; }
+    .help-key {
+      background:#222; border:1px solid #444; border-radius:4px;
+      padding:2px 8px; font-size:11px; color:#fff; min-width:36px; text-align:center;
+      flex-shrink:0;
+    }
+    .help-desc { font-size:12px; color:#888; }
+    #help-close {
+      margin-top:18px; font-size:10px; color:#555;
+      letter-spacing:1px; cursor:pointer; text-align:right;
+    }
+    #help-close:hover { color:#f0b429; }
+
+    /* ══ PAUSE OVERLAY ══════════════════════════════════════════════════ */
+    #pause-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.72);
+      display:none; align-items:center; justify-content:center;
+      z-index:90; cursor:pointer; pointer-events:auto;
+    }
+    #pause-inner {
+      text-align:center; color:#e0e0e0;
+      animation:pauseIn 0.2s ease;
+    }
+    @keyframes pauseIn { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:none} }
+    #pause-inner h2 { font-size:36px; letter-spacing:8px; color:#f0b429; margin-bottom:12px; }
+    #pause-inner p { font-size:13px; color:#888; letter-spacing:2px; }
+    #pause-inner .pause-hint { margin-top:24px; font-size:11px; color:#444; }
+    #coach-mode-btn {
+      margin-top:18px; padding:8px 22px; background:#141414; color:#f0b429;
+      border:1px solid #5a4a1a; font-family:inherit; font-size:11px;
+      letter-spacing:2px; cursor:pointer; border-radius:6px;
+      transition:all 0.2s;
+    }
+    #coach-mode-btn:hover { background:#241f12; border-color:#f0b429; }
+
+    /* ══ Achievement toast ══════════════════════════════════════════════ */
+    #achieve-toast {
+      position:fixed; bottom:104px; right:16px; width:280px;
+      background:rgba(8,8,8,0.94); border:2px solid #f0b429;
+      border-radius:8px; padding:12px 14px;
+      transform:translateX(320px);
+      transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      z-index:500; pointer-events:none;
+      visibility:hidden;   /* rests out of the a11y tree until shown — rig v2 P2 */
+    }
+    #achieve-toast.show { transform:translateX(0); visibility:visible; }
+    .ach-toast-header { color:#f0b429; font-size:10px; letter-spacing:2px; margin-bottom:6px; }
+    .ach-toast-body { display:flex; align-items:center; gap:10px; }
+    #ach-toast-icon { font-size:28px; }
+    #ach-toast-name { color:#fff; font-weight:bold; font-size:14px; }
+    #ach-toast-desc { color:#777; font-size:11px; margin-top:2px; line-height:1.4; }
+
+    /* ══ Workshop overlay ════════════════════════════════════════════════ */
+    #overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.82);
+      display:none; align-items:center; justify-content:center;
+      pointer-events:auto; z-index:100;
+      opacity:0; transition:opacity 0.18s ease;
+    }
+    #overlay.open { display:flex; }
+    #overlay.visible { opacity:1; }
+
+    #inv-panel {
+      background:#181818; border:1px solid #333;
+      border-radius:12px; padding:22px; width:780px; max-height:92vh;
+      overflow:hidden; display:flex; flex-direction:column;
+      color:#e0e0e0;
+      transform:translateY(12px);
+      transition:transform 0.18s ease;
+    }
+    #overlay.visible #inv-panel { transform:translateY(0); }
+    #inv-panel h2 { color:#f0b429; font-size:17px; margin-bottom:12px; letter-spacing:2px; }
+
+    /* Tabs */
+    .tabs { display:flex; gap:3px; margin-bottom:12px; border-bottom:1px solid #282828; padding-bottom:8px; }
+    .tab-btn {
+      padding:5px 14px; background:transparent; border:1px solid #333;
+      color:#666; font-family:inherit; font-size:10px; letter-spacing:1px;
+      cursor:pointer; border-radius:4px; transition:all 0.12s;
+    }
+    .tab-btn.active { background:#f0b429; color:#000; border-color:#f0b429; font-weight:bold; }
+    .tab-btn:hover:not(.active) { border-color:#888; color:#ccc; }
+    .tab-panel { display:none; overflow-y:auto; max-height:calc(92vh - 140px); }
+    #tab-crafting { display:block; }
+    .panel-cols { display:flex; gap:16px; }
+
+    /* Inventory grid */
+    #inv-grid { display:grid; grid-template-columns:repeat(9,52px); gap:3px; margin-bottom:8px; }
+    .inv-slot {
+      width:52px; height:52px; border:1px solid #252525; background:#0e0e0e;
+      border-radius:4px; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      cursor:pointer; position:relative; transition:border-color 0.1s;
+    }
+    .inv-slot:hover { border-color:#f0b429; }
+    .inv-slot .item-icon  { font-size:22px; }
+    .inv-slot .item-count { position:absolute; bottom:2px; right:4px; font-size:11px; color:#fff; text-shadow:1px 1px 0 #000; }
+    .inv-slot .item-name  { font-size:8px; color:#555; text-align:center; line-height:1; }
+
+    /* Recipes */
+    #crafting-section { min-width:265px; flex:1; }
+    #crafting-section h3 { color:#555; font-size:11px; letter-spacing:1px; margin-bottom:8px; }
+    #recipe-list { display:flex; flex-direction:column; gap:4px; max-height:370px; overflow-y:auto; }
+    .recipe-card {
+      background:#0e0e0e; border:1px solid #222; border-radius:6px;
+      padding:8px 10px; cursor:pointer; transition:all 0.1s;
+    }
+    .recipe-card:hover  { border-color:#888; background:#161616; }
+    .recipe-card.craftable:hover { border-color:#4caf50; background:#091209; }
+    .recipe-card.craftable { border-color:#1e3a1e; }
+    .r-name   { font-size:13px; font-weight:bold; }
+    .r-result { font-size:10px; color:#555; margin-top:2px; font-style:italic; }
+    .r-station{ font-size:10px; color:#444; margin-top:2px; }
+    .r-reqs   { font-size:10px; margin-top:4px; line-height:1.6; }
+    .r-reqs .ok      { color:#4caf50; }
+    .r-reqs .missing { color:#f44336; }
+    #craft-btn {
+      margin-top:10px; width:100%; padding:10px;
+      background:#f0b429; color:#000; border:none; border-radius:6px;
+      font-family:inherit; font-size:14px; font-weight:bold;
+      cursor:pointer; letter-spacing:1px; display:none;
+      transition:background 0.1s;
+    }
+    #craft-btn:hover { background:#ffd060; }
+    #craft-btn:active { transform:scale(0.98); }
+    #craft-btn-x5 {
+      margin-top:5px; width:100%; padding:7px;
+      background:rgba(240,180,41,0.12); color:#f0b429;
+      border:1px solid rgba(240,180,41,0.35); border-radius:6px;
+      font-family:inherit; font-size:12px; font-weight:bold;
+      cursor:pointer; letter-spacing:1px; display:none;
+      transition:background 0.1s;
+    }
+    #craft-btn-x5:hover { background:rgba(240,180,41,0.22); }
+    #craft-btn-x5:active { transform:scale(0.98); }
+
+    /* Achievements tab */
+    #tab-achievements { display:none; }
+    #ach-list { display:flex; flex-direction:column; gap:5px; }
+    .ach-item {
+      display:flex; align-items:center; gap:10px;
+      background:#0e0e0e; border:1px solid #222; border-radius:6px; padding:8px 12px;
+    }
+    .ach-item.done { border-color:#1a3a1a; }
+    .ach-item.done:hover { border-color:#4caf50; }
+    .ach-item.locked { opacity:0.4; }
+    .ach-icon  { font-size:24px; }
+    .ach-info  { flex:1; }
+    .ach-name  { font-size:13px; font-weight:bold; }
+    .ach-desc  { font-size:11px; color:#666; margin-top:2px; }
+    .ach-check { color:#4caf50; font-size:18px; margin-left:auto; }
+
+    /* Codex tab */
+    #tab-codex { display:none; }
+    .codex-cols { display:flex; gap:12px; height:430px; }
+    #codex-list { width:220px; display:flex; flex-direction:column; gap:3px; overflow-y:auto; flex-shrink:0; }
+    .codex-entry {
+      padding:7px 10px; background:#0e0e0e; border:1px solid #222;
+      border-radius:5px; cursor:pointer; font-size:12px; color:#888;
+      transition:all 0.1s;
+    }
+    .codex-entry:hover { border-color:#f0b429; color:#f0b429; }
+    .codex-entry.active { border-color:#f0b429; color:#f0f0f0; background:#1a1600; }
+    #codex-content { flex:1; background:#0e0e0e; border:1px solid #222; border-radius:6px; padding:16px; overflow-y:auto; }
+    #codex-content h3 { color:#f0b429; font-size:15px; margin-bottom:14px; }
+    .codex-text p { color:#b0b0b0; font-size:12px; line-height:1.75; margin-bottom:12px; }
+
+    /* Stats / Field Report tab */
+    #tab-stats { display:none; padding:8px 0; overflow-y:auto; max-height:460px; }
+    #stats-panel { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:4px; }
+    .stat-card {
+      background:#0e0e0e; border:1px solid #222; border-radius:6px;
+      padding:10px 14px;
+    }
+    .stat-card h4 { color:#f0b429; font-size:10px; letter-spacing:1px; margin:0 0 8px; }
+    .stat-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+    .stat-label { color:#666; font-size:11px; }
+    .stat-val { color:#e0e0e0; font-size:12px; font-weight:bold; }
+    .stat-bar-wrap { height:4px; background:#181818; border-radius:2px; margin-top:2px; }
+    .stat-bar-fill { height:4px; border-radius:2px; background:#f0b429; transition:width 0.3s; }
+
+    /* ── Tooltip ── */
+    #tooltip {
+      position:fixed; background:rgba(0,0,0,0.94); border:1px solid #333;
+      padding:7px 12px; border-radius:5px; font-size:12px; color:#e0e0e0;
+      pointer-events:none; display:none; z-index:300; max-width:220px;
+    }
+    #tooltip .t-name { color:#f0b429; font-weight:bold; margin-bottom:3px; }
+    #tooltip .t-desc { color:#777; line-height:1.45; }
+
+    /* ══ Tile Editor ════════════════════════════════════════════════════ */
+    #tile-editor {
+      position:fixed; inset:0; z-index:200;
+      background:rgba(4,4,4,0.96);
+      flex-direction:column;
+      font-family:'Courier New',monospace; color:#ddd;
+      user-select:none;
+    }
+
+    /* Header */
+    .te-header {
+      display:flex; align-items:center; gap:10px;
+      padding:9px 14px; flex-shrink:0;
+      background:rgba(0,0,0,0.7); border-bottom:1px solid #1c1c1c;
+    }
+    .te-title { color:#f0b429; font-size:12px; letter-spacing:3px; font-weight:bold; white-space:nowrap; }
+    .te-name-input {
+      background:#0e0e0e; border:1px solid #2a2a2a; color:#ddd;
+      padding:4px 8px; border-radius:3px; font-family:inherit; font-size:12px;
+      flex:1; max-width:200px; outline:none;
+    }
+    .te-name-input:focus { border-color:#f0b42966; }
+    .te-brain-select {
+      background:#0e0e0e; border:1px solid #2a2a2a; color:#666;
+      padding:4px 8px; border-radius:3px; font-family:inherit; font-size:10px;
+      letter-spacing:1px; outline:none;
+    }
+    .te-header-actions { margin-left:auto; display:flex; gap:5px; }
+
+    .te-btn {
+      padding:5px 12px; border:1px solid #2a2a2a; border-radius:3px;
+      font-family:inherit; font-size:10px; letter-spacing:1px; cursor:pointer;
+      background:#131313; color:#666; transition:all 0.12s; white-space:nowrap;
+    }
+    .te-btn:hover:not(:disabled) { border-color:#666; color:#bbb; }
+    .te-btn:disabled { opacity:0.3; cursor:default; }
+    .te-btn-run  { border-color:#1a3a1a; color:#4caf50; }
+    .te-btn-run:hover:not(:disabled)  { background:#0c200c; border-color:#4caf50; }
+    .te-btn-stop { border-color:#3a1a1a; color:#f44336; }
+    .te-btn-stop:hover:not(:disabled) { background:#200c0c; border-color:#f44336; }
+
+    /* Split */
+    .te-split { display:flex; flex:1; overflow:hidden; }
+
+    /* Left tray */
+    .te-tray {
+      width:145px; flex-shrink:0; background:#080808;
+      border-right:1px solid #161616; overflow-y:auto; padding:6px 6px 16px;
+    }
+    .te-tray-group {
+      font-size:8px; letter-spacing:2px; color:#383838;
+      margin:10px 0 4px 2px;
+    }
+    .te-tray-tile {
+      display:flex; align-items:center; gap:6px;
+      padding:7px 8px; border-radius:4px; margin-bottom:2px;
+      cursor:grab; border:1px solid transparent; transition:border-color 0.1s;
+    }
+    .te-tray-tile:hover  { border-color:#f0b42955; }
+    .te-tray-tile:active { cursor:grabbing; }
+    .te-tray-tile.te-dragging { opacity:0.35; }
+    .te-tile-icon  { font-size:13px; flex-shrink:0; }
+    .te-tile-label { font-size:10px; color:#888; }
+
+    /* Canvas */
+    .te-canvas-wrap {
+      flex:1; overflow:auto; padding:14px 18px;
+      position:relative;
+    }
+    #te-canvas {
+      display:flex; flex-direction:column; align-items:flex-start; gap:0;
+      min-height:100%;
+    }
+    .te-empty {
+      color:#383838; font-size:11px; margin:32px auto; text-align:center;
+      border:1px dashed #1c1c1c; border-radius:8px; padding:28px 44px; line-height:2.6;
+    }
+    .te-empty-sub { color:#2a2a2a; font-size:10px; }
+    .te-empty b { color:#3a3a3a; }
+
+    /* Drop zones */
+    .te-dz {
+      height:4px; width:100%; min-width:180px;
+      border-radius:2px; transition:height 0.08s, background 0.08s;
+    }
+    .te-dz.active {
+      height:20px; background:rgba(240,180,41,0.1);
+      border:1px dashed #f0b42988; border-radius:4px;
+    }
+
+    /* Tiles */
+    .te-node {
+      background:var(--nbg,#181818); border:1px solid rgba(255,255,255,0.05);
+      border-radius:5px; margin:1px 0; min-width:210px; max-width:480px;
+      cursor:grab; position:relative; transition:border-color 0.12s, box-shadow 0.12s;
+    }
+    .te-node:hover { border-color:rgba(255,255,255,0.1); }
+    .te-node.te-dragging { opacity:0.3; cursor:grabbing; }
+    .te-node.te-active {
+      border-color:#f0b429;
+      box-shadow:0 0 10px rgba(240,180,41,0.22), inset 0 0 6px rgba(240,180,41,0.06);
+    }
+    .te-node.te-step-active {
+      border-color:#44ffaa;
+      box-shadow:0 0 14px rgba(0,255,160,0.35), inset 0 0 8px rgba(0,255,160,0.08);
+      animation:te-step-pulse 0.8s ease-out;
+    }
+    @keyframes te-step-pulse {
+      0%   { box-shadow:0 0 30px rgba(0,255,160,0.6), inset 0 0 12px rgba(0,255,160,0.15); }
+      100% { box-shadow:0 0 14px rgba(0,255,160,0.35), inset 0 0 8px rgba(0,255,160,0.08); }
+    }
+    .te-node-head {
+      display:flex; align-items:center; gap:6px; padding:6px 8px;
+      border-bottom:1px solid rgba(255,255,255,0.04);
+    }
+    .te-nicon { font-size:12px; flex-shrink:0; }
+    .te-nlbl  { font-size:11px; color:#b0b0b0; flex:1; letter-spacing:0.5px; }
+    .te-del {
+      background:none; border:none; color:#333; cursor:pointer;
+      font-size:10px; padding:1px 4px; border-radius:2px; line-height:1;
+      transition:color 0.1s;
+    }
+    .te-del:hover { color:#f44336; }
+    .te-dup {
+      background:none; border:none; color:#333; cursor:pointer;
+      font-size:10px; padding:1px 4px; border-radius:2px; line-height:1;
+      transition:color 0.1s;
+    }
+    .te-dup:hover { color:#4caf50; }
+    .te-help-btn {
+      background:none; border:1px solid #2a2a2a; color:#445; cursor:pointer;
+      font-size:9px; padding:0 4px; border-radius:10px; line-height:14px;
+      font-weight:bold; transition:color 0.1s, border-color 0.1s;
+    }
+    .te-help-btn:hover { color:#88aaff; border-color:#88aaff; }
+    .te-tip-popup {
+      margin:4px 8px 6px; padding:6px 8px;
+      background:#0a1020; border:1px solid #1e3050; border-radius:4px;
+      color:#99bbdd; font-size:10px; line-height:1.5; white-space:normal;
+    }
+
+    /* Params */
+    .te-params { padding:5px 8px; display:flex; flex-direction:column; gap:4px; }
+    .te-param-row { display:flex; align-items:center; gap:5px; font-size:10px; color:#666; }
+    .te-param-key { min-width:48px; color:#484848; }
+    .te-select {
+      background:#0a0a0a; border:1px solid #222; color:#999;
+      padding:2px 4px; border-radius:2px; font-family:inherit; font-size:10px; outline:none;
+    }
+    .te-slider { flex:1; max-width:90px; accent-color:#f0b429; }
+    .te-num-inp {
+      background:#0a0a0a; border:1px solid #222; color:#999;
+      padding:2px 4px; border-radius:2px; font-family:inherit; font-size:10px;
+      width:52px; text-align:right; outline:none;
+    }
+    .te-param-text {
+      background:#0a0a0a; border:1px solid #222; color:#88aaff;
+      padding:2px 6px; border-radius:2px; font-family:inherit; font-size:10px;
+      width:80px; outline:none;
+    }
+    .te-param-text:focus { border-color:#334466; }
+
+    /* Condition row */
+    .te-cond {
+      display:flex; align-items:center; gap:4px; padding:4px 8px; flex-wrap:wrap;
+      border-bottom:1px solid rgba(255,255,255,0.04); font-size:10px;
+    }
+    .te-cond-not {
+      background:#131313; border:1px solid #2a2a2a; color:#444;
+      padding:1px 6px; border-radius:2px; cursor:pointer;
+      font-family:inherit; font-size:9px; letter-spacing:1px;
+    }
+    .te-cond-not.active { border-color:#f44336; color:#f44336; }
+
+    /* Bodies */
+    .te-body { margin:0 0 4px 14px; padding:4px 0 4px 10px; border-left:2px solid #1a1a1a; }
+    .te-body-lbl  { font-size:8px; color:#383838; letter-spacing:2px; margin-bottom:2px; }
+    .te-body-inner { display:flex; flex-direction:column; }
+    .te-body-ph { font-size:9px; color:#2a2a2a; font-style:italic; padding:3px 6px; }
+
+    /* Code view */
+    .te-code-view {
+      border-top:1px solid #1a1a1a; max-height:340px;
+      flex-direction:column; flex-shrink:0; background:#050505;
+    }
+    .te-code-tabs {
+      display:flex; align-items:center; gap:4px; padding:5px 10px;
+      background:#090909; border-bottom:1px solid #141414; flex-shrink:0;
+    }
+    .te-code-tab {
+      background:none; border:1px solid #222; color:#484848;
+      padding:2px 10px; border-radius:2px; cursor:pointer;
+      font-family:inherit; font-size:9px; letter-spacing:1px;
+    }
+    .te-code-tab.active { border-color:#f0b429; color:#f0b429; }
+    #te-code-pre {
+      flex:1; overflow:auto; padding:10px 14px; margin:0;
+      font-size:10px; line-height:1.7; color:#7aa2a8; background:transparent;
+      white-space:pre;
+    }
+    #te-wiring-svg { flex:1; overflow:auto; }
+    #te-wiring-svg svg { width:100%; height:auto; display:block; }
+
+    /* ── BUILD IT / receipt button ── */
+    .te-receipt-btn {
+      background:#0c200c; border-color:#226622; color:#44ee44;
+      animation:receipt-pulse 2.5s ease-in-out infinite;
+    }
+    .te-receipt-btn:hover { background:#142c14 !important; border-color:#44ee44 !important; animation:none; }
+    @keyframes receipt-pulse {
+      0%,100% { box-shadow:none; }
+      50% { box-shadow:0 0 8px rgba(68,238,68,0.4); border-color:#44aa44; }
+    }
+
+    /* ── WebSerial flash button ── */
+    .te-flash-btn { background:#081808; border-color:#1a4a1a; color:#44dd44; }
+    .te-flash-btn:hover:not(:disabled) { background:#0c2c0c; border-color:#44dd44; }
+    .te-flash-btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .te-flash-btn[data-status="connecting"],
+    .te-flash-btn[data-status="flashing"]  { color:#f0b429; border-color:#80600a; background:#181008; }
+    .te-flash-btn[data-status="running"]   { color:#44ee88; border-color:#226633; }
+    .te-flash-btn[data-status="error"]     { color:#ff6655; border-color:#661111; background:#140808; }
+
+    /* Bot Card — the heart */
+    #bot-card { position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center;
+      background:rgba(4,8,6,.7); }
+    @keyframes bpanic { from { box-shadow:0 0 10px rgba(255,40,40,0.35); } to { box-shadow:0 0 26px rgba(255,40,40,0.8); } }
+    .bc-card { width:min(480px, 92vw); max-height:82vh; overflow:auto; background:#0d1410;
+      border:1px solid #2d4a38; border-radius:8px; padding:14px 16px;
+      font:11px/1.7 'Courier New',monospace; color:#b9d8c2;
+      box-shadow:0 0 40px rgba(251,113,133,.15); }
+    .bc-head { color:#fb7185; font-weight:bold; letter-spacing:1px; font-size:13px;
+      display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+    .bc-slot { color:#7a8; font-size:10px; }
+    .bc-close { margin-left:auto; background:#1a2a20; color:#9b8; border:1px solid #2d4a38;
+      border-radius:4px; cursor:pointer; padding:2px 8px; font:10px 'Courier New',monospace; }
+    .bc-close:hover { border-color:#fb7185; color:#fb7185; }
+    .bc-empty { text-align:center; padding:24px 8px; color:#8a9; }
+    .bc-retired { background:#241a08; border:1px solid #6a5010; color:#ffd280; padding:4px 8px;
+      border-radius:4px; margin-bottom:8px; }
+    .bc-rename { display:flex; gap:6px; margin:8px 0; }
+    .bc-rename input { flex:1; background:#0a0f0c; border:1px solid #2d4a38; color:#cfc;
+      border-radius:4px; padding:4px 8px; font:11px 'Courier New',monospace; }
+    .bc-rename button { background:#1a2a20; border:1px solid #3a5a48; color:#9f8; cursor:pointer;
+      border-radius:4px; padding:4px 10px; font:10px 'Courier New',monospace; }
+    .bc-rename button:hover { border-color:#fb7185; color:#fb7185; }
+    .bc-stats { display:flex; gap:8px; margin:8px 0; }
+    .bc-stat { flex:1; text-align:center; background:#0a120d; border:1px solid #233a2c;
+      border-radius:4px; padding:4px; }
+    .bc-stat b { display:block; color:#ffd280; font-size:14px; }
+    .bc-stat span { color:#7a8; font-size:9px; }
+    .bc-sec { color:#7dd3fc; font-weight:bold; margin:10px 0 3px; border-bottom:1px solid #1b2a22; padding-bottom:2px; }
+    .bc-li { padding:1px 6px; color:#a9c8b2; }
+    .bc-dim { color:#6a7; opacity:.7; padding:1px 6px; }
+
+    /* Quilt view — the bot as a live spreadsheet */
+    #te-quilt-panel { position:absolute; inset:0; z-index:41; background:rgba(8,10,6,.97);
+      display:flex; flex-direction:column; font:10px/1.6 'Courier New',monospace; color:#8fa; overflow:auto; }
+    .quilt-head { padding:8px 10px; color:#7dd3fc; letter-spacing:1px; font-weight:bold;
+      border-bottom:1px solid #234; display:flex; gap:10px; align-items:baseline; }
+    .quilt-sub { font-weight:normal; color:#7a8; letter-spacing:0; }
+    .quilt-body { display:flex; flex-wrap:wrap; gap:0; align-items:flex-start; padding:4px 0; }
+    .quilt-group { min-width:180px; flex:1; padding:4px 10px; border-right:1px solid #1b2a22; }
+    .quilt-group-head { color:var(--gcolor,#8fa); font-weight:bold; margin-bottom:2px; }
+    .quilt-row { display:flex; justify-content:space-between; gap:10px; padding:1px 6px; border-radius:3px; }
+    .q-label { color:#9b8; }
+    .q-fx { color:#f0b429; font-size:9px; }
+    .q-value { color:#cfc; font-weight:bold; }
+    .quilt-row.q-flash { animation:qflash .8s ease-out; }
+    @keyframes qflash {
+      0%   { background:#4a3a08; box-shadow:inset 2px 0 0 #ffb020; }
+      100% { background:transparent; }
+    }
+
+    /* Hardware twin — Uno pin view */
+    #te-pin-panel { position:absolute; inset:0; z-index:40; background:rgba(6,10,8,.97);
+      display:flex; flex-direction:column; font:10px/1.5 'Courier New',monospace; color:#9fc; }
+    .tp-head { padding:8px 10px; color:#ffb020; letter-spacing:1px; font-weight:bold;
+      border-bottom:1px solid #234; display:flex; gap:10px; align-items:baseline; }
+    .tp-sub { font-weight:normal; color:#7a8; letter-spacing:0; }
+    .tp-body { display:flex; flex:1; overflow:auto; }
+    .tp-col { flex:1; padding:6px 10px; }
+    .tp-col + .tp-col { border-left:1px solid #234; }
+    .tp-row { display:flex; gap:8px; align-items:center; padding:2px 6px; border-radius:3px; }
+    .tp-row.tp-on   { background:#0a2d0a; color:#6f6; box-shadow:inset 2px 0 0 #4c4; }
+    .tp-row.tp-led  { background:#2d2d0a; color:#ff6; box-shadow:inset 2px 0 0 #cc4, 0 0 8px #cc4; }
+    .tp-pin  { width:34px; color:#ffb020; font-weight:bold; }
+    .tp-mode { width:34px; color:#69a; }
+    .tp-lvl  { width:44px; }
+    .tp-duty { color:#f0b429; }
+    .tp-tone { color:#f7a; }
+    .tp-volt { width:44px; color:#69a; }
+    .tp-src  { color:#7a8; }
+    .tp-pwmcap { color:#f0b429; margin-left:2px; }
+    .tp-legend { padding:6px 10px; border-top:1px solid #234; display:flex; flex-wrap:wrap; gap:6px; }
+    .tp-chip { background:#10241a; border:1px solid #234; border-radius:3px; padding:1px 6px; color:#8b9; }
+    .tp-warn { padding:6px 10px; border-top:1px solid #234; color:#ffd280; max-height:64px; overflow:auto; }
+
+    /* ── Serial monitor panel ── */
+    #te-serial-monitor {
+      flex-direction:column;
+      border-top:1px solid #1a2a1a;
+      background:#060e06;
+      max-height:160px;
+    }
+    #te-serial-header {
+      display:flex; align-items:center; gap:6px;
+      padding:4px 8px;
+      border-bottom:1px solid #0f1f0f;
+      background:#081208;
+      flex-shrink:0;
+    }
+    #te-serial-status {
+      font-size:9px; letter-spacing:1px; color:#44dd44;
+    }
+    #te-serial-status[data-status="flashing"] { color:#f0b429; }
+    #te-serial-status[data-status="running"]  { color:#44ee88; }
+    #te-serial-status[data-status="error"]    { color:#ff6655; }
+    #te-serial-lines {
+      overflow-y:auto; flex:1;
+      padding:4px 8px;
+    }
+    .tse-line {
+      display:flex; gap:6px;
+      font-size:10px; line-height:1.5;
+      color:#9ad09a;
+    }
+    .tse-ts  { color:#2a5a2a; flex-shrink:0; }
+    .tse-text { word-break:break-all; }
+
+    /* Errors */
+    #te-errors {
+      padding:5px 12px; flex-shrink:0; background:#070707;
+      border-top:1px solid #181818; max-height:80px; overflow:auto;
+    }
+    .te-err  { font-size:10px; color:#f44336; padding:1px 0; }
+    .te-warn { font-size:10px; color:#f0b429; padding:1px 0; }
+
+    /* ── Live sensor readout ── */
+    #te-sensors {
+      padding:6px 12px; flex-shrink:0; background:#050c0a;
+      border-top:1px solid #0a1a10;
+      display:flex; flex-wrap:wrap; gap:6px 16px;
+    }
+    .te-sensor-row {
+      display:flex; align-items:center; gap:5px; font-size:10px;
+    }
+    .te-sensor-key  { color:#3a7a50; letter-spacing:0.5px; }
+    .te-sensor-val  { color:#00ff88; font-weight:bold; min-width:38px; }
+    .te-sensor-bar  {
+      width:50px; height:5px; background:#0d1f14; border-radius:2px; overflow:hidden;
+    }
+    .te-sensor-fill { height:100%; background:#00cc66; border-radius:2px; transition:width 0.1s; }
+
+    /* ── Program stats readout ── */
+    #te-stats {
+      padding:5px 12px; flex-shrink:0; background:#0a080f;
+      border-top:1px solid #16102a;
+      display:flex; flex-wrap:wrap; gap:4px 18px; align-items:center;
+    }
+    .te-stat-item { display:flex; align-items:center; gap:4px; }
+    .te-stat-lbl  { font-size:9px; color:#5a4a7a; letter-spacing:0.8px; }
+    .te-stat-val  { font-size:10px; color:#bb88ff; font-weight:bold; }
+
+    /* ── Spark panel ── */
+    #spark-panel {
+      width:250px; flex-shrink:0; flex-direction:column;
+      background:#060b10; border-left:1px solid #0a1a2a;
+    }
+    .sp-header {
+      padding:8px 12px; font-size:10px; letter-spacing:3px; color:#00aacc;
+      border-bottom:1px solid #0a1a2a; background:#040c14; flex-shrink:0;
+    }
+    .sp-log {
+      flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:5px;
+    }
+    .sp-msg {
+      font-size:11px; line-height:1.55; padding:5px 8px; border-radius:4px; max-width:100%;
+      word-break:break-word;
+    }
+    .sp-user  { background:#0e1e10; color:#88cc88; align-self:flex-end; border:1px solid #1a3a1a; }
+    .sp-spark { background:#081424; color:#88ccee; border:1px solid #0a2030; }
+    .sp-built { border-color:#00ccff; color:#aaeeff; }
+    .sp-thinking { opacity:0.5; font-style:italic; }
+    .sp-input-row {
+      display:flex; gap:4px; padding:6px; border-top:1px solid #0a1a2a; flex-shrink:0;
+    }
+    .sp-input {
+      flex:1; background:#080808; border:1px solid #0a2030; color:#aaa;
+      padding:4px 6px; border-radius:3px; font-family:inherit; font-size:10px; outline:none;
+    }
+    .sp-input::placeholder { color:#2a4a5a; }
+    .sp-chips { display:flex; flex-wrap:wrap; gap:4px; padding:5px 8px 7px; }
+    .sp-chip {
+      background:#12283a; color:#7ec8ff; border:1px solid #1e4a6a; border-radius:10px;
+      font-size:9px; font-family:inherit; padding:3px 8px; cursor:pointer;
+      transition:background 0.15s, border-color 0.15s;
+    }
+    .sp-chip:hover { background:#1a3a52; border-color:#3a7aaa; }
+    .sp-chip-dice { color:#f0b429; border-color:#6a5a2a; background:#241f12; }
+    .sp-send {
+      background:#082030; border:1px solid #00aacc; color:#00ccff;
+      padding:4px 8px; border-radius:3px; cursor:pointer; font-family:inherit; font-size:11px;
+      transition:background 0.1s;
+    }
+    .sp-send:hover { background:#0c3050; }
+
+    /* ══ Maker Challenge panel ═══════════════════════════════════════════ */
+    #te-challenge-panel {
+      width:280px; flex-shrink:0; flex-direction:column;
+      background:#0b0806; border-left:1px solid #2a1a00; overflow-y:auto;
+    }
+    .tc-header {
+      display:flex; align-items:center; gap:6px;
+      padding:8px 12px; font-size:10px; letter-spacing:3px; color:#f0b429;
+      border-bottom:1px solid #2a1a00; background:#120c04; flex-shrink:0;
+    }
+    #te-challenge-progress {
+      padding:6px 12px; font-size:10px; letter-spacing:1px; color:#d8a838;
+      background:#0e0a04; border-bottom:1px solid #1e1400; flex-shrink:0;
+    }
+    .tc-item {
+      padding:8px 10px; margin:6px 8px; border:1px solid #2a1a00; border-radius:4px;
+      background:#100a04; cursor:pointer; transition:background 0.1s, border-color 0.1s;
+    }
+    .tc-item:hover { background:#1a1008; border-color:#f0b429; }
+    .tc-item.tc-solved { border-color:#3a5a1a; background:#0e1408; }
+    .tc-item-row { display:flex; align-items:center; gap:6px; }
+    .tc-item-title { font-size:11px; color:#f0b429; letter-spacing:1px; }
+    .tc-item.tc-solved .tc-item-title { color:#8fd06a; }
+    .tc-item-stars { margin-left:auto; font-size:10px; color:#ffd24a; letter-spacing:1px; }
+    .tc-item-skill { font-size:9px; color:#7a6a4a; margin-top:2px; letter-spacing:0.5px; }
+    #te-challenge-detail { padding:10px 12px; }
+    #te-challenge-title { font-size:12px; color:#f0b429; letter-spacing:1px; margin-bottom:6px; }
+    .tc-detail-stars { color:#ffd24a; letter-spacing:1px; }
+    #te-challenge-brief { font-size:11px; line-height:1.55; color:#c8b898; }
+    #te-challenge-verdict {
+      margin-top:10px; padding:8px 10px; border-radius:4px; font-size:11px; line-height:1.5;
+    }
+    .tc-pass { background:#0e1e10; color:#8fe08f; border:1px solid #1a3a1a; }
+    .tc-fail { background:#1e1210; color:#e0a08f; border:1px solid #3a1a1a; }
+    .tc-verdict-stars { color:#ffd24a; letter-spacing:2px; font-size:13px; }
+    .tc-hint { margin-top:5px; font-size:10px; color:#9a8a6a; }
+
+    /* ══ BUILD Panel (the [E] assembly menu — shares .te-* frame styling) ═ */
+    #build-panel {
+      position:fixed; inset:0; z-index:200;
+      background:rgba(4,4,4,0.96);
+      flex-direction:column;
+      font-family:'Courier New',monospace; color:#ddd;
+      user-select:none;
+      align-items:center; justify-content:center;
+    }
+    .bp-body { display:flex; gap:22px; max-width:920px; width:92%; }
+    .bp-col { flex:1; background:#0c0c0c; border:1px solid #1c1c1c; border-radius:8px; padding:14px; }
+    .bp-col-title { font-size:9px; letter-spacing:2px; color:#f0b429; margin-bottom:10px; }
+    .bp-slot, .bp-socket {
+      display:flex; align-items:center; gap:10px;
+      border:1px dashed #2a2a2a; border-radius:6px;
+      padding:8px 10px; margin-bottom:6px; cursor:pointer;
+      transition:border-color 0.12s, background 0.12s;
+    }
+    .bp-slot:hover, .bp-socket:hover { border-color:#f0b42966; background:#111; }
+    .bp-slot-over { border-color:#f0b429 !important; background:rgba(240,180,41,0.08) !important; }
+    .bp-slot-filled, .bp-socket-filled { border-style:solid; border-color:#1a3a1a; background:#0a140a; }
+    .bp-slot-icon { font-size:20px; min-width:26px; text-align:center; }
+    .bp-slot-empty { color:#333; }
+    .bp-slot-txt { font-size:11px; line-height:1.5; }
+    .bp-slot-txt b { color:#ccc; font-size:11px; }
+    .bp-slot-sub { color:#555; font-size:10px; }
+    .bp-bin { margin-top:10px; border-top:1px solid #1c1c1c; padding-top:8px; }
+    .bp-bin-title { font-size:8px; letter-spacing:2px; color:#383838; margin-bottom:6px; }
+    .bp-part {
+      display:inline-flex; align-items:center; gap:6px;
+      font-size:10px; color:#999; background:#131313;
+      border:1px solid #2a2a2a; border-radius:4px;
+      padding:5px 8px; margin:2px; cursor:grab;
+    }
+    .bp-part:hover { border-color:#f0b42955; }
+    .bp-chip { border-color:#3a2a4a; background:#140f1c; color:#b9a; }
+    .bp-chip-cracked { border-color:#4a2a1a; }
+    .bp-cracked { color:#f08c4a; font-size:10px; }
+    .bp-picker { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px; }
+    .bp-chip-btn {
+      padding:5px 10px; background:#131313; border:1px solid #2a2a2a; border-radius:4px;
+      color:#777; font-family:inherit; font-size:10px; letter-spacing:1px; cursor:pointer;
+    }
+    .bp-chip-btn:hover { border-color:#666; color:#bbb; }
+    .bp-chip-btn-active { border-color:#7a5aa0; color:#c9a; background:#171021; }
+    .bp-shard-row { display:flex; align-items:center; gap:6px; margin-bottom:10px; font-size:11px; }
+    .bp-shard-count { color:#f0b429; min-width:14px; text-align:center; font-size:13px; }
+    .bp-shelf-status { font-size:12px; color:#9f9; padding:10px; border:1px solid #1a3a1a; border-radius:6px; background:#0a140a; }
+    .bp-note { font-size:10px; color:#555; line-height:1.7; margin-top:8px; }
+
+    /* ══ Start screen ════════════════════════════════════════════════════ */
+    #start-screen {
+      position:fixed; inset:0; background:#080808;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      z-index:1000;
+    }
+    #start-screen h1 {
+      font-size:72px; font-weight:900; letter-spacing:8px;
+      color:#f0b429;
+      text-shadow:5px 5px 0 #4a3000, 0 0 80px #f0b42933;
+      margin-bottom:6px;
+      animation:titlePulse 3s ease-in-out infinite;
+    }
+    @keyframes titlePulse {
+      0%,100% { text-shadow:5px 5px 0 #4a3000, 0 0 80px #f0b42933; }
+      50%      { text-shadow:5px 5px 0 #4a3000, 0 0 120px #f0b42966; }
+    }
+    .tagline { color:#444; font-size:12px; letter-spacing:5px; margin-bottom:48px; }
+    #start-btn {
+      padding:14px 48px; background:#f0b429; color:#000; border:none;
+      font-family:inherit; font-size:16px; font-weight:bold; letter-spacing:2px;
+      cursor:pointer; border-radius:6px;
+      transition:all 0.2s;
+      box-shadow:0 4px 20px #f0b42933;
+    }
+    #start-btn:hover { background:#ffd060; transform:scale(1.05); box-shadow:0 4px 30px #f0b42966; }
+    #start-btn:active { transform:scale(0.98); }
+    #spectator-btn {
+      margin-top:12px; padding:8px 26px; background:#141414; color:#f0b429;
+      border:1px solid #5a4a1a; font-family:inherit; font-size:11px;
+      letter-spacing:2px; cursor:pointer; border-radius:6px;
+      transition:all 0.2s;
+    }
+    #spectator-btn:hover { background:#241f12; border-color:#f0b429; }
+    #spectator-btn:active { transform:scale(0.98); }
+    .controls-hint { margin-top:36px; color:#333; font-size:11px; line-height:2.2; text-align:center; }
+    .controls-hint span { color:#666; }
+    .bands-hint { margin-top:18px; color:#2a2a2a; font-size:10px; letter-spacing:2px; }
+    .bands-hint div { margin:3px 0; }
+  </style>
+  <style>
+    /* ── Level 2 cinema ─────────────────────────────────────────── */
+    body.cinema #hud { display:none !important; }
+    body.cinema #crosshair { display:none !important; }
+    #cinema-skip {
+      position:fixed; right:18px; bottom:18px; z-index:1500; display:none;
+      background:rgba(8,12,8,.85); color:#ffd970; border:1px solid #f0b429;
+      font-family:'Courier New',monospace; font-size:12px; letter-spacing:2px;
+      padding:10px 16px; border-radius:8px; cursor:pointer;
+    }
+    body.cinema #cinema-skip { display:block; }
+    #cinema-skip:hover { background:#f0b429; color:#111; }
+    .cinema-sub {
+      color:#ffd970; font-family:'Courier New',monospace; font-size:13px;
+      letter-spacing:1px; margin:14px 0 22px; line-height:1.7; opacity:.85;
+    }
+    #cs-subtitle {
+      font-family:'Courier New',monospace !important; font-size:20px !important;
+      letter-spacing:1px; max-width:70% !important; bottom:16vh !important;
+    }
+    #cs-subtitle strong { color:#ffd970; }
+  </style>
+  <style>
+        /* ── Level 3 pocket cinema: mobile-first ── */
+    body.cinema {
+      background: #080808; color: #e8dcc0;
+      display: flex; flex-direction: column;
+      height: 100vh; height: 100dvh; overflow: hidden;
+    }
+    body.cinema #canvas-container { position: absolute; inset: 0; }
+    body.cinema #start-screen #start-btn,
+    body.cinema #start-screen .controls-hint { display: none; }
+    body.cinema #cinema-skip { display: none !important; }
+
+    #l2-topbar {
+      flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; background: #0c0c0c; border-bottom: 1px solid #2a2118;
+      z-index: 600; font-family: 'Courier New', monospace;
+    }
+    #l2-brand { color: #f0b429; font-size: 12px; letter-spacing: 2px; white-space: nowrap; }
+    #l2-beat { color: #8a7a5a; font-size: 10px; letter-spacing: 1px; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; flex: 1 1 auto; min-width: 0; }
+    #l2-topbar button {
+      background: #141414; color: #ffd970; border: 1px solid #f0b429;
+      font-family: inherit; font-size: 11px; letter-spacing: 1px;
+      padding: 10px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap;
+      min-height: 44px;
+    }
+    #l2-topbar button[hidden] { display: none; }
+    #l2-resume { background: #f0b429; color: #111; font-weight: bold; }
+
+    #l3-tabs { flex: 0 0 auto; display: flex; gap: 6px; padding: 8px 10px 0; z-index: 600; }
+    #l3-tabs button {
+      flex: 1; background: #101010; color: #8a7a5a; border: 1px solid #2a2118;
+      border-bottom: none; font-family: 'Courier New', monospace; font-size: 11px;
+      letter-spacing: 3px; padding: 10px; border-radius: 8px 8px 0 0; cursor: pointer;
+      min-height: 44px;
+    }
+    #l3-tabs button.on { background: #1c1608; color: #ffd970; border-color: #f0b429; }
+
+    #l3-main { flex: 1 1 auto; min-height: 0; position: relative; overflow: hidden;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    #l2-view3d { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; overflow: hidden; }
+    #l2-view3d[hidden], #l3-viewtext[hidden] { display: none; }
+    .l2-panehead {
+      position: absolute; top: 8px; left: 10px; z-index: 5;
+      font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 2px;
+      color: #f0b429; background: rgba(0,0,0,.55); padding: 3px 8px; border-radius: 4px;
+      pointer-events: none;
+    }
+    #l3-viewtext {
+      position: relative; width: 100%; aspect-ratio: 16 / 9; display: flex; flex-direction: column;
+      background: #050505; overflow: hidden; cursor: pointer;
+    }
+    #l2-ascii {
+      flex: 1 1 auto; min-height: 0; overflow: hidden; margin: 0; padding: 26px 6px 8px;
+      white-space: pre; font-family: 'Courier New', monospace; font-size: 8px;
+      line-height: 1.05; color: #d8c890; user-select: none;
+    }
+    #l2-view3d #cs-bar-top, #l2-view3d #cs-bar-bot {
+      height: 7vh !important; background: #000;
+    }
+    #l2-view3d #cs-subtitle {
+      bottom: calc(7vh + 8px); font-size: 15px; padding: 0 14px;
+      text-shadow: 0 2px 8px #000, 0 0 2px #000;
+    }
+    #l2-veil {
+      position: absolute; inset: 0; z-index: 20; background: #050505;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; transition: opacity 1.4s ease; text-align: center; padding: 0 24px;
+    }
+    #l2-veil.gone { opacity: 0; pointer-events: none; }
+    #l2-veil h1 { margin: 0; font-family: Georgia, serif; font-size: 34px;
+      letter-spacing: 10px; color: #f0b429; }
+    #l2-veil .l2-veil-sub { font-family: 'Courier New', monospace; font-size: 11px;
+      letter-spacing: 4px; color: #8a7a5a; }
+    #l2-veil .l2-veil-tag { font-family: Georgia, serif; font-style: italic;
+      font-size: 14px; color: #b8a888; }
+    #l2-held-badge {
+      position: absolute; top: 34px; left: 50%; transform: translateX(-50%); z-index: 15;
+      background: rgba(240,180,41,.92); color: #111; font-family: 'Courier New', monospace;
+      font-size: 10px; letter-spacing: 1px; padding: 8px 12px; border-radius: 6px;
+      white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    #l3-sheet {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 700;
+      background: #0b0b0b; border-top: 1px solid #2a2118; border-radius: 14px 14px 0 0;
+      transform: translateY(calc(100% - 46px)); transition: transform .28s ease;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      max-height: 64dvh; display: flex; flex-direction: column;
+      font-family: 'Courier New', monospace;
+    }
+    #l3-sheet.open { transform: translateY(0); }
+    #l3-handle { flex: 0 0 46px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; }
+    #l3-handle span { width: 44px; height: 5px; border-radius: 3px; background: #3a3a3a; }
+    #l3-sheetbody { overflow-y: auto; padding: 0 14px 22px; }
+    #l3-chips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 12px;
+      -webkit-overflow-scrolling: touch; }
+    #l3-chips button {
+      flex: 0 0 auto; background: #141414; color: #ffd970; border: 1px solid #3a3a3a;
+      font-family: inherit; font-size: 11px; letter-spacing: 1px;
+      padding: 10px 16px; border-radius: 20px; cursor: pointer; min-height: 44px;
+      white-space: nowrap;
+    }
+    #l3-chips button.on { border-color: #f0b429; background: #241c08; }
+    .l3-dial { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+    .l3-dial span { color: #8a7a5a; font-size: 10px; letter-spacing: 2px; flex: 0 0 82px; }
+    .l3-dial input[type=range] { flex: 1 1 auto; accent-color: #f0b429; min-height: 32px; }
+    .l3-dial b { color: #ffd970; font-size: 11px; flex: 0 0 40px; text-align: right; }
+    .l3-check { display: flex; align-items: center; justify-content: space-between;
+      margin: 10px 0; cursor: pointer; min-height: 44px; }
+    .l3-check span { color: #8a7a5a; font-size: 10px; letter-spacing: 2px; }
+    .l3-check input { width: 22px; height: 22px; accent-color: #f0b429; }
+    #l3-teleline {
+      margin-top: 10px; padding-top: 10px; border-top: 1px solid #1e1e1e;
+      color: #6a6a6a; font-size: 10px; letter-spacing: 1px; line-height: 1.7;
+    }
+    #l3-moments { margin-top: 6px; }
+    .l3-moment { color: #8a7a5a; font-size: 10px; letter-spacing: 1px; padding: 3px 0; }
+    .l3-moment.dim { color: #4a4a4a; }
+  </style>
+</head>
+<body>
+
+    <!-- ══ Level 3 pocket cinema: topbar + tabs + one full-width pane + bottom sheet ══ -->
+  <div id="l2-topbar">
+    <span id="l2-brand">POCKET&nbsp;CINEMA</span>
+    <span id="l2-beat">···</span>
+    <button id="l2-take" title="Take the camera">TAKE</button>
+    <button id="l2-resume" title="Hand the camera back" hidden>RESUME</button>
+    <button id="l2-skip" title="Skip this beat">SKIP</button>
+    <button id="l2-mark" title="Mark this moment">♥</button>
+  </div>
+  <div id="l3-tabs">
+    <button id="l3-tab-voxel" class="on">VOXEL</button>
+    <button id="l3-tab-text">TEXT</button>
+  </div>
+  <div id="l3-main">
+    <div id="l2-view3d">
+      <div class="l2-panehead">VOXEL</div>
+      <div id="cs-subtitle"></div>
+      <div id="l2-held-badge" hidden>YOU HAVE THE CAMERA — tap RESUME</div>
+      <div id="l2-veil">
+        <h1>SCRAPCRAFT</h1>
+        <div class="l2-veil-sub">A STORY CINEMA · POCKET EDITION</div>
+        <div class="l2-veil-tag">The yard&rsquo;s story, told by itself. Tap anywhere for sound.</div>
+      </div>
+    </div>
+    <div id="l3-viewtext" hidden>
+      <div class="l2-panehead">PROJECTIONIST · TEXT — tap for the next look</div>
+      <pre id="l2-ascii"></pre>
+    </div>
+  </div>
+  <div id="l3-sheet">
+    <div id="l3-handle"><span></span></div>
+    <div id="l3-sheetbody">
+      <div id="l3-chips"></div>
+      <div id="l3-dials"></div>
+      <label class="l3-check"><span>DRIFT — the machine changes its mind</span><input type="checkbox" id="l3-drift" checked></label>
+      <div id="l3-teleline">—</div>
+      <div id="l3-moments"></div>
+    </div>
+  </div>
+
+<!-- ══ Start screen ══════════════════════════════════════════════════ -->
+  <div id="start-screen">
+    <h1>SCRAPCRAFT</h1>
+    <div class="tagline">A STORY CINEMA</div>
+    <div class="cinema-sub">The yard&rsquo;s story, told by itself.<br>An automated storytelling experiment &mdash; Pocket Cinema — Level 3.</div>
+    <button id="start-btn">&#9654; BEGIN THE FILM</button>
+    <div class="controls-hint">
+      <span>SPACE</span> Skip beat &nbsp;|&nbsp; The film loops on its own
+    </div>
+  </div>
+
+  <!-- ══ Canvas ════════════════════════════════════════════════════════ -->
+  <div id="canvas-container"><canvas id="game-canvas"></canvas></div>
+
+  <!-- ══ HUD ══════════════════════════════════════════════════════════ -->
+  <div id="hud">
+
+    <!-- Crosshair -->
+    <div id="crosshair">
+      <div class="ch ch-t"></div>
+      <div class="ch ch-b"></div>
+      <div class="ch ch-l"></div>
+      <div class="ch ch-r"></div>
+      <div class="ch-dot"></div>
+      <svg id="mine-ring" viewBox="0 0 50 50" width="50" height="50">
+        <circle cx="25" cy="25" r="17" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+        <circle id="mine-arc" cx="25" cy="25" r="17" fill="none"
+          stroke="#f0b429" stroke-width="2.5" stroke-linecap="round"
+          stroke-dasharray="106.8" stroke-dashoffset="106.8"
+          transform="rotate(-90 25 25)"/>
+      </svg>
+    </div>
+
+    <!-- Weather icon (top-left) -->
+    <div id="weather-hud" title="Clear skies">☀️</div>
+    <div id="storm-shelter-warn">⚡ SEEK SHELTER</div>
+
+    <!-- Top-right stacking column: QUESTS → SALVAGE RUN → DAILY CONTRACT → bot badge
+         (quest-log-hud is JS-created into this same column by renderQuestHud) -->
+    <div id="hud-stack-top-right">
+
+      <!-- Salvage Run challenge tracker -->
+      <div id="challenge-hud" class="hud-panel" data-collapsed="false">
+        <div class="hud-panel-header">
+          <div id="ch-title">📋 SALVAGE RUN</div>
+          <div class="hud-defer-note"></div>
+          <span class="collapse-toggle"></span>
+        </div>
+        <div class="hud-panel-body">
+          <div id="ch-label">Loading challenge…</div>
+          <div id="ch-bar-wrap"><div id="ch-bar-fill"></div></div>
+          <div id="ch-counter">0 / ?</div>
+        </div>
+      </div>
+
+      <!-- Daily Salvage Contract -->
+      <div id="daily-hud" class="hud-panel" data-collapsed="false">
+        <div class="hud-panel-header">
+          <div id="dc-title"><span>📜 DAILY CONTRACT</span><span id="dc-streak">🔥</span></div>
+          <div class="hud-defer-note"></div>
+          <span class="collapse-toggle"></span>
+        </div>
+        <div class="hud-panel-body">
+          <div id="dc-label">…</div>
+          <div id="dc-bar-wrap"><div id="dc-bar-fill"></div></div>
+          <div id="dc-counter">0 / ?</div>
+          <div id="dc-night"></div>
+        </div>
+      </div>
+
+      <!-- Bot name badge -->
+      <div id="bot-name-badge">
+        <span id="bot-badge-name">BOT</span><span id="bot-badge-pct">Bond 0%</span>
+        <div id="bot-badge-bond-wrap"><div id="bot-badge-bar" style="width:0%"></div></div>
+      </div>
+
+    </div>
+
+    <!-- Welcome Back card (returning sessions, minute 0 of day 2) -->
+    <div id="welcome-back">
+      <div id="wb-title">WELCOME BACK</div>
+      <div id="wb-subtitle">the yard kept your spot</div>
+      <div id="wb-rows"></div>
+      <button id="wb-close">BACK TO WORK</button>
+    </div>
+
+    <!-- Bot speech card (lower-left) -->
+    <div id="bot-speech-card">
+      <div id="bsc-name">🤖 BOT</div>
+      <div id="bsc-text"></div>
+    </div>
+
+    <!-- Bot serial monitor (last 5 speak() calls, Arduino-style) -->
+    <div id="bot-serial-log">
+      <div id="bsl-title">📟 BOT SERIAL</div>
+      <div id="bsl-lines"></div>
+    </div>
+
+    <!-- Bot sensor dashboard (shows when a brain program is running) -->
+    <div id="bot-sensor-hud">
+      <div class="bsh-title">🤖 BOT SENSORS</div>
+      <div id="bsh-rows"></div>
+      <div class="bsh-row" style="margin-top:4px;border-top:1px solid #0a2814;padding-top:4px;">
+        <span class="bsh-key" style="color:#ffcc00">🔋 BATT</span>
+        <div class="bsh-bar-wrap"><div class="bsh-bar-fill" id="bsh-battery-bar" style="background:#44cc44"></div></div>
+        <span class="bsh-val" id="bsh-battery-val">100%</span>
+      </div>
+      <div class="bsh-motors">
+        <div class="bsh-motor-row">
+          <span class="bsh-motor-key">DRIVE</span>
+          <div class="bsh-motor-bar-wrap"><div class="bsh-motor-bar" id="bsh-drive-bar"></div></div>
+          <span class="bsh-motor-val" id="bsh-drive-val">0.0</span>
+        </div>
+        <div class="bsh-motor-row">
+          <span class="bsh-motor-key">TURN</span>
+          <div class="bsh-motor-bar-wrap"><div class="bsh-motor-bar" id="bsh-turn-bar"></div></div>
+          <span class="bsh-motor-val" id="bsh-turn-val">0.0</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="zone-label">The Yard Gate · Morning</div>
+    <div id="zone-toast"></div>
+    <div id="notifications"></div>
+    <div id="tutorial-hint"></div>
+
+    <!-- Mission Card (Phase A cold-open tutorial) -->
+    <div id="mission-card">
+      <div class="mc-header">
+        <div class="mc-earl">🔧</div>
+        <div class="mc-meta">
+          <div class="mc-label">EARL'S MISSION</div>
+          <div class="mc-step-dots" id="mc-dots"></div>
+        </div>
+        <button class="mc-dismiss" id="mc-dismiss" title="Skip tutorial">✕</button>
+      </div>
+      <div class="mc-body">
+        <div class="mc-title" id="mc-title"></div>
+        <div class="mc-desc" id="mc-desc"></div>
+      </div>
+    </div>
+
+    <div id="block-label"></div>
+
+    <!-- XP bar -->
+    <div id="xp-bar">
+      <div id="xp-label">
+        <span id="xp-level-text">Lv.0</span>
+        <span class="xp-skill-badge" id="xp-skill-badge"></span>
+      </div>
+      <div id="xp-track"><div id="xp-fill"></div></div>
+    </div>
+
+    <!-- Level-up toast -->
+    <div id="levelup-toast">
+      <div class="lu-icon" id="lu-icon">⬆️</div>
+      <div class="lu-title" id="lu-title">LEVEL UP!</div>
+      <div class="lu-skill" id="lu-skill"></div>
+    </div>
+
+    <!-- Flash Receipt modal -->
+    <div id="flash-receipt">
+      <div class="fr-card">
+        <div class="fr-head">
+          <div class="fr-icon">⚡</div>
+          <div class="fr-headline">
+            <h3>READY TO BUILD</h3>
+            <small>YOUR TILES → REAL FIRMWARE</small>
+          </div>
+          <button class="fr-close-btn" id="fr-close">✕</button>
+        </div>
+        <div class="fr-body">
+          <div class="fr-prog-row">
+            <span class="fr-prog-name" id="fr-prog-name">My Brain</span>
+            <span class="fr-brain-badge" id="fr-brain-badge">TIN BRAIN</span>
+            <span class="fr-grade-badge" id="fr-grade-badge">A+</span>
+          </div>
+          <div class="fr-stats-row" id="fr-stats-row"></div>
+          <div class="fr-section-lbl">GENERATED ARDUINO FIRMWARE</div>
+          <pre class="fr-code" id="fr-code"></pre>
+          <div class="fr-wokwi-box">
+            <div class="fr-wokwi-title">🖥 TEST ON WOKWI (free browser simulator)</div>
+            <div class="fr-wokwi-steps">
+              <b>1.</b> Click "Download for Wokwi" below<br>
+              <b>2.</b> Open <b>wokwi.com</b> → New Project → ESP32<br>
+              <b>3.</b> Paste your <code style="color:#44aacc;background:#061016;padding:1px 4px;border-radius:2px;font-size:9px;">sketch.ino</code> and import <code style="color:#44aacc;background:#061016;padding:1px 4px;border-radius:2px;font-size:9px;">diagram.json</code>
+            </div>
+          </div>
+          <div class="fr-actions">
+            <button class="fr-btn fr-btn-share" id="fr-share-btn">🔗 Copy Share Link</button>
+            <button class="fr-btn fr-btn-wokwi" id="fr-wokwi-dl-btn">⬇ Download for Wokwi</button>
+            <a class="fr-btn fr-btn-wokwi" href="https://wokwi.com/projects/new/esp32" target="_blank" rel="noopener">🖥 Open Wokwi →</a>
+            <button class="fr-btn fr-btn-dim" id="fr-close-btn2">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bot speech bubbles (positioned by Game.js via screen projection) -->
+    <div id="bot-speech-1" class="bot-speech"></div>
+    <div id="bot-speech-2" class="bot-speech bot-speech-2"></div>
+
+    <!-- Foreman panel -->
+    <div id="foreman-panel">
+      <div id="foreman-bubble">
+        <div class="name">🔧 BIG EARL</div>
+        <div id="foreman-text"></div>
+        <div class="dismiss" id="foreman-dismiss">[ dismiss ]</div>
+      </div>
+      <div id="quest-box">
+        <div class="quest-title" id="quest-title"></div>
+        <div id="quest-steps"></div>
+      </div>
+    </div>
+
+    <!-- Active item label -->
+    <div id="active-item-label"></div>
+
+    <!-- Item flash (hotbar slot change) -->
+    <div id="item-flash">
+      <div class="if-icon"></div>
+      <div class="if-text">
+        <div class="if-name"></div>
+        <div class="if-desc"></div>
+      </div>
+    </div>
+
+    <!-- Health bar -->
+    <div id="hud-health">
+      <span id="hud-health-label">❤ HP</span>
+      <div id="hud-health-bar"><div id="hud-health-fill"></div></div>
+      <span id="hud-health-num">100</span>
+    </div>
+
+    <!-- Damage vignette (red flash on taking damage) -->
+    <div id="damage-vignette"></div>
+
+    <!-- Ore Scanner HUD (shown when ore_scanner is active hotbar item) -->
+    <div id="ore-scanner-hud">
+      <span id="ors-arrow">↑</span>
+      <div id="ors-label">Crystal Ore<br><span id="ors-dist">-- blocks</span></div>
+    </div>
+
+    <!-- Signal Radio HUD (shown when signal_radio is active hotbar item) -->
+    <div id="signal-radio-hud">
+      <span id="sr-arrow">↑</span>
+      <div id="sr-bars"></div>
+      <div id="sr-label">📡 SIGNAL RADIO<br><span id="sr-dist">-- m</span></div>
+    </div>
+
+    <!-- First-mine Heap Beacon (point the stuck kid at the nearest scrap heap
+         while the "Mine 5 iron scrap" objective is the active next step) -->
+    <div id="heap-beacon-hud">
+      <span id="heap-arrow" data-beacon-ring>↑</span>
+      <div id="heap-label">SCRAP THIS WAY<br><span id="heap-dist">-- blocks</span></div>
+    </div>
+
+    <!-- Hotbar -->
+    <div id="hotbar"></div>
+    <div id="hotbar-tip"></div>
+    <div id="toolbar-hint">[ E ] WORKSHOP &nbsp;·&nbsp; [ T ] MAKER BENCH &nbsp;·&nbsp; [ F ] EARL &nbsp;·&nbsp; [ G ] USE ITEM &nbsp;·&nbsp; [ Y ] WAYPOINT &nbsp;·&nbsp; 1-9 HOTBAR &nbsp;·&nbsp; ESC PAUSE</div>
+
+    <!-- Minimap -->
+    <div id="minimap-wrap">
+      <canvas id="minimap" width="96" height="96"></canvas>
+      <div id="minimap-label">MAP</div>
+    </div>
+
+    <!-- Lap Timer -->
+    <div id="lap-timer"></div>
+    <!-- Ghost lap indicator -->
+    <div id="ghost-indicator">👻 GHOST: BEST LAP</div>
+
+    <!-- Codex shortcut -->
+    <button id="codex-btn">📖 CODEX</button>
+  </div>
+
+  <!-- ══ Codex / Field Guide (C key) ════════════════════════════════ -->
+  <div id="codex-panel">
+    <div id="codex-header">
+      <div id="codex-title">◆ FIELD GUIDE</div>
+      <div id="codex-progress-row">
+        <span id="codex-count">0 / 0</span>
+        <div id="codex-bar-wrap"><div id="codex-bar" style="width:0%"></div></div>
+      </div>
+      <div id="codex-filter">
+        <button class="cx-filter-btn active" data-cat="all">ALL</button>
+        <button class="cx-filter-btn" data-cat="material">SCRAP</button>
+        <button class="cx-filter-btn" data-cat="tool">TOOLS</button>
+        <button class="cx-filter-btn" data-cat="device">DEVICES</button>
+        <button class="cx-filter-btn" data-cat="maker">MAKER</button>
+      </div>
+    </div>
+    <div id="codex-grid"></div>
+    <div id="codex-detail">
+      <div id="codex-detail-empty">Select an item to see details</div>
+    </div>
+    <div id="codex-close">[ C ] CLOSE FIELD GUIDE</div>
+  </div>
+
+  <!-- ══ Help overlay (H key) ═══════════════════════════════════════ -->
+  <div id="help-overlay">
+    <div id="help-inner">
+      <h2>⌨ CONTROLS</h2>
+      <div class="help-section">
+        <h3>MOVEMENT</h3>
+        <div class="help-row"><span class="help-key">WASD</span><span class="help-desc">Move</span></div>
+        <div class="help-row"><span class="help-key">SHIFT</span><span class="help-desc">Sprint (×1.8 speed)</span></div>
+        <div class="help-row"><span class="help-key">SPACE</span><span class="help-desc">Jump (×2.5 with Spring Boots)</span></div>
+        <div class="help-row"><span class="help-key">1-9</span><span class="help-desc">Select hotbar slot</span></div>
+      </div>
+      <div class="help-section">
+        <h3>WORLD</h3>
+        <div class="help-row"><span class="help-key">LMB</span><span class="help-desc">Hold to mine block</span></div>
+        <div class="help-row"><span class="help-key">RMB</span><span class="help-desc">Place hotbar item as block</span></div>
+        <div class="help-row"><span class="help-key">E</span><span class="help-desc">Open workshop / inventory</span></div>
+        <div class="help-row"><span class="help-key">G</span><span class="help-desc">Use / consume active item</span></div>
+        <div class="help-row"><span class="help-key">R</span><span class="help-desc">Respawn at the yard gate</span></div>
+        <div class="help-row"><span class="help-key">I</span><span class="help-desc">Sort inventory (while inventory open)</span></div>
+        <div class="help-row"><span class="help-key">N</span><span class="help-desc">Open / close Field Notes (saved locally)</span></div>
+        <div class="help-row"><span class="help-key">L</span><span class="help-desc">Open Logbook (quest memories + chapter rail)</span></div>
+        <div class="help-row"><span class="help-key">J</span><span class="help-desc">Mo's Ledger — your career record (firsts, laps, chapters)</span></div>
+        <div class="help-row"><span class="help-key">U</span><span class="help-desc">Bot Workshop — install hardware upgrades</span></div>
+      </div>
+      <div class="help-section">
+        <h3>MAKER LAB</h3>
+        <div class="help-row"><span class="help-key">T</span><span class="help-desc">Open Tile Editor (robot brain)</span></div>
+        <div class="help-row"><span class="help-key">B</span><span class="help-desc">Toggle bot program (run / stop)</span></div>
+        <div class="help-row"><span class="help-key">CTRL+B</span><span class="help-desc">Rename your bot</span></div>
+        <div class="help-row"><span class="help-key">SHIFT+B</span><span class="help-desc">Spawn second bot (Level 5+)</span></div>
+        <div class="help-row"><span class="help-key">Y</span><span class="help-desc">Drop waypoint flag (bot navigates here)</span></div>
+        <div class="help-row"><span class="help-key">CTRL+Z</span><span class="help-desc">Undo last tile change (in editor)</span></div>
+        <div class="help-row"><span class="help-key">CTRL+SHIFT+Z</span><span class="help-desc">Redo (in editor)</span></div>
+      </div>
+      <div class="help-section">
+        <h3>SYSTEM</h3>
+        <div class="help-row"><span class="help-key">F</span><span class="help-desc">Talk to Big Earl (foreman AI)</span></div>
+        <div class="help-row"><span class="help-key">M</span><span class="help-desc">Toggle music / sound</span></div>
+        <div class="help-row"><span class="help-key">C</span><span class="help-desc">Open Field Guide (item codex)</span></div>
+        <div class="help-row"><span class="help-key">F5</span><span class="help-desc">Manual save</span></div>
+        <div class="help-row"><span class="help-key">F9</span><span class="help-desc">Reload last save</span></div>
+        <div class="help-row"><span class="help-key">H</span><span class="help-desc">This screen</span></div>
+      </div>
+      <div class="help-section">
+        <h3>💡 GAMEPLAY TIPS</h3>
+        <div class="help-row"><span class="help-desc" style="color:#aaa">Mine scrap piles for <b>iron_scrap</b> and <b>gears</b></span></div>
+        <div class="help-row"><span class="help-desc" style="color:#aaa">Craft a <b>wrench</b> → you'll need it for devices</span></div>
+        <div class="help-row"><span class="help-desc" style="color:#aaa">Open the workshop <b>[E]</b> to see recipes</span></div>
+        <div class="help-row"><span class="help-desc" style="color:#aaa">Talk to Earl <b>[F]</b> for hints</span></div>
+        <div class="help-row"><span class="help-desc" style="color:#aaa">🌙 Night increases rare loot chance!</span></div>
+        <div class="help-row"><span class="help-desc" style="color:#aaa"><b>Shift</b> to sprint</span></div>
+        <div class="help-row"><span class="help-desc" style="color:#aaa">📊 Use <b>set variable</b> tiles to make your bot count and remember things between loops</span></div>
+        <div class="help-row"><span class="help-desc" style="color:#aaa">💡 Click <b>?</b> on any tile in the editor to see what it does</span></div>
+        <div class="help-row"><span class="help-desc" style="color:#aaa">⚡ Ask <b>SPARK</b> to build a program — say "count bumps" or "track laps"</span></div>
+      </div>
+      <div id="help-close">[ H / ESC ] CLOSE</div>
+    </div>
+  </div>
+
+  <!-- ══ Pause overlay ══════════════════════════════════════════════ -->
+  <div id="pause-overlay">
+    <div id="pause-inner">
+      <h2>PAUSED</h2>
+      <p>CLICK ANYWHERE TO CONTINUE</p>
+      <button id="coach-mode-btn">📻 COACH MODE</button>
+      <button id="fullscreen-btn">⛶ FULLSCREEN [F2]</button>
+      <div class="pause-hint">[ M ] MUTE &nbsp;·&nbsp; [ E ] WORKSHOP OPENS ON RESUME</div>
+      <div class="pause-veteran">
+        <button id="veteran-ride-btn" class="veteran-ride-btn">🚚 VETERAN RIDE (NEW SLOT)</button>
+        <button id="veteran-restore-btn" class="veteran-ride-btn" style="display:none">⬅ RESTORE MY SAVE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Achievement toast ═════════════════════════════════════════ -->
+  <div id="achieve-toast">
+    <div class="ach-toast-header">✦ ACHIEVEMENT UNLOCKED</div>
+    <div class="ach-toast-body">
+      <div id="ach-toast-icon"></div>
+      <div>
+        <div id="ach-toast-name"></div>
+        <div id="ach-toast-desc"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Workshop overlay ══════════════════════════════════════════ -->
+  <div id="overlay">
+    <div id="inv-panel">
+      <h2>⚙ WORKSHOP</h2>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="crafting">CRAFTING</button>
+        <button class="tab-btn" data-tab="achievements">ACHIEVEMENTS</button>
+        <button class="tab-btn" data-tab="codex">ENGINEER'S CODEX</button>
+        <button class="tab-btn" data-tab="stats">FIELD REPORT</button>
+      </div>
+
+      <!-- Crafting -->
+      <div class="tab-panel" id="tab-crafting">
+        <div class="panel-cols">
+          <div>
+            <div style="color:#444;font-size:10px;letter-spacing:1px;margin-bottom:6px;">INVENTORY (36 SLOTS)</div>
+            <div id="inv-grid"></div>
+          </div>
+          <div id="crafting-section">
+            <h3>AVAILABLE RECIPES</h3>
+            <div id="recipe-list"></div>
+            <button id="craft-btn">⚒ CRAFT</button>
+            <button id="craft-btn-x5">⚒ CRAFT ×5</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Achievements -->
+      <div class="tab-panel" id="tab-achievements">
+        <div id="ach-list"></div>
+      </div>
+
+      <!-- Field Report (Stats) -->
+      <div class="tab-panel" id="tab-stats">
+        <div id="stats-panel"></div>
+        <div style="padding:10px 14px 0;text-align:right">
+          <button id="btn-print-report" style="background:#061006;border:1px solid #44aa44;color:#44ee88;font-family:'Courier New',monospace;font-size:10px;padding:6px 14px;border-radius:5px;cursor:pointer;letter-spacing:1px">
+            📋 PRINT PROGRESS REPORT
+          </button>
+        </div>
+      </div>
+
+      <!-- Codex -->
+      <div class="tab-panel" id="tab-codex">
+        <div class="codex-cols">
+          <div id="codex-list"></div>
+          <div id="codex-content">
+            <div style="color:#444;font-size:12px;margin-top:50px;text-align:center;line-height:2;">
+              Select a topic to learn the real<br>science behind what you're building.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Tile Editor ════════════════════════════════════════════════════ -->
+  <div id="tile-editor" style="display:none;">
+
+    <!-- Header bar -->
+    <div class="te-header">
+      <span class="te-title">MAKER BENCH</span>
+      <input id="te-name" class="te-name-input" type="text" value="My Brain" spellcheck="false" />
+      <select id="te-brain" class="te-brain-select">
+        <option value="tin">TIN BRAIN</option>
+        <option value="spark">SPARK BRAIN</option>
+        <option value="vision">VISION BRAIN</option>
+      </select>
+      <div class="te-header-actions">
+        <select id="te-preset-sel" class="te-brain-select" title="Load an example program">
+          <option value="">— EXAMPLES —</option>
+          <option value="wall_avoider">Wall Avoider</option>
+          <option value="line_follower">Line Follower</option>
+          <option value="light_runner">Light Runner</option>
+          <option value="square">Honking Square</option>
+          <option value="waypoint_nav">Waypoint Navigator</option>
+          <option value="ore_hunter">Ore Hunter</option>
+          <option value="battery_saver">Battery Saver Patrol</option>
+          <option value="bump_counter">Bump Counter (variables)</option>
+        </select>
+        <select id="te-bot-sel" class="te-brain-select" title="Target bot">
+          <option value="1">BOT 1</option>
+          <option value="2">BOT 2</option>
+        </select>
+        <button id="te-undo-btn" class="te-btn" title="Undo last change (Ctrl+Z)" disabled>↩ UNDO</button>
+        <button id="te-redo-btn" class="te-btn" title="Redo (Ctrl+Shift+Z)" disabled>↪ REDO</button>
+        <button id="te-run"       class="te-btn te-btn-run">▶ RUN</button>
+        <button id="te-stop"      class="te-btn te-btn-stop" disabled>■ STOP</button>
+        <button id="te-step-btn"    class="te-btn" title="Step through your program one tile at a time — great for debugging!">▷ STEP</button>
+        <button id="te-spark-btn"   class="te-btn">⚡ SPARK</button>
+        <button id="te-gallery-btn" class="te-btn" title="Browse and publish community robot programs">🧠 GALLERY</button>
+        <button id="te-challenge-btn" class="te-btn" title="Take on a Maker Challenge — check your tiles against a goal">🎯 CHALLENGE</button>
+        <button id="te-share-btn"   class="te-btn" title="Copy share link to clipboard">🔗 SHARE</button>
+        <button id="te-receipt-btn" class="te-btn te-receipt-btn" title="See generated firmware + Wokwi / flash options">⚡ BUILD IT</button>
+        <button id="te-jr-btn"     class="te-btn" title="Scrapcraft Jr — icon blocks for the youngest builders (Shift+T)">🧒 JR</button>
+        <button id="te-upgrades-btn" class="te-btn" title="Bot Workshop — install hardware upgrades [U]">🔧 MODS</button>
+        <button id="te-botcard-btn" class="te-btn" title="The Bot Card — name, dents, repair log, milestones, and one day… the retirement shelf">💛 BOT</button>
+        <button id="te-code-btn"    class="te-btn">&lt;/&gt; CODE</button>
+        <button id="te-close-btn"   class="te-btn">✕ CLOSE</button>
+      </div>
+    </div>
+
+    <!-- Step-debugger status bar (hidden unless in step mode) -->
+    <div id="te-step-info" style="display:none;padding:4px 14px;font-size:9px;color:#f0b429;background:#181000;border-bottom:1px solid #2a1a00;letter-spacing:1px;font-family:'Courier New',monospace;align-items:center;gap:8px;">
+      ▷ STEP MODE — click STEP each time to advance one tile
+    </div>
+
+    <!-- Split: tray + canvas -->
+    <div class="te-split">
+      <div id="te-tray" class="te-tray"></div>
+      <div class="te-canvas-wrap">
+        <div id="te-canvas"></div>
+      </div>
+
+      <!-- Spark chat panel (shown when ⚡ SPARK toggled) -->
+      <div id="spark-panel" style="display:none;">
+        <div class="sp-header">⚡ SPARK — BUILD BUDDY</div>
+        <div class="sp-log"></div>
+        <div class="sp-input-row">
+          <input class="sp-input" type="text" placeholder="tell Spark what you want…" spellcheck="false" />
+          <button class="sp-send">→</button>
+        </div>
+      </div>
+
+      <!-- Maker Challenge panel (shown when 🎯 CHALLENGE toggled) -->
+      <div id="te-challenge-panel" style="display:none;">
+        <div class="tc-header">
+          <span>🎯 MAKER CHALLENGES</span>
+          <button id="te-challenge-close" class="te-btn" style="margin-left:auto;font-size:9px;padding:2px 7px;">✕</button>
+        </div>
+        <div id="te-challenge-progress"></div>
+        <div id="te-challenge-list"></div>
+        <div id="te-challenge-detail" style="display:none;">
+          <div id="te-challenge-title"></div>
+          <div id="te-challenge-brief"></div>
+          <button id="te-challenge-check" class="te-btn te-btn-run" style="margin-top:8px;">✓ CHECK MY TILES</button>
+          <button id="te-challenge-back"  class="te-btn" style="margin-top:8px;margin-left:6px;">← all challenges</button>
+          <div id="te-challenge-verdict" style="display:none;"></div>
+          <button id="te-challenge-share" class="te-btn" style="display:none;margin-top:8px;">📋 Share this result</button>
+          <div id="te-challenge-sharemsg" style="display:none;font-size:10px;color:#7dd3fc;margin-top:5px;line-height:1.5;"></div>
+        </div>
+        <!-- Verify a friend's solve — paste their shared token and re-run it -->
+        <div id="te-challenge-verify" style="border-top:1px solid #2a2f22;margin-top:10px;padding:9px 12px;">
+          <div style="font-size:10px;color:#8a9098;letter-spacing:.5px;margin-bottom:5px;">🔍 VERIFY A FRIEND'S SOLVE</div>
+          <textarea id="te-challenge-token" placeholder="Paste a shared result token…" rows="2" style="width:100%;box-sizing:border-box;background:#14171b;color:#cdd6df;border:1px solid #2b3540;border-radius:6px;font-size:10px;padding:5px;resize:vertical;"></textarea>
+          <button id="te-challenge-verifybtn" class="te-btn" style="margin-top:6px;font-size:10px;">Re-run &amp; verify</button>
+          <div id="te-challenge-verifyout" style="display:none;font-size:11px;margin-top:6px;line-height:1.5;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live sensor readout (shown while bot is running) -->
+    <div id="te-sensors" style="display:none;"></div>
+
+    <!-- Program stats (shown while bot is running) -->
+    <div id="te-stats" style="display:none;"></div>
+
+    <!-- Code view (hidden until toggled) -->
+    <div id="te-code-view" class="te-code-view" style="display:none;">
+      <div class="te-code-tabs">
+        <button class="te-code-tab active" data-lang="arduino">Arduino (.ino)</button>
+        <button class="te-code-tab" data-lang="micropython">MicroPython (.py)</button>
+        <button class="te-code-tab" data-lang="wiring">📐 Wiring</button>
+        <button id="te-dl"       class="te-btn" style="margin-left:auto;">⬇ Download</button>
+        <button id="te-dl-wokwi" class="te-btn" title="Download sketch + diagram.json for Wokwi simulator">🔌 Wokwi</button>
+        <button id="te-flash"    class="te-btn te-flash-btn" title="Send MicroPython program to a real device via USB (Chrome only)" style="display:none;">⚡ Flash to Device</button>
+        <button id="te-hex-flash" class="te-btn te-flash-btn" title="Flash a compiled .hex to an AVR109/STM32duino board via USB — or keep simulating!" style="display:none;">🔥 Flash .hex</button>
+        <input type="file" id="te-hex-file" accept=".hex,.hexfile" style="display:none;" />
+        <button id="te-pin-view" class="te-btn" title="Hardware twin: see your program driving a virtual Arduino Uno's pins">📐 Wiring</button>
+        <button id="te-quilt-btn" class="te-btn" title="X-RAY MODE: see your robot's insides — flip to watch every value flash">🩻 X-RAY</button>
+      </div>
+      <pre id="te-code-pre"></pre>
+      <div id="te-wiring-svg" style="display:none;overflow:auto;padding:8px;"></div>
+      <!-- Serial monitor: appears when a device is connected -->
+      <div id="te-serial-monitor" style="display:none;">
+        <div id="te-serial-header">
+          <span id="te-serial-status" data-status="connected">● Connected</span>
+          <div style="display:flex;gap:4px;margin-left:auto;">
+            <button id="te-serial-clear" class="te-btn" style="font-size:9px;padding:2px 7px;">Clear</button>
+            <button id="te-serial-disc"  class="te-btn" style="font-size:9px;padding:2px 7px;color:#f66;">Disconnect</button>
+          </div>
+        </div>
+        <div id="te-serial-lines"></div>
+      </div>
+    </div>
+
+    <!-- Compile errors / warnings -->
+    <div id="te-errors" style="display:none;"></div>
+
+  </div>
+
+  <!-- Tooltip -->
+  <div id="tooltip">
+    <div class="t-name" id="tip-name"></div>
+    <div class="t-desc" id="tip-desc"></div>
+  </div>
+
+  <button id="cinema-skip">SKIP BEAT &#9197;</button>
+  <script>
+    window.__CINEMA__ = true;
+  window.__CINEMA_MOBILE__ = true;
+    document.body.classList.add('cinema');
+    // Level 2 studio: the game canvas lives in the voxel pane. Moved here —
+    // before the module boots — so the renderer sizes itself to the pane.
+    (function () {
+      var pane = document.getElementById('l2-view3d');
+      var cc = document.getElementById('canvas-container');
+      if (pane && cc) pane.appendChild(cc);
+    })();
+  </script>
+  <script>
+    // Level 2: surface boot/runtime errors on screen (DevTools isn't always handy).
+    (function () {
+      var box = null;
+      function show(msg) {
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'l2-errors';
+          box.style.cssText = 'position:fixed;left:12px;bottom:12px;max-width:70vw;z-index:9999;' +
+            'background:rgba(20,4,4,.92);border:1px solid #f66;color:#ffb3b3;' +
+            "font-family:monospace;font-size:11px;padding:8px 12px;border-radius:6px;white-space:pre-wrap;";
+          document.body.appendChild(box);
+        }
+        box.textContent += msg + '\n';
+      }
+      var orig = console.error;
+      console.error = function () {
+        try { show('[console.error] ' + Array.prototype.map.call(arguments, String).join(' ')); } catch (e) {}
+        return orig.apply(console, arguments);
+      };
+      window.addEventListener('error', function (e) { show('[error] ' + (e.message || e.type)); });
+      window.addEventListener('unhandledrejection', function (e) { show('[rejection] ' + (e.reason && e.reason.message || e.reason)); });
+    })();
+  </script>
+  <!-- Level 2: three.js arrives via CDN so the engine bundle stays push-sized. -->
+  <script type="importmap">
+    {"imports":{"three":"./vendor/three.module.js"}}
+  </script>
+  <script type="module" src="/src/main.js"></script>
+  <script>
+    // Overlay fade-in when opened (requestAnimationFrame to trigger transition)
+    const obs = new MutationObserver(([m]) => {
+      if (m.target.classList.contains('open')) {
+        requestAnimationFrame(() => m.target.classList.add('visible'));
+      } else {
+        m.target.classList.remove('visible');
+      }
+    });
+    obs.observe(document.getElementById('overlay'), { attributes: true, attributeFilter: ['class'] });
+  </script>
+</body>
+</html>

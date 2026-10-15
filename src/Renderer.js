@@ -34,6 +34,25 @@ export class Renderer {
     this._applyRenderMode();
   }
 
+  // ── Level 2 cinema: the canvas lives inside the #l2-view3d pane, not the
+  // full window. All sizing goes through _cinemaSize() so the renderer fills
+  // the pane in cinema mode and the window everywhere else.
+  _cinemaPane() {
+    try {
+      if (typeof window !== 'undefined' && window.__CINEMA__ === true) {
+        const p = document.getElementById('l2-view3d');
+        if (p && p.clientWidth > 2 && p.clientHeight > 2) return p;
+      }
+    } catch { /* not a cinema layout */ }
+    return null;
+  }
+
+  _cinemaSize() {
+    const p = this._cinemaPane();
+    if (p) return { w: p.clientWidth, h: p.clientHeight };
+    return { w: window.innerWidth, h: window.innerHeight };
+  }
+
   _applyRenderMode() {
     const dpr = window.devicePixelRatio ?? 1;
     // Full mode still caps at 1.5 — a 3x panel buys nothing here and costs 4× pixels.
@@ -48,11 +67,12 @@ export class Renderer {
       this.renderer.shadowMap.enabled = !this.lite;
       this.sunLight && (this.sunLight.castShadow = !this.lite);
     }
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    const { w, h } = this._cinemaSize();
+    this.renderer.setSize(w, h);
   }
 
   _init() {
-    const w = window.innerWidth, h = window.innerHeight;
+    const { w, h } = this._cinemaSize();
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x8aabbb);
@@ -61,7 +81,13 @@ export class Renderer {
     this.camera = new THREE.PerspectiveCamera(70, w / h, 0.05, 200);
     this.camera.position.set(8, 3, 8);
 
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: false });
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: this.canvas,
+      antialias: false,
+      // Level 2 cinema: the ASCII sampler drawImages this canvas every
+      // frame, which needs the drawing buffer to survive the frame.
+      preserveDrawingBuffer: (typeof window !== 'undefined' && window.__CINEMA__ === true),
+    });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.setSize(w, h);
     this.renderer.shadowMap.enabled = true;
@@ -114,7 +140,7 @@ export class Renderer {
       this._resizePending = true;
       requestAnimationFrame(() => {
         this._resizePending = false;
-        const w = window.innerWidth, h = window.innerHeight;
+        const { w, h } = this._cinemaSize();
         this.camera.aspect = w / h;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(w, h);

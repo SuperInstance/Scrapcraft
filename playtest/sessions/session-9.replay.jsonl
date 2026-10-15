@@ -1,0 +1,56 @@
+{"t":3,"kind":"session","mode":"replay","gameUrl":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1"}
+{"t":89,"kind":"note","text":"touch emulation on"}
+{"t":587,"kind":"nav","url":"https://play.superinstance.dev/login"}
+{"t":5623,"kind":"login","result":"submitted"}
+{"t":8792,"kind":"nav","url":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1"}
+{"t":8919,"kind":"state","tag":"boot","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN Loading challenge… 0 / ? 📜 DAILY CONTRACT 🔥 … 0 / ? 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE 0.0 TURN 0.0 The Yard Gate · Morning 🔧 EARL'S MISSION ✕ Lv.0 ❤ HP 100 [ E ] WORKSHOP · [ T ] MAKER ","obsEvents":null,"gate":false,"canvas":true,"menu":true,"veteran":false,"gateText":null,"obsText":null}
+{"t":8919,"kind":"booted","ok":true}
+{"t":9170,"kind":"shot","name":"00-booted"}
+{"t":9192,"kind":"dialog","action":"clock-in-rect","rect":{"x":639.5,"y":293.71875}}
+{"t":9194,"kind":"touch","type":"touchStart","points":[{"x":640,"y":294,"id":1}]}
+{"t":9393,"kind":"touch","type":"touchEnd","points":[]}
+{"t":14012,"kind":"entry","i":0,"st":{"step":"chapter-card"}}
+{"t":16173,"kind":"entry","i":1,"st":{"step":"gate:engines"}}
+{"t":19203,"kind":"entry","i":2,"st":{"step":"gate:explore"}}
+{"t":21382,"kind":"entry","i":3,"st":{"step":"card-btn:Skip →"}}
+{"t":23295,"kind":"entry","i":4,"st":{"step":"veteran:keep-fresh"}}
+{"t":25308,"kind":"entry","i":5,"st":{"step":"clear"}}
+{"t":25924,"kind":"state","tag":"entry-check","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN 📜 DAILY CONTRACT 🔥 🛡️ 📓 QUESTS [L] logbook ➜ NEXT: Mine 5 iron scrap (0/5) ↳ hold left-click on the scrap heaps ☕ Scrap Hunt ☐ Mine 5 iron scrap (0/5) 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE","obsEvents":null,"gate":false,"canvas":true,"menu":false,"veteran":false,"gateText":null,"obsText":"me_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock. [00:12] resume · resumed [00:14] input_failure · pointer-lock request denied by browser [00:14] runtime_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock."}
+{"t":25924,"kind":"entry","cleared":true}
+{"t":26578,"kind":"state","tag":"replay-in-world","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN 📜 DAILY CONTRACT 🔥 🛡️ 📓 QUESTS [L] logbook ➜ NEXT: Mine 5 iron scrap (0/5) ↳ hold left-click on the scrap heaps ☕ Scrap Hunt ☐ Mine 5 iron scrap (0/5) 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE","obsEvents":null,"gate":false,"canvas":true,"menu":false,"veteran":false,"gateText":null,"obsText":"me_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock. [00:12] resume · resumed [00:14] input_failure · pointer-lock request denied by browser [00:14] runtime_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock."}
+{"t":26578,"kind":"touch","type":"touchStart","points":[{"x":320,"y":300,"id":1}],"replay":true}
+{"t":30134,"kind":"state","tag":"replay","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN 📜 DAILY CONTRACT 🔥 🛡️ 📓 QUESTS [L] logbook ➜ NEXT: Mine 5 iron scrap (0/5) ↳ hold left-click on the scrap heaps ☕ Scrap Hunt ☐ Mine 5 iron scrap (0/5) 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE","obsEvents":null,"gate":false,"canvas":true,"menu":false,"veteran":false,"gateText":null,"obsText":"me_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock. [00:12] resume · resumed [00:14] input_failure · pointer-lock request denied by browser [00:14] runtime_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock."}
+{"t":30136,"kind":"touch","type":"touchMove","points":[{"x":320,"y":284,"id":1}],"replay":true}
+{"t":32170,"kind":"touch","type":"touchMove","points":[{"x":320,"y":268,"id":1}],"replay":true}
+{"t":33593,"kind":"touch","type":"touchMove","points":[{"x":320,"y":253,"id":1}],"replay":true}
+{"t":35223,"kind":"touch","type":"touchMove","points":[{"x":320,"y":237,"id":1}],"replay":true}
+{"t":36726,"kind":"touch","type":"touchMove","points":[{"x":320,"y":221,"id":1}],"replay":true}
+{"t":39052,"kind":"touch","type":"touchMove","points":[{"x":320,"y":205,"id":1}],"replay":true}
+{"t":41166,"kind":"state","tag":"replay","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN 📜 DAILY CONTRACT 🔥 🛡️ 📓 QUESTS [L] logbook ➜ NEXT: Mine 5 iron scrap (0/5) ↳ hold left-click on the scrap heaps ☕ Scrap Hunt ☐ Mine 5 iron scrap (0/5) 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE","obsEvents":null,"gate":false,"canvas":true,"menu":false,"veteran":false,"gateText":null,"obsText":"me_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock. [00:12] resume · resumed [00:14] input_failure · pointer-lock request denied by browser [00:14] runtime_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock."}
+{"t":45340,"kind":"touch","type":"touchEnd","points":[],"replay":true}
+{"t":49655,"kind":"touch","type":"touchStart","points":[{"x":900,"y":300,"id":1}],"replay":true}
+{"t":52128,"kind":"touch","type":"touchMove","points":[{"x":855,"y":300,"id":1}],"replay":true}
+{"t":55534,"kind":"touch","type":"touchMove","points":[{"x":810,"y":300,"id":1}],"replay":true}
+{"t":57367,"kind":"touch","type":"touchMove","points":[{"x":765,"y":300,"id":1}],"replay":true}
+{"t":58839,"kind":"touch","type":"touchMove","points":[{"x":720,"y":300,"id":1}],"replay":true}
+{"t":61015,"kind":"state","tag":"replay","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN 📜 DAILY CONTRACT 🔥 🛡️ 📓 QUESTS [L] logbook ➜ NEXT: Mine 5 iron scrap (0/5) ↳ hold left-click on the scrap heaps ☕ Scrap Hunt ☐ Mine 5 iron scrap (0/5) 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE","obsEvents":null,"gate":false,"canvas":true,"menu":false,"veteran":false,"gateText":null,"obsText":"me_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock. [00:12] resume · resumed [00:14] input_failure · pointer-lock request denied by browser [00:14] runtime_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock."}
+{"t":61015,"kind":"touch","type":"touchMove","points":[{"x":675,"y":300,"id":1}],"replay":true}
+{"t":62675,"kind":"touch","type":"touchMove","points":[{"x":630,"y":300,"id":1}],"replay":true}
+{"t":64291,"kind":"touch","type":"touchEnd","points":[],"replay":true}
+{"t":67501,"kind":"touch","type":"touchStart","points":[{"x":320,"y":300,"id":1}],"replay":true}
+{"t":69507,"kind":"touch","type":"touchMove","points":[{"x":320,"y":284,"id":1}],"replay":true}
+{"t":71521,"kind":"touch","type":"touchMove","points":[{"x":320,"y":268,"id":1}],"replay":true}
+{"t":74027,"kind":"state","tag":"replay","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN 📜 DAILY CONTRACT 🔥 🛡️ 📓 QUESTS [L] logbook ➜ NEXT: Mine 5 iron scrap (0/5) ↳ hold left-click on the scrap heaps ☕ Scrap Hunt ☐ Mine 5 iron scrap (0/5) 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE","obsEvents":null,"gate":false,"canvas":true,"menu":false,"veteran":false,"gateText":null,"obsText":"me_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock. [00:12] resume · resumed [00:14] input_failure · pointer-lock request denied by browser [00:14] runtime_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock."}
+{"t":74029,"kind":"touch","type":"touchMove","points":[{"x":320,"y":253,"id":1}],"replay":true}
+{"t":75706,"kind":"touch","type":"touchMove","points":[{"x":320,"y":237,"id":1}],"replay":true}
+{"t":77655,"kind":"touch","type":"touchMove","points":[{"x":320,"y":221,"id":1}],"replay":true}
+{"t":79486,"kind":"touch","type":"touchMove","points":[{"x":320,"y":205,"id":1}],"replay":true}
+{"t":83864,"kind":"touch","type":"touchEnd","points":[],"replay":true}
+{"t":89712,"kind":"touch","type":"touchStart","points":[{"x":1239,"y":510,"id":1}],"replay":true}
+{"t":93860,"kind":"state","tag":"replay","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN 📜 DAILY CONTRACT 🔥 🛡️ 📓 QUESTS [L] logbook ➜ NEXT: Mine 5 iron scrap (0/5) ↳ hold left-click on the scrap heaps ☕ Scrap Hunt ☐ Mine 5 iron scrap (0/5) 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE","obsEvents":null,"gate":false,"canvas":true,"menu":false,"veteran":false,"gateText":null,"obsText":"me_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock. [00:12] resume · resumed [00:14] input_failure · pointer-lock request denied by browser [00:14] runtime_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock."}
+{"t":93860,"kind":"touch","type":"touchEnd","points":[],"replay":true}
+{"t":97720,"kind":"touch","type":"touchStart","points":[{"x":640,"y":330,"id":1}],"replay":true}
+{"t":104127,"kind":"touch","type":"touchEnd","points":[],"replay":true}
+{"t":109581,"kind":"state","tag":"replay-end","href":"https://play.superinstance.dev/?observe=1&seed=playtest-1&lite=1","locked":false,"hud":"☀️ 📋 SALVAGE RUN 📜 DAILY CONTRACT 🔥 🛡️ 📓 QUESTS [L] logbook ➜ NEXT: Mine 5 iron scrap (0/5) ↳ hold left-click on the scrap heaps ☕ Scrap Hunt ☐ Mine 5 iron scrap (0/5) 📟 BOT SERIAL 🤖 BOT SENSORS 🔋 BATT 100% DRIVE","obsEvents":null,"gate":false,"canvas":true,"menu":false,"veteran":false,"gateText":null,"obsText":"me_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock. [00:12] resume · resumed [00:14] input_failure · pointer-lock request denied by browser [00:14] runtime_error · unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock."}
+{"t":112194,"kind":"shot","name":"replay-end"}
+{"t":112194,"kind":"done","consoleErrors":["[Scrapcraft] unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock.","[Scrapcraft] unhandledrejection: NotAllowedError: A user gesture is required to request Pointer Lock."]}
